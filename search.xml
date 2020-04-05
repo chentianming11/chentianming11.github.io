@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>【开源项目】retrofit-plus使用指南</title>
+    <url>/2020/04/05/retrofit-plus%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/</url>
+    <content><![CDATA[<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p><strong>retrofit-plus基于retrofit2，并对retrofit2进行功能增强，实现了retrofit2与spring和spring-boot深度集成，极大简化http调用开发。</strong></p>
+<p><strong>github地址:</strong> <a href="https://github.com/LianjiaTech/retrofit-plus" target="_blank" rel="noopener">https://github.com/LianjiaTech/retrofit-plus</a></p>
+<blockquote>
+<p>Retrofit2是针对于Android/Java的、基于okHttp的、一种轻量级并使用注解方式和动态代理的网络请求框架。Retrofit2让开发者面向接口去请求服务，使用注解和代理去发起真正的请求，让开发者更快速的开发应用，省掉一些复杂的逻辑处理。</p>
+</blockquote>
+<p><em>但是retrofit2官方并没有与spring-boot和spring实现深度整合，而网上各种与spring-boot的整合实现也不尽如人意。因此结合实际的业务场景，基于retrofit2进一步封装实现了retrofit-plus。</em></p>
+<h2 id="特性"><a href="#特性" class="headerlink" title="特性"></a>特性</h2><ul>
+<li><input checked="" disabled="" type="checkbox"> 与spring深度集成</li>
+<li><input checked="" disabled="" type="checkbox"> 与spring-boot深度集成</li>
+<li><input checked="" disabled="" type="checkbox"> http调用接口化</li>
+<li><input checked="" disabled="" type="checkbox"> 连接池管理</li>
+<li><input checked="" disabled="" type="checkbox"> 路径拦截器</li>
+<li><input checked="" disabled="" type="checkbox"> 全局拦截器</li>
+<li><input checked="" disabled="" type="checkbox"> 配置化日志打印</li>
+</ul>
+<h2 id="要求"><a href="#要求" class="headerlink" title="要求"></a>要求</h2><p><strong>需JDK1.8版本以上</strong>，如不满足请先升级JDK</p>
+<h2 id="快速使用"><a href="#快速使用" class="headerlink" title="快速使用"></a>快速使用</h2><p>以下以spring-boot项目为例，快速使用retrofit-plus！</p>
+<blockquote>
+<p>支持spring-boot 1.x/2.x</p>
+</blockquote>
+<p><strong>与spring集成可参考：<a href="https://github.com/lianjiatech/retrofit-plus/tree/master/doc/spring-integrate.md" target="_blank" rel="noopener">与spring集成</a></strong></p>
+<h3 id="引入依赖"><a href="#引入依赖" class="headerlink" title="引入依赖"></a>引入依赖</h3><figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.github.lianjiatech<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>retrofit-plus-boot-starter<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.1.1<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="配置-RetrofitScan注解"><a href="#配置-RetrofitScan注解" class="headerlink" title="配置@RetrofitScan注解"></a>配置<code>@RetrofitScan</code>注解</h2><p>你可以给带有 <code>@Configuration</code> 的类配置该注解，或者直接配置到 Spring Boot 的启动类上，如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@SpringBootApplication</span></span><br><span class="line"><span class="meta">@RetrofitScan</span>(<span class="string">"扫描包路径"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Application</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        SpringApplication.run(Application<span class="class">.<span class="keyword">class</span>, <span class="title">args</span>)</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>@RetrofitScan字段含义：<a href="https://github.com/lianjiatech/retrofit-plus/blob/master/retrofit-plus/src/main/java/com/github/lianjiatechtech/retrofit/plus/annotation/RetrofitScan.java" target="_blank" rel="noopener">@RetrofitScan</a></strong></p>
+<h3 id="定义http调用接口"><a href="#定义http调用接口" class="headerlink" title="定义http调用接口"></a>定义http调用接口</h3><p><strong>接口必须使用<code>@RetrofitClient</code>注解标记！</strong></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@RetrofitClient</span>(baseUrl = <span class="string">"$&#123;test.baseUrl&#125;"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">HttpApi</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line">    <span class="function">Result&lt;Person&gt; <span class="title">getPerson</span><span class="params">(@Query(<span class="string">"id"</span>)</span> Long id)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>@RetrofitClient字段含义：<a href="https://github.com/lianjiatech/retrofit-plus/blob/master/retrofit-plus/src/main/java/com/github/lianjiatech/retrofit/plus/annotation/RetrofitClient.java" target="_blank" rel="noopener">@RetrofitClient</a></strong></p>
+<h3 id="注入使用"><a href="#注入使用" class="headerlink" title="注入使用"></a>注入使用</h3><p><strong>将接口注入到其它bean中即可使用！</strong></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Autowired</span></span><br><span class="line"><span class="keyword">private</span> HttpApi httpApi;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Result&lt;Person&gt; person = httpApi.getPerson(<span class="number">1L</span>);</span><br><span class="line">    Person data = person.getData();</span><br><span class="line">    Assert.assertNotNull(data);</span><br><span class="line">    Assert.assertEquals(<span class="number">1L</span>,data.getId().longValue());</span><br><span class="line">    Assert.assertEquals(<span class="string">"test"</span>,data.getName());</span><br><span class="line">    Assert.assertEquals(<span class="number">10</span>,data.getAge().intValue());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置一览"><a href="#配置一览" class="headerlink" title="配置一览"></a>配置一览</h2><table>
+<thead>
+<tr>
+<th>配置</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>enable-body-call-adapter</td>
+<td>true</td>
+<td>是否启用 BodyCallAdapter适配器</td>
+</tr>
+<tr>
+<td>enable-response-call-adapter</td>
+<td>true</td>
+<td>是否启用 ResponseCallAdapter适配器</td>
+</tr>
+<tr>
+<td>enable-fast-json-converter</td>
+<td>true</td>
+<td>是否启用 fast-json 数据转换器</td>
+</tr>
+<tr>
+<td>enable-log</td>
+<td>true</td>
+<td>启用日志打印</td>
+</tr>
+<tr>
+<td>pool</td>
+<td></td>
+<td>连接池配置</td>
+</tr>
+<tr>
+<td>disable-void-return-type</td>
+<td>false</td>
+<td>禁用java.lang.Void返回类型</td>
+</tr>
+</tbody></table>
+<p><strong>配置使用可参考：<a href="https://github.com/lianjiatech/retrofit-plus/tree/master/doc/config.md" target="_blank" rel="noopener">配置使用</a></strong></p>
+<h2 id="HTTP请求注解"><a href="#HTTP请求注解" class="headerlink" title="HTTP请求注解"></a>HTTP请求注解</h2><p>http请求注解，全部使用了<code>retrofit</code>注解。<strong>详细信息可参考官方文档：<a href="https://square.github.io/retrofit/" target="_blank" rel="noopener">retrofit官方文档</a></strong></p>
+<table>
+<thead>
+<tr>
+<th>注解分类</th>
+<th>支持的注解</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>请求方式</td>
+<td><code>@GET</code> <code>@HEAD</code> <code>@POST</code> <code>@PUT</code> <code>@DELETE</code> <code>@OPTIONS</code></td>
+</tr>
+<tr>
+<td>请求头</td>
+<td><code>@Header</code> <code>@HeaderMap</code> <code>@Headers</code></td>
+</tr>
+<tr>
+<td>Query参数</td>
+<td><code>@Query</code> <code>@QueryMap</code> <code>@QueryName</code></td>
+</tr>
+<tr>
+<td>path参数</td>
+<td><code>@Path</code></td>
+</tr>
+<tr>
+<td>path参数</td>
+<td><code>@Path</code></td>
+</tr>
+<tr>
+<td>form-encoded参数</td>
+<td><code>@Field</code> <code>@FieldMap</code> <code>@FormUrlEncoded</code></td>
+</tr>
+<tr>
+<td>文件上传</td>
+<td><code>@Multipart</code> <code>@Part</code> <code>@PartMap</code></td>
+</tr>
+<tr>
+<td>url参数</td>
+<td><code>@Url</code></td>
+</tr>
+</tbody></table>
+<h2 id="连接池管理"><a href="#连接池管理" class="headerlink" title="连接池管理"></a>连接池管理</h2><p><strong>你可以在配置文件中配置所需要用到的连接池，在<code>@RetrofitClient</code>的使用<code>poolName</code>指定所用的连接池！</strong><br><em>如果没有配置<code>poolName=default</code>的连接池，retrofit-plus会按照<code>max-idle-connections=5</code>和<code>keep-alive-second=300</code>自动配置，当然你也可以自己配置<code>poolName=default</code>的连接池以覆盖默认配置值</em></p>
+<h3 id="spring-boot项目"><a href="#spring-boot项目" class="headerlink" title="spring-boot项目"></a>spring-boot项目</h3><h4 id="yml配置"><a href="#yml配置" class="headerlink" title="yml配置"></a>yml配置</h4><figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">retrofit-plus:</span></span><br><span class="line">  <span class="comment"># 连接池配置</span></span><br><span class="line">  <span class="attr">pool:</span></span><br><span class="line">    <span class="attr">test1:</span></span><br><span class="line">      <span class="attr">max-idle-connections:</span> <span class="number">3</span></span><br><span class="line">      <span class="attr">keep-alive-second:</span> <span class="number">100</span></span><br><span class="line">    <span class="attr">test2:</span></span><br><span class="line">      <span class="attr">max-idle-connections:</span> <span class="number">5</span></span><br><span class="line">      <span class="attr">keep-alive-second:</span> <span class="number">50</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="properties配置"><a href="#properties配置" class="headerlink" title="properties配置"></a>properties配置</h4><figure class="highlight properties"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 连接池配置</span></span><br><span class="line"><span class="meta">retrofit-plus.pool.test1.max-idle-connections</span>=<span class="string">3</span></span><br><span class="line"><span class="meta">retrofit-plus.pool.test1.keep-alive-second</span>=<span class="string">100</span></span><br><span class="line"><span class="meta">retrofit-plus.pool.test2.max-idle-connections</span>=<span class="string">2</span></span><br><span class="line"><span class="meta">retrofit-plus.pool.test2.keep-alive-second</span>=<span class="string">200</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="spring项目"><a href="#spring项目" class="headerlink" title="spring项目"></a>spring项目</h3><h4 id="retrofitHelper配置"><a href="#retrofitHelper配置" class="headerlink" title="retrofitHelper配置"></a>retrofitHelper配置</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 连接池配置</span></span><br><span class="line">PoolConfig test1 = <span class="keyword">new</span> PoolConfig(<span class="number">5</span>, <span class="number">300</span>);</span><br><span class="line">PoolConfig test2 = <span class="keyword">new</span> PoolConfig(<span class="number">2</span>, <span class="number">100</span>);</span><br><span class="line">Map&lt;String, PoolConfig&gt; pool = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">pool.put(<span class="string">"test1"</span>, test1);</span><br><span class="line">pool.put(<span class="string">"test2"</span>, test2);</span><br><span class="line"><span class="comment">// 配置对象</span></span><br><span class="line">Config config = <span class="keyword">new</span> Config();</span><br><span class="line">config.setPool(pool);</span><br></pre></td></tr></table></figure>
+
+<h2 id="调用适配器-CallAdapter"><a href="#调用适配器-CallAdapter" class="headerlink" title="调用适配器 CallAdapter"></a>调用适配器 CallAdapter</h2><p>Retrofit2可以通过调用适配器<code>CallAdapterFactory</code>将<code>Call&lt;T&gt;</code>对象适配成接口方法的返回值类型。<br>retrofit-plus扩展2种<code>CallAdapterFactory</code>实现：</p>
+<ol>
+<li><code>BodyCallAdapterFactory</code><ul>
+<li>默认启用，可通过配置<code>retrofit-plus.enable-body-call-adapter=false</code>关闭</li>
+<li>同步执行http请求，将响应体内容适配成接口方法的返回值类型实例。</li>
+<li>如果返回值类型为<code>retrofit2.Call&lt;T&gt;</code>、<code>retrofit2.Response&lt;T&gt;</code>、<code>java.util.concurrent.CompletableFuture&lt;T&gt;</code>，则不会使用适配器。</li>
+</ul>
+</li>
+<li><code>ResponseCallAdapterFactory</code><ul>
+<li>默认启用，可通过配置<code>retrofit-plus.enable-response-call-adapter=false</code>关闭</li>
+<li>同步执行http请求，将响应体内容适配成<code>retrofit2.Response&lt;T&gt;</code>返回。</li>
+<li>如果方法的返回值类型为<code>retrofit2.Response&lt;T&gt;</code>，则会使用该适配器。</li>
+</ul>
+</li>
+</ol>
+<p><strong>retrofit2自动根据方法返回值类型选用对应的<code>CallAdapterFactory</code>执行适配处理！加上retrofit2默认的<code>CallAdapterFactory</code>，可支持多种形式的方法返回值类型：</strong></p>
+<ul>
+<li><code>Call&lt;T&gt;</code>: 不执行适配处理，直接返回<code>Call&lt;T&gt;</code>对象</li>
+<li><code>CompletableFuture&lt;T&gt;</code>: 将响应体内容适配成<code>CompletableFuture&lt;T&gt;</code>对象返回</li>
+<li><code>Void</code>: 不关注返回类型可以使用<code>Void</code>。如果http状态码不是2xx，直接抛错！</li>
+<li><code>Response&lt;T&gt;</code>: 将响应内容适配成<code>Response&lt;T&gt;</code>对象返回</li>
+<li>其他任意Java类型： 将响应体内容适配成一个对应的Java类型对象返回，如果http状态码不是2xx，直接抛错！</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Call&lt;T&gt;</span></span><br><span class="line"><span class="comment"> * 不执行适配处理，直接返回Call&lt;T&gt;对象</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> id</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line">Call&lt;Result&lt;Person&gt;&gt; getPersonCall(<span class="meta">@Query</span>(<span class="string">"id"</span>) Long id);</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *  CompletableFuture&lt;T&gt;</span></span><br><span class="line"><span class="comment"> *  将响应体内容适配成CompletableFuture&lt;T&gt;对象返回</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> id</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line">CompletableFuture&lt;Result&lt;Person&gt;&gt; getPersonCompletableFuture(<span class="meta">@Query</span>(<span class="string">"id"</span>) Long id);</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Void</span></span><br><span class="line"><span class="comment"> * 不关注返回类型可以使用Void。如果http状态码不是2xx，直接抛错！</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> id</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line"><span class="function">Void <span class="title">getPersonVoid</span><span class="params">(@Query(<span class="string">"id"</span>)</span> Long id)</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *  Response&lt;T&gt;</span></span><br><span class="line"><span class="comment"> *  将响应内容适配成Response&lt;T&gt;对象返回</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> id</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line">Response&lt;Result&lt;Person&gt;&gt; getPersonResponse(<span class="meta">@Query</span>(<span class="string">"id"</span>) Long id);</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 其他任意Java类型</span></span><br><span class="line"><span class="comment"> * 将响应体内容适配成一个对应的Java类型对象返回，如果http状态码不是2xx，直接抛错！</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> id</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line"><span class="function">Result&lt;Person&gt; <span class="title">getPerson</span><span class="params">(@Query(<span class="string">"id"</span>)</span> Long id)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>你也可以自己扩展实现自己的<code>CallAdapter</code>，只需要继承<code>CallAdapter.Factory</code>即可。</strong></p>
+<p><strong>然后直接将自定义的<code>CallAdapterFactory</code>配置成spring的bean即可，retrofit-plus会自动加载！手动配置的<code>CallAdapterFactory</code>优先级更高！</strong></p>
+<h2 id="数据转码器-Converter"><a href="#数据转码器-Converter" class="headerlink" title="数据转码器 Converter"></a>数据转码器 Converter</h2><p>retrofit2使用Converter 将<code>@Body</code>注解标注的对象转换成请求体，将响应体数据转换成一个Java对象。你可以选用以下几种Converter：</p>
+<ul>
+<li>Gson: com.squareup.retrofit2:converter-gson</li>
+<li>Jackson: com.squareup.retrofit2:converter-jackson</li>
+<li>Moshi: com.squareup.retrofit2:converter-moshi</li>
+<li>Protobuf: com.squareup.retrofit2:converter-protobuf</li>
+<li>Wire: com.squareup.retrofit2:converter-wire</li>
+<li>Simple XML: com.squareup.retrofit2:converter-simplexml</li>
+</ul>
+<p>retrofit-plus默认使用的是fast-json进行序列化转换，你可以通过<code>retrofit-plus.enable-fast-json-converter=false</code>关闭该转换器！<br><strong>如果需要实现自定义的Converter， 只需继承<code>Converter.Factory</code>即可！</strong></p>
+<p><strong>直接将对应的<code>ConverterFactory</code>配置成spring的bean即可，retrofit-plus会自动加载！手动配置的<code>ConverterFactory</code>优先级更高！</strong></p>
+<h2 id="日志打印配置"><a href="#日志打印配置" class="headerlink" title="日志打印配置"></a>日志打印配置</h2><p>针对每个接口，支持日志打印级别和日志打印策略的配置。<br><strong>配置使用可参考：<a href="https://github.com/lianjiatech/retrofit-plus/blob/master/retrofit-plus/src/main/java/com/github/lianjiatech/retrofit/plus/interceptor/LogStrategy.java" target="_blank" rel="noopener">LogStrategy</a></strong></p>
+<h2 id="路径拦截器-BasePathMatchInterceptor"><a href="#路径拦截器-BasePathMatchInterceptor" class="headerlink" title="路径拦截器 BasePathMatchInterceptor"></a>路径拦截器 BasePathMatchInterceptor</h2><p>可以在接口上使用<code>@Intercept</code>注解指定要使用的路径拦截器，参见：<a href="https://github.com/lianjiatech/retrofit-plus/blob/master/retrofit-plus/src/main/java/com/github/lianjiatech/retrofit/plus/annotation/Intercept.java" target="_blank" rel="noopener">@Intercept</a></p>
+<blockquote>
+<p>具体的拦截器需要继承<code>BasePathMatchInterceptor</code></p>
+</blockquote>
+<h3 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h3><p>给指定请求的url后面拼接timestamp时间戳，可以使用路径拦截器实现</p>
+<h3 id="拦截器实现"><a href="#拦截器实现" class="headerlink" title="拦截器实现"></a>拦截器实现</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TimeStampInterceptor</span> <span class="keyword">extends</span> <span class="title">BasePathMatchInterceptor</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Response <span class="title">doIntercept</span><span class="params">(Chain chain)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        Request request = chain.request();</span><br><span class="line">        HttpUrl url = request.url();</span><br><span class="line">        <span class="keyword">long</span> timestamp = System.currentTimeMillis();</span><br><span class="line">        HttpUrl newUrl = url.newBuilder()</span><br><span class="line">                .addQueryParameter(<span class="string">"timestamp"</span>, String.valueOf(timestamp))</span><br><span class="line">                .build();</span><br><span class="line">        Request newRequest = request.newBuilder()</span><br><span class="line">                .url(newUrl)</span><br><span class="line">                .build();</span><br><span class="line">        <span class="keyword">return</span> chain.proceed(newRequest);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="接口加上-Intercept注解（非常实用）"><a href="#接口加上-Intercept注解（非常实用）" class="headerlink" title="接口加上@Intercept注解（非常实用）"></a>接口加上<code>@Intercept</code>注解（非常实用）</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@RetrofitClient</span>(baseUrl = <span class="string">"$&#123;test.baseUrl&#125;"</span>)</span><br><span class="line"><span class="meta">@Intercept</span>(handler = TimeStampInterceptor<span class="class">.<span class="keyword">class</span>, <span class="title">include</span> </span>= &#123;<span class="string">"/api/**"</span>&#125;, exclude = <span class="string">"/api/test/savePerson"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">HttpApi</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line">    <span class="function">Result&lt;Person&gt; <span class="title">getPerson</span><span class="params">(@Query(<span class="string">"id"</span>)</span> Long id)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@POST</span>(<span class="string">"savePerson"</span>)</span><br><span class="line">    <span class="function">Result&lt;Person&gt; <span class="title">savePerson</span><span class="params">(@Body Person person)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>优先从spring容器获取拦截器handler实例，如果获取不到，则使用反射创建一个！</strong> 如果以Bean的形式配置，scope必须是prototype</p>
+<h3 id="以原型bean的形式配置拦截器实例"><a href="#以原型bean的形式配置拦截器实例" class="headerlink" title="以原型bean的形式配置拦截器实例"></a>以原型bean的形式配置拦截器实例</h3><p>适用于<strong>处理逻辑需要依赖其他Bean</strong>的场景</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="meta">@Scope</span>(ConfigurableBeanFactory.SCOPE_PROTOTYPE)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">OtherInterceptor</span> <span class="keyword">extends</span> <span class="title">BasePathMatchInterceptor</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> OtherBean otherBean</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Response <span class="title">doIntercept</span><span class="params">(Chain chain)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        <span class="comment">// 拦截处理</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="扩展实现自定义拦截注解（非常实用）"><a href="#扩展实现自定义拦截注解（非常实用）" class="headerlink" title="扩展实现自定义拦截注解（非常实用）"></a>扩展实现自定义拦截注解（非常实用）</h2><p>如果需要在拦截器注解上传入其它参数，可以通过使用<code>@InterceptMark</code>标记来扩展自己的拦截注解。<br>例如需要给http的request的header中添加sign签名信息，可以扩展一个<code>@Sign</code>注解！</p>
+<blockquote>
+<p>注意：注解中必须包括<code>include()、exclude()、handler()</code>属性信息</p>
+</blockquote>
+<h3 id="示例-1"><a href="#示例-1" class="headerlink" title="示例"></a>示例</h3><p>需要给http的request的header中添加sign签名信息，可以扩展一个<code>@Sign</code>注解！</p>
+<h3 id="定义-Sign注解"><a href="#定义-Sign注解" class="headerlink" title="定义@Sign注解"></a>定义<code>@Sign</code>注解</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Retention</span>(RetentionPolicy.RUNTIME)</span><br><span class="line"><span class="meta">@Target</span>(ElementType.TYPE)</span><br><span class="line"><span class="meta">@Documented</span></span><br><span class="line"><span class="meta">@InterceptMark</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Sign &#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 密钥key</span></span><br><span class="line"><span class="comment">     * 支持占位符形式配置。</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function">String <span class="title">accessKeyId</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 密钥</span></span><br><span class="line"><span class="comment">     * 支持占位符形式配置。</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function">String <span class="title">accessKeySecret</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 拦截器匹配路径</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    String[] include() <span class="keyword">default</span> &#123;<span class="string">"/**"</span>&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 拦截器排除匹配，排除指定路径拦截</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    String[] exclude() <span class="keyword">default</span> &#123;&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 处理该注解的拦截器类</span></span><br><span class="line"><span class="comment">     * 优先从spring容器获取对应的Bean，如果获取不到，则使用反射创建一个！</span></span><br><span class="line"><span class="comment">     * 如果以Bean的形式配置，scope必须是prototype</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    Class&lt;? extends BasePathMatchInterceptor&gt; handler() <span class="keyword">default</span> SignInterceptor<span class="class">.<span class="keyword">class</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="实现SignInterceptor"><a href="#实现SignInterceptor" class="headerlink" title="实现SignInterceptor"></a>实现<code>SignInterceptor</code></h3><p><strong>自动将注解上的属性注入到拦截器实例的字段上！</strong> 需提供setter方法</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SignInterceptor</span> <span class="keyword">extends</span> <span class="title">BasePathMatchInterceptor</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String accessKeyId;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String accessKeySecret;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Response <span class="title">doIntercept</span><span class="params">(Chain chain)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        Request request = chain.request();</span><br><span class="line">        Request newReq = request.newBuilder()</span><br><span class="line">                .addHeader(<span class="string">"accessKeyId"</span>, resolvePlaceholders(accessKeyId))</span><br><span class="line">                .addHeader(<span class="string">"accessKeySecret"</span>, resolvePlaceholders(accessKeySecret))</span><br><span class="line">                .build();</span><br><span class="line">        <span class="keyword">return</span> chain.proceed(newReq);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="接口使用"><a href="#接口使用" class="headerlink" title="接口使用"></a>接口使用</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@RetrofitClient</span>(baseUrl = <span class="string">"$&#123;test.baseUrl&#125;"</span>)</span><br><span class="line"><span class="meta">@Sign</span>(accessKeyId = <span class="string">"$&#123;test.accessKeyId&#125;"</span>, accessKeySecret = <span class="string">"$&#123;test.accessKeySecret&#125;"</span>, exclude = &#123;<span class="string">"/api/test/person"</span>&#125;)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">HttpApi</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line">    <span class="function">Result&lt;Person&gt; <span class="title">getPerson</span><span class="params">(@Query(<span class="string">"id"</span>)</span> Long id)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@POST</span>(<span class="string">"savePerson"</span>)</span><br><span class="line">    <span class="function">Result&lt;Person&gt; <span class="title">savePerson</span><span class="params">(@Body Person person)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="全局拦截器-BaseGlobalInterceptor"><a href="#全局拦截器-BaseGlobalInterceptor" class="headerlink" title="全局拦截器 BaseGlobalInterceptor"></a>全局拦截器 BaseGlobalInterceptor</h2><p>如果你需要对整个系统的的http请求执行统一的拦截处理，可以自定义实现全局拦截器<code>BaseGlobalInterceptor</code>, 并配置成spring中的bean即可！</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">PrintInteceptor</span> <span class="keyword">extends</span> <span class="title">BaseGlobalInterceptor</span></span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Response <span class="title">doIntercept</span><span class="params">(Chain chain)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        Request request = chain.request();</span><br><span class="line">        System.out.println(<span class="string">"=============test==========="</span>);</span><br><span class="line">        <span class="keyword">return</span> chain.proceed(request);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="上传文件示例"><a href="#上传文件示例" class="headerlink" title="上传文件示例"></a>上传文件示例</h2><h3 id="构建MultipartBody-Part"><a href="#构建MultipartBody-Part" class="headerlink" title="构建MultipartBody.Part"></a>构建MultipartBody.Part</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 对文件名使用URLEncoder进行编码</span></span><br><span class="line">String fileName = URLEncoder.encode(Objects.requireNonNull(file.getOriginalFilename()), <span class="string">"utf-8"</span>);</span><br><span class="line">okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(MediaType.parse(<span class="string">"multipart/form-data"</span>),file.getBytes());</span><br><span class="line">MultipartBody.Part file = MultipartBody.Part.createFormData(<span class="string">"file"</span>, fileName, requestBody);</span><br><span class="line">apiService.upload(file);</span><br></pre></td></tr></table></figure>
+
+<h3 id="http上传接口"><a href="#http上传接口" class="headerlink" title="http上传接口"></a>http上传接口</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@POST</span>(<span class="string">"upload"</span>)</span><br><span class="line"><span class="meta">@Multipart</span></span><br><span class="line"><span class="function">Void <span class="title">upload</span><span class="params">(@Part MultipartBody.Part file)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<h2 id="动态URL示例"><a href="#动态URL示例" class="headerlink" title="动态URL示例"></a>动态URL示例</h2><p>使用<code>@url</code>注解可实现动态URL。</p>
+<p><strong>注意：<code>@url</code>必须放在方法参数的第一个位置。原有定义<code>@GET</code>、<code>@POST</code>等注解上，不需要定义端点路径！</strong></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@GET</span></span><br><span class="line"><span class="function">Map&lt;String, Object&gt; <span class="title">test3</span><span class="params">(@Url String url,@Query(<span class="string">"name"</span>)</span> String name)</span>;</span><br></pre></td></tr></table></figure>
+
+<h2 id="问题反馈"><a href="#问题反馈" class="headerlink" title="问题反馈"></a>问题反馈</h2><p>陈添明 <a href="mailto:&#99;&#104;&#x65;&#110;&#x74;&#x69;&#x61;&#110;&#x6d;&#105;&#x6e;&#103;&#x31;&#49;&#64;&#113;&#x71;&#46;&#x63;&#111;&#109;">&#99;&#104;&#x65;&#110;&#x74;&#x69;&#x61;&#110;&#x6d;&#105;&#x6e;&#103;&#x31;&#49;&#64;&#113;&#x71;&#46;&#x63;&#111;&#109;</a> ，欢迎Fork&amp;MergeRequest!</p>
+]]></content>
+      <tags>
+        <tag>http</tag>
+        <tag>okhttp3</tag>
+        <tag>retrofit2</tag>
+      </tags>
+  </entry>
+</search>
