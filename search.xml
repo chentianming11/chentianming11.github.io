@@ -2,7 +2,7 @@
 <search>
   <entry>
     <title>【开源项目】retrofit-plus使用指南</title>
-    <url>/2020/04/05/retrofit-plus%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/</url>
+    <url>/posts/3638273051/</url>
     <content><![CDATA[<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p><strong>retrofit-plus基于retrofit2，并对retrofit2进行功能增强，实现了retrofit2与spring和spring-boot深度集成，极大简化http调用开发。</strong></p>
 <p><strong>github地址:</strong> <a href="https://github.com/LianjiaTech/retrofit-plus" target="_blank" rel="noopener">https://github.com/LianjiaTech/retrofit-plus</a></p>
 <blockquote>
@@ -200,7 +200,7 @@
 <p><strong>注意：<code>@url</code>必须放在方法参数的第一个位置。原有定义<code>@GET</code>、<code>@POST</code>等注解上，不需要定义端点路径！</strong></p>
 <figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@GET</span></span><br><span class="line"><span class="function">Map&lt;String, Object&gt; <span class="title">test3</span><span class="params">(@Url String url,@Query(<span class="string">"name"</span>)</span> String name)</span>;</span><br></pre></td></tr></table></figure>
 
-<h2 id="问题反馈"><a href="#问题反馈" class="headerlink" title="问题反馈"></a>问题反馈</h2><p>陈添明 <a href="mailto:&#99;&#104;&#x65;&#110;&#x74;&#x69;&#x61;&#110;&#x6d;&#105;&#x6e;&#103;&#x31;&#49;&#64;&#113;&#x71;&#46;&#x63;&#111;&#109;">&#99;&#104;&#x65;&#110;&#x74;&#x69;&#x61;&#110;&#x6d;&#105;&#x6e;&#103;&#x31;&#49;&#64;&#113;&#x71;&#46;&#x63;&#111;&#109;</a> ，欢迎Fork&amp;MergeRequest!</p>
+<h2 id="问题反馈"><a href="#问题反馈" class="headerlink" title="问题反馈"></a>问题反馈</h2><p>陈添明 <a href="mailto:&#x63;&#104;&#101;&#x6e;&#116;&#105;&#x61;&#110;&#x6d;&#x69;&#110;&#103;&#49;&#x31;&#x40;&#x71;&#113;&#46;&#x63;&#111;&#x6d;">&#x63;&#104;&#101;&#x6e;&#116;&#105;&#x61;&#110;&#x6d;&#x69;&#110;&#103;&#49;&#x31;&#x40;&#x71;&#113;&#46;&#x63;&#111;&#x6d;</a> ，欢迎Fork&amp;MergeRequest!</p>
 ]]></content>
       <tags>
         <tag>http</tag>
