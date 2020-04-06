@@ -1,0 +1,278 @@
+scheme: Gemini
+
+darkmode: true
+
+language: zh-CN
+
+menu:
+  home: / || fa fa-home
+  # about: /about/ || fa fa-user
+  tags: /tags/ || fa fa-tags
+  categories: /categories/ || fa fa-th
+  archives: /archives/ || fa fa-archive
+  # schedule: /schedule/ || fa fa-calendar
+  #sitemap: /sitemap.xml || fa fa-sitemap
+  #commonweal: /404/ || fa fa-heartbeat
+
+# Enable / Disable menu icons / item badges.
+menu_settings:
+  icons: true
+  badges: true
+
+
+# Sidebar Avatar
+avatar:
+  # Replace the default image and set the url here.
+  url: images/avatar.jpg
+  # If true, the avatar will be dispalyed in circle.
+  rounded: false
+  # If true, the avatar will be rotated with the cursor.
+  rotated: false
+
+codeblock:
+# Code Highlight theme
+# Available values: normal | night | night eighties | night blue | night bright | solarized | solarized dark | galactic
+# See: https://github.com/chriskempson/tomorrow-theme
+  highlight_theme: night eighties
+  # Add copy button on codeblock
+  copy_button:
+    enable: true
+    # Show text copy result.
+    show_result: true
+    # Available values: default | flat | mac
+    style: default
+
+# Bookmark Support
+bookmark:
+  enable: false
+  # Customize the color of the bookmark.
+  color: "#222"
+  # If auto, save the reading progress when closing the page or clicking the bookmark-icon.
+  # If manual, only save it by clicking the bookmark-icon.
+  save: auto
+
+
+# Follow me on GitHub banner in right-top corner.
+github_banner:
+  enable: true
+  permalink: https://github.com/chentianming11
+  title: Follow me on GitHub
+
+footer:
+  # © 和年份中间的图标
+  icon:
+    # 图标名
+    name: fa fa-heart
+    # 图标的一个动画效果，类似于心跳
+    animated: true
+    # 图标颜色，可格局需要自行修改
+    color: "#ff0000"
+
+  # Powered by Hexo 字样，不喜欢可以设置为 false
+  powered:
+    enable: true
+    # Version info of Hexo after Hexo link (vX.X.X).
+    version: true
+    
+  # 主题字样，不喜欢可以 false
+  theme:
+    # Theme & scheme info link (Theme - NexT.scheme).
+    enable: true
+    # Version info of NexT after scheme info (vX.X.X).
+    version: true
+
+# Valine
+# You can get your appid and appkey from https://leancloud.cn
+# more info please open https://valine.js.org
+valine:
+  enable: true # When enable is set to be true, leancloud_visitors is recommended to be closed for the re-initialization problem within different leancloud adk version.
+  appid:  SoPxUkme2aynTULaNuIc5TIq-gzGzoHsz
+  appkey:  4TDP7SMCbgDKTOGGUtpIeA0H
+  notify: true # mail notifier , https://github.com/xCss/Valine/wiki
+  verify: false # Verification code
+  placeholder: 留下点足迹吧~ # comment box placeholder
+  avatar: mm # gravatar style
+  guest_info: nick,mail # custom comment header
+  pageSize: 10 # pagination size
+  visitor: false # leancloud-counter-security is not supported for now. When visitor is set to be true, appid and appkey are recommended to be the same as leancloud_visitors' for counter compatibility. Article reading statistic https://valine.js.org/visitor.html
+  comment_count: true # If false, comment count will only be displayed in post page, not in home page
+  recordIP: false # Whether to record the commenter IP
+  serverURLs: # When the custom domain name is enabled, fill it in here (it will be detected automatically by default, no need to fill in)
+
+# Show Views / Visitors of the website / page with busuanzi.
+# Get more information on http://ibruce.info/2015/04/04/busuanzi
+busuanzi_count:
+  enable: true
+  total_visitors: true
+  total_visitors_icon: user
+  total_views: true
+  total_views_icon: eye
+  post_views: true
+  post_views_icon: eye
+
+disable_baidu_transformation: true
+
+index_with_subtitle: true
+
+tagcloud:
+  # All values below are same as default, change them by yourself
+  min: 25 # min font size in px
+  max: 35 # max font size in px
+  start: '#0A0A0A' # start color (hex, rgba, hsla or color keywords)
+  end: '#ED2132' # end color (hex, rgba, hsla or color keywords)
+  amount: 100 # amount of tags, chage it if you have more than 200 tags
+
+  
+
+# Local search
+# Dependencies: https://github.com/theme-next/hexo-generator-searchdb
+local_search:
+  enable: true
+  # If auto, trigger search by changing input.
+  # If manual, trigger search by pressing enter key or search button.
+  trigger: auto
+  # Show top n results per article, show all results by setting to -1
+  top_n_per_article: 1
+  # Unescape html strings to the readable one.
+  unescape: false
+  # Preload the search data when the page loads.
+  preload: false
+
+# Easily enable fast Ajax navigation on your website.
+# Dependencies: https://github.com/theme-next/theme-next-pjax
+# For moreinformation: https://github.com/MoOx/pjax
+pjax: true
+
+quicklink:
+  enable: true
+  home: true
+  archive: true
+  delay: true
+  timeout: 3000
+  priority: true
+  ignores:
+
+canvas_ribbon:
+  enable: true
+  size: 300
+  alpha: 0.6
+  zIndex: -1
+
+# Lazyload
+## Depends on hexo-lazyload-image
+lazyload:
+  enable: true
+  onlypost: false
+  # 图片尚未加载完时，显示指定图片。目录地址为博客根目录下的 source/
+  loadingImg: /uploads/loading.gif
+
+
+# Script Vendors. Set a CDN address for the vendor you want to customize.
+# Be aware that you would better use the same version as internal ones to avoid potential problems.
+# Remember to use the https protocol of CDN files when you enable https on your site.
+vendors:
+  # Internal path prefix.
+  _internal: lib
+
+  # Internal version: 3.1.0
+  # anime: //cdn.jsdelivr.net/npm/animejs@3.1.0/lib/anime.min.js
+  anime:
+
+  # Internal version: 5.13.0
+  # fontawesome: //cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css
+  # fontawesome: //cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css
+  fontawesome:
+
+  # MathJax
+  # mathjax: //cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  mathjax:
+
+  # KaTeX
+  # katex: //cdn.jsdelivr.net/npm/katex@0/dist/katex.min.css
+  # katex: //cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css
+  # copy_tex_js: //cdn.jsdelivr.net/npm/katex@0/dist/contrib/copy-tex.min.js
+  # copy_tex_css: //cdn.jsdelivr.net/npm/katex@0/dist/contrib/copy-tex.min.css
+  katex:
+  copy_tex_js:
+  copy_tex_css:
+
+  # Internal version: 0.2.8
+  pjax: //cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js
+
+  # FancyBox
+  # jquery: //cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js
+  # fancybox: //cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js
+  # fancybox_css: //cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css
+  jquery:
+  fancybox:
+  fancybox_css:
+
+  # Medium-zoom
+  # mediumzoom: //cdn.jsdelivr.net/npm/medium-zoom@1/dist/medium-zoom.min.js
+  mediumzoom:
+
+  # Lazyload
+  # lazyload: //cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js
+  # lazyload: //cdnjs.cloudflare.com/ajax/libs/lozad.js/1.14.0/lozad.min.js
+  lazyload:
+
+  # Pangu
+  # pangu: //cdn.jsdelivr.net/npm/pangu@4/dist/browser/pangu.min.js
+  # pangu: //cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js
+  pangu:
+
+  # Quicklink
+  quicklink: //cdn.jsdelivr.net/npm/quicklink@1/dist/quicklink.umd.js
+
+  # DisqusJS
+  # disqusjs_js: //cdn.jsdelivr.net/npm/disqusjs@1/dist/disqus.js
+  # disqusjs_css: //cdn.jsdelivr.net/npm/disqusjs@1/dist/disqusjs.css
+  disqusjs_js:
+  disqusjs_css:
+
+  # Valine
+  # valine: //cdn.jsdelivr.net/npm/valine@1/dist/Valine.min.js
+  # valine: //cdnjs.cloudflare.com/ajax/libs/valine/1.3.10/Valine.min.js
+  valine:
+
+  # Gitalk
+  # gitalk_js: //cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js
+  # gitalk_css: //cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css
+  gitalk_js:
+  gitalk_css:
+
+  # Algolia Search
+  # algolia_search: //cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js
+  # instant_search: //cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js
+  algolia_search:
+  instant_search:
+
+  # Mermaid
+  # mermaid: //cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js
+  # mermaid: //cdnjs.cloudflare.com/ajax/libs/mermaid/8.4.8/mermaid.min.js
+  mermaid:
+
+  # Internal version: 1.2.1
+  # velocity: //cdn.jsdelivr.net/npm/velocity-animate@1/velocity.min.js
+  # velocity: //cdnjs.cloudflare.com/ajax/libs/velocity/1.2.1/velocity.min.js
+  # velocity_ui: //cdn.jsdelivr.net/npm/velocity-animate@1/velocity.ui.min.js
+  # velocity_ui: //cdnjs.cloudflare.com/ajax/libs/velocity/1.2.1/velocity.ui.min.js
+  velocity:
+  velocity_ui:
+
+  # Internal version: 1.0.2
+  # pace: //cdn.jsdelivr.net/npm/pace-js@1/pace.min.js
+  # pace: //cdnjs.cloudflare.com/ajax/libs/pace/1.0.2/pace.min.js
+  # pace_css: //cdn.jsdelivr.net/npm/pace-js@1/themes/blue/pace-theme-minimal.css
+  # pace_css: //cdnjs.cloudflare.com/ajax/libs/pace/1.0.2/themes/blue/pace-theme-minimal.min.css
+  pace:
+  pace_css:
+
+  # Internal version: 1.0.0
+  # three: //cdn.jsdelivr.net/gh/theme-next/theme-next-three@1/three.min.js
+  # three_waves: //cdn.jsdelivr.net/gh/theme-next/theme-next-three@1/three-waves.min.js
+  # canvas_lines: //cdn.jsdelivr.net/gh/theme-next/theme-next-three@1/canvas_lines.min.js
+  # canvas_sphere: //cdn.jsdelivr.net/gh/theme-next/theme-next-three@1/canvas_sphere.min.js
+
+  # Internal version: 1.0.0
+  canvas_ribbon: //cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js
