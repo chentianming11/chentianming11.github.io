@@ -1,18 +1,18 @@
 ---
-title: 【开源项目】retrofit-plus使用指南
+title: 【开源项目】httpClient客户端工具(retrofit-plus)使用指南
 tags:
   - http
   - okhttp3
   - retrofit2
 categories:
-  - http
+  - 开源项目
 abbrlink: 3638273051
 date: 2020-04-05 15:14:23
 ---
 
 ## 简介
 
-**retrofit-plus基于retrofit2，并对retrofit2进行功能增强，实现了retrofit2与spring和spring-boot深度集成，极大简化http调用开发。**
+**retrofit-plus是一款基于retrofit2实现的轻量级httpClient客户端工具，与spring和spring-boot项目深度集成。**通过**注解式配置**的方式，可以灵活地配置客户端参数、连接池信息、基于url的路径匹配拦截器、全局拦截器、日志打印策略等。极大地简化了spring(spring-boot)项目中http调用开发。
 
 **github地址:** <https://github.com/LianjiaTech/retrofit-plus>
 
@@ -28,7 +28,7 @@ date: 2020-04-05 15:14:23
 - [x] 与spring-boot深度集成
 - [x] http调用接口化
 - [x] 连接池管理
-- [x] 路径拦截器
+- [x] 路径匹配拦截器
 - [x] 全局拦截器
 - [x] 配置化日志打印
 
@@ -274,14 +274,14 @@ retrofit-plus默认使用的是fast-json进行序列化转换，你可以通过`
 针对每个接口，支持日志打印级别和日志打印策略的配置。
 **配置使用可参考：[LogStrategy](https://github.com/lianjiatech/retrofit-plus/blob/master/retrofit-plus/src/main/java/com/github/lianjiatech/retrofit/plus/interceptor/LogStrategy.java)**
 
-## 路径拦截器 BasePathMatchInterceptor
+## 路径匹配拦截器 BasePathMatchInterceptor
 
-可以在接口上使用`@Intercept`注解指定要使用的路径拦截器，参见：[@Intercept](https://github.com/lianjiatech/retrofit-plus/blob/master/retrofit-plus/src/main/java/com/github/lianjiatech/retrofit/plus/annotation/Intercept.java)
+可以在接口上使用`@Intercept`注解指定要使用的路径匹配拦截器，参见：[@Intercept](https://github.com/lianjiatech/retrofit-plus/blob/master/retrofit-plus/src/main/java/com/github/lianjiatech/retrofit/plus/annotation/Intercept.java)
 > 具体的拦截器需要继承`BasePathMatchInterceptor`
 
 ### 示例
 
-给指定请求的url后面拼接timestamp时间戳，可以使用路径拦截器实现
+给指定请求的url后面拼接timestamp时间戳，可以使用路径匹配拦截器实现
 
 ### 拦截器实现
 
