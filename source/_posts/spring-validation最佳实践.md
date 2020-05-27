@@ -1,5 +1,5 @@
 ---
-title: spring-validation最佳实践
+title: 数据校验【spring-validation】最佳实践指南
 tags:
   - spring
 categories:
@@ -35,7 +35,7 @@ dto是做表示层（展示给用户）的，而实体是数据对象（表）�
 |--vo
 &emsp;|--\*VO.java
 |--entity
-&emsp;|--\*.java
+&emsp;|--\*Entity.java
 
 ## 参数校验实战
 

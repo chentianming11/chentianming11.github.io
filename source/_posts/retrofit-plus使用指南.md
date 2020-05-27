@@ -1,5 +1,5 @@
 ---
-title: 【开源项目】httpClient客户端工具(retrofit-plus)使用指南
+title: Retrofit2与spring-boot深度整合【retrofit-plus】使用指南
 tags:
   - http
   - okhttp3
@@ -12,15 +12,12 @@ date: 2020-04-05 15:14:23
 
 ## 简介
 
-**retrofit-plus是一款基于retrofit2实现的轻量级httpClient客户端工具，与spring和spring-boot项目深度集成。**通过**注解式配置**的方式，可以灵活地配置客户端参数、连接池信息、基于url的路径匹配拦截器、全局拦截器、日志打印策略等。极大地简化了spring(spring-boot)项目中http调用开发。
-
-**github地址:** <https://github.com/LianjiaTech/retrofit-plus>
-
+**retrofit-plus是一款基于retrofit2实现的轻量级http客户端工具，与spring和spring-boot项目深度集成。**通过**注解式配置**的方式，可以灵活地配置客户端参数、连接池信息、基于url的路径匹配拦截器、全局拦截器、日志打印策略等。极大地简化了spring(spring-boot)项目中http调用开发。
 <!--more-->
 
-> Retrofit2是针对于Android/Java的、基于okHttp的、一种轻量级并使用注解方式和动态代理的网络请求框架。Retrofit2让开发者面向接口去请求服务，使用注解和代理去发起真正的请求，让开发者更快速的开发应用，省掉一些复杂的逻辑处理。
+> 自我感觉整合的思路还算比较优雅，如需要深入理解可以参考源码。同时也欢迎大家提出改进建议。
 
-*但是retrofit2官方并没有与spring-boot和spring实现深度整合，而网上各种与spring-boot的整合实现也不尽如人意。因此结合实际的业务场景，基于retrofit2进一步封装实现了retrofit-plus。*
+**github地址:** <https://github.com/LianjiaTech/retrofit-plus>
 
 ## 特性
 
@@ -49,7 +46,7 @@ date: 2020-04-05 15:14:23
 <dependency>
     <groupId>com.github.lianjiatech</groupId>
     <artifactId>retrofit-plus-boot-starter</artifactId>
-    <version>1.1.1</version>
+    <version>1.1.2</version>
 </dependency>
 ```
 
@@ -286,6 +283,7 @@ retrofit-plus默认使用的是fast-json进行序列化转换，你可以通过`
 ### 拦截器实现
 
 ```java
+@Component
 public class TimeStampInterceptor extends BasePathMatchInterceptor {
 
     @Override
@@ -305,6 +303,8 @@ public class TimeStampInterceptor extends BasePathMatchInterceptor {
 
 ```
 
+*Bean的Scope会自动转化为`prototype`，不需要手工指定。*
+
 ### 接口加上`@Intercept`注解（非常实用）
 
 ```java
@@ -320,26 +320,8 @@ public interface HttpApi {
 }
 ```
 
-**优先从spring容器获取拦截器handler实例，如果获取不到，则使用反射创建一个！** 如果以Bean的形式配置，scope必须是prototype
+**优先从spring容器获取拦截器handler实例，如果获取不到，则使用反射创建一个！** 
 
-### 以原型bean的形式配置拦截器实例
-
-适用于**处理逻辑需要依赖其他Bean**的场景
-
-```java
-@Component
-@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-public class OtherInterceptor extends BasePathMatchInterceptor {
-
-    @Autowired
-    private OtherBean otherBean
-
-    @Override
-    public Response doIntercept(Chain chain) throws IOException {
-        // 拦截处理
-    }
-}
-```
 
 ## 扩展实现自定义拦截注解（非常实用）
 
@@ -405,7 +387,8 @@ public @interface Sign {
 **自动将注解上的属性注入到拦截器实例的字段上！** 需提供setter方法
 
 ```java
-@Data
+@Setter
+@Component
 public class SignInterceptor extends BasePathMatchInterceptor {
 
     private String accessKeyId;
@@ -445,7 +428,7 @@ public interface HttpApi {
 
 ```java
 @Component
-public class PrintInteceptor extends BaseGlobalInterceptor{
+public class PrintInterceptor extends BaseGlobalInterceptor{
     @Override
     public Response doIntercept(Chain chain) throws IOException {
         Request request = chain.request();
