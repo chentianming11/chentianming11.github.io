@@ -10,14 +10,8 @@ abbrlink: 3638273051
 date: 2020-04-05 15:14:23
 ---
 
-## 简介
-
-**retrofit-plus是一款基于retrofit2实现的轻量级http客户端工具，与spring和spring-boot项目深度集成。**通过**注解式配置**的方式，可以灵活地配置客户端参数、连接池信息、基于url的路径匹配拦截器、全局拦截器、日志打印策略等。极大地简化了spring(spring-boot)项目中http调用开发。
+**retrofit-plus是一款基于retrofit2实现的轻量级http客户端工具，与spring和spring-boot项目深度集成。**通过**注解式配置**的方式，可以灵活地配置客户端参数、连接池信息、基于url的路径匹配拦截器、全局拦截器、日志打印策略等。极大地简化了spring(spring-boot)项目中http调用开发。[github地址](https://github.com/LianjiaTech/retrofit-plus)
 <!--more-->
-
-> 自我感觉整合的思路还算比较优雅，如需要深入理解可以参考源码。同时也欢迎大家提出改进建议。
-
-**github地址:** <https://github.com/LianjiaTech/retrofit-plus>
 
 ## 特性
 

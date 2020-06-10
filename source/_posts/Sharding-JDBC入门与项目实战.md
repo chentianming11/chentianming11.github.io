@@ -8,8 +8,6 @@ abbrlink: 2363983740
 date: 2020-06-06 14:36:43
 ---
 
-## 简介
-
 最近项目中不少表的数据量越来越大，并且导致了一些数据库的性能问题。因此想借助一些分库分表的中间件，实现自动化分库分表实现。调研下来，发现`Sharding-JDBC`目前成熟度最高并且应用最广的`Java分库分表的客户端组件`。本文主要介绍一些Sharding-JDBC核心概念以及生产环境下的实战指南，旨在帮助组内成员快速了解Sharding-JDBC并且能够快速将其使用起来。[Sharding-JDBC官方文档](https://shardingsphere.apache.org/document/current/cn/overview/)
 <!--more-->
 

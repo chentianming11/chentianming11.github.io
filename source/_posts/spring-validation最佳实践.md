@@ -1,5 +1,5 @@
 ---
-title: 数据校验【spring-validation】最佳实践指南
+title: spring-validation参数校验最佳实践
 tags:
   - spring
 categories:
@@ -8,39 +8,31 @@ abbrlink: 2132811545
 date: 2020-04-06 14:41:58
 ---
 
+最近线上接口受到白帽子攻击，由于后端接口没有严格地进行参数校验，从而导致了系统程序异常和线上脏数据的问题。为了项目中参数校验方式的统一，因此在项目中引入了`spring-validation`作为后端接口参数校验方式。本文主要介绍了`spring-validation`在项目中最佳实践方案，希望能帮助大家很快很好的使用`spring-validation`。
+<!-- more -->
+
 ## 实体命名方式推荐
+
+在Spring项目组中，会存在有很多实体类，良好的命名方式能十分有效的理清项目的整体划分。下面分别介绍`entity`、`DTO`、`VO`实体类命名方式推荐。
 
 ### entity
 
-**实体bean，一般是用于ORM对象关系映射** ，一个实体映射成一张表，一般无业务逻辑代码。负责将数据库中的表记录映射为内存中的Entity象。
-
-<!-- more -->
+**entity表示实体bean，一般是用于ORM对象关系映射** ，一个实体映射成一张表，一般无业务逻辑代码。负责将数据库中的表记录映射为内存中的Entity对象。
 
 ### DTO
 
-**数据传输对象（Data Transfer Object）** ，用于系统、服务之间交互传输用。
-dto是做表示层（展示给用户）的，而实体是数据对象（表）。表示层dto的是由多个实体构成，或一个实体的一个部分，或多个实体的各个部的结合体。dto是面向对象的，实体是面向关系数据库。
-
-### VO
-
-前台（APP\WAP\PC）展示用
+**DTO表示数据传输对象（Data Transfer Object） ，用于服务器和客户端之间交互传输使用的**。在spring-web项目中就是用于接收请求参数的对象或者是返回响应结果的对象。
 
 ### 推荐命名
 
-1. DTO可以增加或者减少entity的字段，来灵活实现信息传递；
-2. VO可以仅向前端传输，页面需展示字段。
-
 |--dto
 &emsp;|--\*DTO.java
-|--vo
-&emsp;|--\*VO.java
 |--entity
 &emsp;|--\*Entity.java
 
 ## 参数校验实战
 
-spring-validator原则上可以通过注解的形式，用在任何方上执行参数校验。
-但是推荐**统一在Controller进行参数校验**。下面介绍一下不同场景下的推荐用法。
+spring-validation原则上可以通过注解的形式，用在任何方上执行参数校验。但是推荐**统一在Controller进行参数校验**。下面介绍一下不同场景下的推荐用法。
 
 *spring-boot-web已经集成了参数校验相关依赖，无需另外再引入！*
 
@@ -72,8 +64,7 @@ public ResponseEntity handleMethodArgumentNotValidException(ConstraintViolationE
 
 ### requestBody参数校验
 
-对于使用requestBody传递的参数，后端使用**DTO对象**进行接收。**只要给DTO对象前加上`@Validated`注解实现自动参数校验**。
-因为同一个DTO类，很可能被多个方法作为参数，**推荐使用校验分组**,  @Validated 注解后面指定校验组即可！
+对于使用requestBody传递的参数，后端使用**DTO对象**进行接收。一般情况下`POST`、`PUT`请求都会采用这种方式。**只要给DTO对象前加上`@Validated`注解实现自动参数校验**。因为同一个DTO类，很可能被多个方法作为参数，**推荐使用校验分组,  @Validated 注解后面指定校验组即可**！
 
 例如有如下DTO类：
 
@@ -111,8 +102,7 @@ DTO对象接收的方式同样也适用于以下场景：
 
 ### requestParam参数校验
 
-对于`GET`请求，后端一般使用**单个字段分别接收**。
-这种情况下，**Controller类上必须加上@Validated**，然后在每个参数前面加上校验注解即可，例如：@NotEmpty、@Min等。
+对于`GET`请求，后端一般使用**单个字段分别接收**。这种情况下，**Controller类上必须加上@Validated，然后在每个参数前面加上校验注解即可**。例如：@NotEmpty、@Min等。
 
 ```java
 @RestController
@@ -127,14 +117,9 @@ public class TestController {
 }
 ```
 
-每一个使用参数校验注解标注的参数都会自动执行校验！
-
 ### 集合校验
 
-如果请求体传递了json数组给后台，希望对数组中的每一项都进行参数校验。
-此时，**直接使用java.util.Collection下的list或者set来接收数据，参数校验并不会生效！**
-
-我们可以**自定义list**来接收参数：
+如果请求体传递了json数组给后台，希望对数组中的每一项都进行参数校验。此时，**直接使用java.util.Collection下的list或者set来接收数据，参数校验并不会生效**！我们必须使用**自定义list**来接收参数：
 
 ```java
 public class ValidatorList<E> implements List<E> {
