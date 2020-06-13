@@ -120,5 +120,5 @@ symbols_count_time:
   total_time: true
   exclude_codeblock: false
   awl: 4
-  wpm: 200
+  wpm: 100
   suffix: "mins."

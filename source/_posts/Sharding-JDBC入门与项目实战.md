@@ -219,7 +219,7 @@ public class SeqShardingKeyGenerator implements ShardingKeyGenerator {
 }
 ```
 
-**由于扩展`ShardingKeyGenerator`是通过JDK的`serviceloader`的SPI机制实现的，因此还需要在`/META-INF/services`目录下配置`org.apache.shardingsphere.spi.keygen.ShardingKeyGenerator`文件。** 文件内容就是`SeqShardingKeyGenerator`类的全路径名。这样使用的时候，指定分布式主键生成器的type为`SEQ`就好了。
+**由于扩展`ShardingKeyGenerator`是通过JDK的`serviceloader`的SPI机制实现的，因此还需要在`resources/META-INF/services`目录下配置`org.apache.shardingsphere.spi.keygen.ShardingKeyGenerator`文件。** 文件内容就是`SeqShardingKeyGenerator`类的全路径名。这样使用的时候，指定分布式主键生成器的type为`SEQ`就好了。
 
 至此，Sharding-JDBC就整合进spring-boot项目中了，后面就可以进行数据分片相关的配置了。
 
