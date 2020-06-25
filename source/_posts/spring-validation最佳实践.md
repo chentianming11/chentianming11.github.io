@@ -21,14 +21,25 @@ date: 2020-04-06 14:41:58
 
 ### DTO
 
-**DTO表示数据传输对象（Data Transfer Object） ，用于服务器和客户端之间交互传输使用的**。在spring-web项目中就是用于接收请求参数的对象或者是返回响应结果的对象。
+**DTO表示数据传输对象（Data Transfer Object） ，用于服务器和客户端之间交互传输使用的**。在spring-web项目中就是用于接收请求参数的对象。
+
+### VO
+
+**数据视图对象**，一般是指返回响应结果的对象。
 
 ### 推荐命名
 
 |--dto
+
 &emsp;|--\*DTO.java
+
 |--entity
+
 &emsp;|--\*Entity.java
+
+|--vo
+
+&emsp;|--\*VO.java
 
 ## 参数校验实战
 
