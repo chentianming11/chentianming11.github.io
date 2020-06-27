@@ -57,15 +57,15 @@ mysql> SELECT * FROM record_format_demo;
 
 ### COMPACT行格式
 
-![COMPACT行格式](https://user-gold-cdn.xitu.io/2019/3/12/169710e8fafc21aa?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![COMPACT行格式](https://chentianming11.github.io/images/mysql/compact行格式.webp)
 
 从上图可以看出，一条完整的记录包含`记录的额外信息`和`记录的真实数据`两大部分。
 
 #### 记录的额外信息
 
-记录的额外信息主要包含3类：`变长字段列表`、`NULL值列表`和`记录头信息`。
+记录的额外信息主要包含3类：`变长字段长度列表`、`NULL值列表`和`记录头信息`。
 
-##### 变长字段列表
+##### 变长字段长度列表
 
 mysql中支持一些变长数据类型（比如`VARCHAR(M)`、`TEXT`等），它们存储数据占用的存储空间不是固定的，而是会随着存储内容的变化而变化。为了准确描述这种数据，这种变长字段占用的存储空间要同时包含：
 
@@ -75,10 +75,10 @@ mysql中支持一些变长数据类型（比如`VARCHAR(M)`、`TEXT`等），它
 在Compact行格式中，把**所有变长字段的真实数据占用的字节长度都存放在记录的开头部位，从而形成一个变长字段长度列表，各变长字段数据占用的字节数按照列的顺序`逆序`存放**。
 
 我们以`record_format_demo`第一行数据为例。由于`c1`、`c2`和`c4`都是变成数据类型(`VARCHAR(10)`),因此要将这3列值得长度保存在记录的开头处。
-![变长字段列表](https://user-gold-cdn.xitu.io/2019/3/12/169710e8fb363bb4?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![变长字段长度列表](https://chentianming11.github.io/images/mysql/变长字段长度列表.webp)
 
 另外需要注意的一点是，**变长字段长度列表中只存储值为 非NULL 的列内容占用的长度，值为 NULL 的列的长度是不储存的**。也就是说对于第二条记录来说，因为c4列的值为NULL，所以第二条记录的变长字段长度列表只需要存储c1和c2列的长度即可。
-![变长字段列表](https://user-gold-cdn.xitu.io/2019/3/12/169710e8fe4ee6b0?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![变长字段长度列表](https://chentianming11.github.io/images/mysql/变长字段长度列表2.webp)
 
 ##### NULL值列表
 
@@ -87,12 +87,12 @@ mysql中支持一些变长数据类型（比如`VARCHAR(M)`、`TEXT`等），它
 具体的做法是先统计表中允许存储`NULL`值的列，然后将每个允许存储`NULL`值的列对应一个二进制位（1：值为`NULL`，0：值不为`NULL`）用来表示是否存储`NULL`值，并按照逆序排列。MySQL规定**NULL值列表必须用整数个字节的位表示**，如果使用的二进制位个数不是整数个字节，则在字节的高位补0。
 对应`record_format_demo`表中，`c1`、`c3`、`c4`都是允许存储NULL值的。前两条记录在填充了`NULL`值列表后的示意图就是这样：
 
-![NULL值列表](https://user-gold-cdn.xitu.io/2019/3/12/169710e95903144f?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![NULL值列表](https://chentianming11.github.io/images/mysql/NULL值列表.webp)
 
 ##### 记录头信息
 
 记录头信息是由固定的5个字节(40位)组成, 不同的位代表不同的含义：
-![记录头信息](https://user-gold-cdn.xitu.io/2019/3/12/169710e97718ef01?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![记录头信息](https://chentianming11.github.io/images/mysql/记录头信息.webp)
 暂时不详细展开。
 
 ### 记录的真实数据
@@ -109,7 +109,7 @@ mysql中支持一些变长数据类型（比如`VARCHAR(M)`、`TEXT`等），它
 
 只有当数据库没有定义`主键`或者`唯一键`时，隐藏列`row_id`才会存在，并且将其作为数据表`主键`。
 因为表`record_format_demo`并没有定义主键，所以MySQL服务器会为每条记录增加上述的3个列。现在看一下加上`记录的真实数据`的两个记录的数据结构：
-![记录的真实数据](https://user-gold-cdn.xitu.io/2019/3/12/169710e973b70372?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![记录的真实数据](https://chentianming11.github.io/images/mysql/记录的真实数据.webp)
 
 ### CHAR(M)列的存储格式
 
@@ -143,9 +143,9 @@ Query OK, 1 row affected (0.00 sec)
 ```
 
 mysql中磁盘与内存交互的基本单位是页，一般为16KB，16384个字节，而一行记录最大可以占用`65535`个字节，这就造成了**一页存不下一行数据的情况**。在Compact和Redundant行格式中，对于占用存储空间非常大的列，在记录的真实数据处只会存储该列的一部分数据，把剩余的数据分散存储在几个其他的页中，然后记录的真实数据处用20个字节存储指向这些页的地址，从而可以找到剩余数据所在的页，如图所示：
-![行溢出数据](https://user-gold-cdn.xitu.io/2019/3/12/169710e9aab47ea5?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![行溢出数据](https://chentianming11.github.io/images/mysql/行溢出.webp)
 这种**在本记录的真实数据处只会存储该列的前768个字节的数据和一个指向其他页的地址，然后把剩下的数据存放到其他页中的情况就叫做`行溢出`，存储超出768字节的那些页面也被称为`溢出页`**。
-![行溢出数据](https://user-gold-cdn.xitu.io/2019/3/12/169710e9a5d5637a?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![行溢出数据](https://chentianming11.github.io/images/mysql/行溢出记录.webp)
 
 #### 行溢出的临界点
 
@@ -165,7 +165,7 @@ mysql中磁盘与内存交互的基本单位是页，一般为16KB，16384个字
 ### Dynamic和Compressed行格式
 
 mysql中默认的行格式就是`Dynamic`。`Dynamic`和`Compressed`行格式和`Compact`行格式很像，只是在处理`行溢出`数据上有差异。`Dynamic`和`Compressed`行格式不会在`记录的真实数据`出存放前768个字节，而是将所有字节都存储在其它页面中。`Compressed`行格式会采用压缩算法对页面进行压缩，以节省空间。
-![Dynamic](https://user-gold-cdn.xitu.io/2019/3/12/169710e9b2c2b71e?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![Dynamic](https://chentianming11.github.io/images/mysql/Dynamic行溢出.webp)
 
 ## InnoDB数据页结构
 
@@ -174,7 +174,7 @@ mysql中默认的行格式就是`Dynamic`。`Dynamic`和`Compressed`行格式和
 ### 数据页结构的快速浏览
 
 数据页在结构上可以划分为多个部分，不同的部分有不同的功能，如下图所示：
-![数据页结构](https://user-gold-cdn.xitu.io/2019/12/17/16f13ee1e2dfac7c?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![数据页结构](https://chentianming11.github.io/images/mysql/数据页结构.webp)
 
 一个InnoDB数据页被划分为了7个部分，下面大概描述一下这7个部分内容。
 
@@ -191,7 +191,7 @@ mysql中默认的行格式就是`Dynamic`。`Dynamic`和`Compressed`行格式和
 ### 记录在页中的存储
 
 用户自己的存储的数据会按照对应的`行格式`存在`User Records`中。实际上，新生成的页面是没有`User Records`的，只有当我们第一次插入数据时，才会从`Free Space`划一个记录大小的空间给`User Records`。当`Free Space`用完之后，就意味着当前的数据页也使用完了。
-![记录在页中的存储](https://user-gold-cdn.xitu.io/2019/5/8/16a95c0fe86555ed?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![记录在页中的存储](https://chentianming11.github.io/images/mysql/记录在页中的存储.webp)
 为了能够将`User Records`讲清楚，我们先得理解前面提到的`记录头信息`。
 
 #### 理解记录头信息
@@ -226,17 +226,17 @@ Records: 4  Duplicates: 0  Warnings: 0
 ```
 
 这4条记录在InnoDB中的行格式如下（只展示记录头和真实数据），列中数据均用十进制表示：
-![记录头](https://user-gold-cdn.xitu.io/2019/5/8/16a95c0ff83f9870?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![记录头](https://chentianming11.github.io/images/mysql/理解记录头信息1.webp)
 我们对照着这个图来重点介绍几个属性的详细信息：
 
 - `delete_mask`：标记着当前记录是否被删除，0表示未删除，1表示删除。未删除的记录不会立即从磁盘上移除，而是先打上删除标记，所有被删除的记录会组成一个`垃圾链表`。之后新插入的记录可能会重用`垃圾链表`占用的空间，因此垃圾链表占用的存储空间也被成为`可重用空间`。
 - `heap_no`：表示当前记录在本页中的位置，比如上边4条记录在本页中的位置分别是`2、3、4、5`。实际上，InnoDB会自动为每页加上两条虚拟记录，一条是`最小记录`，另一条是`最大记录`。这两条记录的构造十分简单，都是由`5字节大小的记录头信息`和`8字节大小的固定部分`(其实内容就是infimum或者supremum)组成的。这两条记录被单独放在`Infimum + Supremum`的部分。
-  ![heap_no](https://user-gold-cdn.xitu.io/2019/5/8/16a95c10773d8cee?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+  ![heap_no](https://chentianming11.github.io/images/mysql/理解记录头信息2.webp)
   从图中我们可以看出来，最小记录和最大记录的`heap_no`值分别是0和1，也就是说它们的位置最靠前。
 - `next_record`：表示从**当前记录的真实数据到下一条记录的真实数据的地址偏移量**。可以简单理解为是一个单向链表，最小记录的下一个是第一条记录，最后一条记录的下一个是最大记录。为了更加形象的展示，我们可以用箭头来替代一下next_record中的地址偏移量：
-  ![next_record](https://user-gold-cdn.xitu.io/2019/5/8/16a95c1084c440b4?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+  ![next_record](https://chentianming11.github.io/images/mysql/理解记录头信息3.webp)
   从图中也能看出来，**用户记录实际上按照主键大小正序排序行成一个单向链表**。如果从中删除掉一条记录，这个链表也是会跟着变化的，比如我们把第2条记录删掉：
-  ![next_record](https://user-gold-cdn.xitu.io/2019/5/8/16a95c108ee1da43?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+  ![next_record](https://chentianming11.github.io/images/mysql/理解记录头信息4.webp)
   - 第2条记录并没有从存储空间中移除，而是把该条记录的`delete_mask`值设置为1。
   - 第2条记录的`next_record`值变为了0，意味着该记录没有下一条记录了。
   - 第1条记录的`next_record`指向了第3条记录。
@@ -251,7 +251,7 @@ Records: 4  Duplicates: 0  Warnings: 0
 
 **mysql规定对于最小记录所在的分组只能有 1 条记录，最大记录所在的分组拥有的记录条数只能在 1-8 条之间，剩下的分组中记录的条数范围只能在是 4-8 条之间**。
 比方说现在的`page_demo`表中正常的记录共有18条，InnoDB会把它们分成5组，第一组中只有一个最小记录，如下所示：
-![Page Directory](https://user-gold-cdn.xitu.io/2019/5/8/16a95c10e3449897?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![Page Directory](https://chentianming11.github.io/images/mysql/页目录.webp)
 
 通过`Page Directory`在一个数据页中查找指定主键值的记录的过程分为两步：
 
@@ -322,7 +322,7 @@ Records: 4  Duplicates: 0  Warnings: 0
    |FIL_PAGE_INDEX|0x45BF|索引页，也就是我们所说的数据页|
 4. `FIL_PAGE_PREV`和F`IL_PAGE_NEXT`
    表示本页的上一个和下一个页的页号，各个页通过`FIL_PAGE_PREV`和F`IL_PAGE_NEXT`形成双向链表。
-   ![FIL_PAGE_PREV](https://user-gold-cdn.xitu.io/2019/5/8/16a95c10eb9d61ce?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+   ![FIL_PAGE_PREV](https://chentianming11.github.io/images/mysql/文件头部.webp)
 
 ### File Trailer
 

@@ -27,7 +27,7 @@ mysql采用了典型的**客户端/服务器架构(C/S架构)**模式。对于�
 
 不论客户端进程和服务器进程是采用哪种方式进行通信，最后实现的效果都是：**客户端向服务器发送一段文本（sql语句），服务器进程处理后再向客户端进程发送一段文本（处理结果）**。下面以查询sql为例，简单说明一下服务器处理客户端请求的大致处理过程。
 
-![mysql基本处理过程](https://user-gold-cdn.xitu.io/2018/12/28/167f4c7b99f87e1c?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![mysql基本处理过程](https://chentianming11.github.io/images/mysql/mysql基本流程.webp)
 
 从图中我们可以看出，服务器程序处理来自客户端的查询请求大致需要经过三个部分，分别是`连接管理`、`解析与优化`、`存储引擎`。
 
@@ -62,7 +62,7 @@ mysql支持多种存储引擎，可以通过如下命令查看：
 show engines ;
 ```
 
-![mysql储存引擎](/images/mysql/mysql存储引擎.png)
+![mysql储存引擎](https://chentianming11.github.io/images/mysql/mysql存储引擎.png)
 
 **虽然支持的存储引擎很多，但是我们需要重点关注InnoDB以及适当了解MyISAM存储引擎即可！**
 
@@ -335,4 +335,3 @@ Records: 0  Duplicates: 0  Warnings: 0
 还需要注意的一点是：**由于字符集和比较规则是相互联系的，如果我们只修改了字符集和比较规则，都可能引起关联的字符集和比较规则发生变化**。
 
 > 本文主要内容是根据掘金小册《从根儿上理解 MySQL》整理而来。如想详细了解，建议购买掘金小册阅读。
-
