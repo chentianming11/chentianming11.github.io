@@ -1,5 +1,5 @@
 ---
-title: 基于zookeeper的分布式广播组件实现详解
+title: 教你怎么基于zookeeper实现自己的分布式广播组件
 tags: zookeeper
 categories: 中间件
 abbrlink: 2818246864

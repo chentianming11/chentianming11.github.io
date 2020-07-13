@@ -1,5 +1,5 @@
 ---
-title: 深入理解mysql-mysql概览
+title: 深入理解mysql-mysql简介、系统变量和字符集介绍
 tags:
   - mysql
 categories:
@@ -335,5 +335,3 @@ Records: 0  Duplicates: 0  Warnings: 0
 ```
 
 还需要注意的一点是：**由于字符集和比较规则是相互联系的，如果我们只修改了字符集和比较规则，都可能引起关联的字符集和比较规则发生变化**。
-
-

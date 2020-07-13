@@ -323,5 +323,3 @@ from shop;
 5. 索引列上使用函数`(replace\SUBSTR\CONCAT\sum count avg)、表达式、 计算(+ - * /)`
 6. like 条件中前面带%
 7. 字符串不加引号，出现隐式转换
-
-
