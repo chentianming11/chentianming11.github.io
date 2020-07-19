@@ -258,7 +258,7 @@ FROM hc_question_reply_record
 GROUP BY date_format(ctime, '%Y-%m');
 ```
 
-![月新增趋势](/images/month-increse.png)
+![月新增趋势](https://chentianming11.github.io/images/month-increse.png)
 
 目前月新增在180w左右，预估未来达到300w(基本以2倍计算)以上。期望单表数据量不超过1000w，可使用`reply_wheel_time`作为分片键按季度归档。
 
