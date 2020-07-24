@@ -1,5 +1,5 @@
 ---
-title: 通过接口发送http请求【retrofit-spring-boot-starter】实现详解
+title: 基于Retrofit实现spring-boot项目下轻量级http调用框架
 abbrlink: 1979374763
 date: 2020-07-16 17:00:05
 tags:
@@ -9,76 +9,78 @@ categories:
   - 开源项目
 ---
 
-在上一篇文章中，我们知道了`spring-boot`项目可以基于`retrofit-spring-boot-starter`实现通过接口发送`http`请求，本篇文章首先会介绍`retrofit`的原始API的使用，然后重点介绍[retrofit-spring-boot-starter](https://github.com/LianjiaTech/retrofit-spring-boot-starter)实现细节。
+在[【spring-boot】项目下最优雅的http客户端工具，用它就够了](https://chentianming11.github.io/posts/2257172027/)这篇文章中，我们知道了`retrofit-spring-boot-starter`的使用方式。本篇文章继续继续介绍`retrofit-spring-boot-starter`的实现原理，从零开始介绍**如何基于Retrofit实现spring-boot项目下轻量级http调用框架**。
 
-> 如果还不知道`retrofit-spring-boot-starter`使用的话，先阅读上一篇文章[【spring-boot】项目下最优雅的http客户端工具，用它就够了](https://chentianming11.github.io/posts/2257172027/)
+> 建议先阅读[【spring-boot】项目下最优雅的http客户端工具，用它就够了](https://chentianming11.github.io/posts/2257172027/)，再看本篇文章。
 
 <!--more-->
 
-## `retrofit`的原始API的使用
+## 确定实现思路
 
-首先要在项目中引入`retrofit`依赖：
-
-```xml
-<dependency>
-    <groupId>com.squareup.retrofit2</groupId>
-    <artifactId>retrofit</artifactId>
-    <version>2.9.0</version>
-</dependency>
-```
-
-实际上，`retrofit`基本使用非常简单，主要分为以下3步：
+我们首先直接看一下使用`retrofit`原始API是如何发起一个http请求的。
 
 1. 定义接口
-2. 构建`retrofit`对象和创建接口代理对象
-3. 通过接口发送请求
 
-### 定义接口
+    ```java
+    public interface GitHubService {
+    @GET("users/{user}/repos")
+    Call<List<Repo>> listRepos(@Path("user") String user);
+    }
+    ```
 
-我们先要定义一个发起`http`请求的`Java`接口，**接口下面的一个方法就代表了一个`http`接口**。方法上可以使用不同的`注解`来标识请求的属性和数据，比如请求的方式、参数等等信息。
+2. 创建接口代理对象
 
-```java
-public interface GitHubService {
-  @GET("users/{user}/repos")
-  Call<List<Repo>> listRepos(@Path("user") String user);
-}
-```
+    ```java
+    Retrofit retrofit = new Retrofit.Builder()
+        .baseUrl("https://api.github.com/")
+        .build();
 
-### 构建`retrofit`对象和创建接口代理对象
+    // 实际业务场景构建Retrofit比这复杂多了，这里最简单化处理
 
-在定义好接口之后，接下来就是构建`retrofit`对象，并且基于`retrofit`对象创建接口代理对象。
+    GitHubService service = retrofit.create(GitHubService.class);
+    ```
 
-```java
-Retrofit retrofit = new Retrofit.Builder()
-    .baseUrl("https://api.github.com/")
-    .build();
+3. 发起请求
 
-GitHubService service = retrofit.create(GitHubService.class);
-```
+    ```java
+    Call<List<Repo>> repos = service.listRepos("octocat");
+    ```
 
-### 通过接口发送请求
+可以看到，基于`Retrofit`本身已经很好的支持了通过接口发起`htp`请求。但是如果我们项目每一个业务代码都会写上面的样板代码，会非常的繁琐和麻烦。有没有一种方式让用户只关注接口定义，其它事情全部交给框架自动处理？这个时候我们可能会联想到`spring-boot`项目下使用`Mybatis`，用户只需要定义`Mapper`接口和书写`sql`即可，完全不用管与`JDBC`的交互细节。与之类似，**我们也要实现让用户只需要定义`HttpService`接口，不用管其他底层实现细节**。
 
-有了接口代理对象之后，直接调用接口方法就是发送请求了。
+## 相关知识介绍
 
-```java
-Call<List<Repo>> repos = service.listRepos("octocat");
-```
-
-`retrofit`基本使用就先介绍到这了，我们重点要知道**`retrofit`可以支持通过接口发送http请求**就行了。
-
-## 实现概述
+为了方便后面介绍实现过程，我们先得了解一下几个相关知识点。
 
 ### spring容器初始化
 
-要想理解`retrofit-spring-boot-starter`实现原理，我们先得简单了解一下`spring`容器初始化。简单来讲，`spring`容器初始化主要包含以下2个步骤：
+我们首先要简单了解一下`spring`容器初始化。简单来讲，`spring`容器初始化主要包含以下2个步骤：
 
 1. **注册Bean定义**：扫描并解析**配置文件**或者**某些注解**得到Bean属性(包括`beanName`、`beanClassName`、`scope`、`isSingleton`等等)，然后基于这个`bean`属性创建`BeanDefinition`对象，最后将其注册到`BeanDefinitionRegistry`中。
-2. **创建Bean实例**：根据`BeanDefinition`信息，创建Bean实例，并将实例对象保存到`spring`容器中，创建的方式包括反射创建、工厂方法创建和工厂Bean(`FactoryBean`)创建等等。当然，实际的`spring`容器初始化比这复杂的多，考虑到这块不是本文的重点，暂时这么理解就行。
+2. **创建Bean实例**：根据`BeanDefinitionRegistry`里面的`BeanDefinition`信息，创建Bean实例，并将实例对象保存到`spring`容器中，创建的方式包括反射创建、工厂方法创建和工厂Bean(`FactoryBean`)创建等等。
 
-相信大家在`spring-boot`项目中都用过`mybatis`，可以认为`mybatis`实现了**通过接口发送sql语句的功能**，并且**接口实例**完全由`spring`容器管理。与之类似，**`retrofit-spring-boot-starter`要实现的核心功能就将自定义的`http`接口实例完全交给`spring`容器管理**。为了实现这一目标，我们最重要的是要实现以下2个功能。
+当然，实际的`spring`容器初始化比这复杂的多，考虑到这块不是本文的重点，暂时这么理解就行。
 
-1. 注册接口Bean定义
-2. 创建接口Bean实例
+### `Retrofit`对象简介
+
+我们已经知道使用`Retrofit`对象可以创建接口代理对象。我们看一下`Retrofit`的UML类图(只列出了我们关注的依赖)：
+
+![retrofit-uml](/images/retrofit/retrofit-uml.png)
+
+通过分析UML类图，我们可以发现，构建`Retrofit`对象的时候，可以注入以下4个属性：
+
+1. `HttpUrl`：`http`请求的`baseUrl`。
+2. `CallAdapter`：将`Call<T>`适配为接口方法返回值类型。
+3. `Converter`：将`@Body`标记的方法参数序列化为请求体数据；将响应体数据反序列化为响应对象。
+4. `OkHttpClient`：底层发送`http`请求的客户端对象。
+
+而构建`OkHttpClient`对象的时候，可以注入`Interceptor`(请求拦截器)和`ConnectionPool`(连接池)属性。
+
+因此**为了构建`Retrofit`对象，我们要先创建`HttpUrl`、`CallAdapter`、`Converter`和`OkHttpClient`；而要构建`OkHttpClient`对象就得先创建`Interceptor`和`ConnectionPool`**。
+
+**未完待续，后面是文章素材**。
+
+## 实现概述
 
 ### 注册接口Bean定义
 
@@ -111,22 +113,7 @@ public class RetrofitFactoryBean<T> implements FactoryBean<T>, EnvironmentAware,
 }
 ```
 
-### 构建`Retrofit`对象
 
-我们已经知道使用`Retrofit`对象可以创建接口代理对象，因此**创建接口Bean实例**的关键点就在于如何构建`Retrofit`对象。我们首先看一下`Retrofit`的UML类图(只列出了我们关注的依赖)。
-
-![retrofit-uml](/images/retrofit/retrofit-uml.png)
-
-通过分析UML类图，我们可以发现，构建`Retrofit`对象的时候，可以注入以下4个属性：
-
-1. `HttpUrl`：`http`请求的`baseUrl`。
-2. `CallAdapter`：将`Call<T>`适配为接口方法返回值类型。
-3. `Converter`：将`@Body`标记的方法参数序列化为请求体数据；将响应体数据反序列化为响应对象。
-4. `OkHttpClient`：底层发送`http`请求的客户端对象。
-
-而构建`OkHttpClient`对象的时候，可以注入`Interceptor`(请求拦截器)和`ConnectionPool`(连接池)属性。
-
-因此**为了构建`Retrofit`对象，我们要先创建`HttpUrl`、`CallAdapter`、`Converter`和`OkHttpClient`；而要构建`OkHttpClient`对象就得先创建`Interceptor`和`ConnectionPool`**。`retrofit-spring-boot-starter`是根据配置数据以及`@RetrofitClient`注解数据来创建上述这些对象的。
 
 ## 实现详解
 

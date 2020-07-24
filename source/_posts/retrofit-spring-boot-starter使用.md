@@ -72,7 +72,7 @@ public class TestService {
 }
 ```
 
-只要通过上述几个步骤，就能实现通过接口发送`http`请求了，真的很简单。如果你在`spring-boot`项目里面使用过`mybatis`，相信你对这种使用方式会更加熟悉。
+只要通过上述几个步骤，就能实现通过接口发送`http`请求了，真的很简单。如果你在`spring-boot`项目里面使用过`mybatis`，相信你对这种使用方式会更加熟悉。接下来我们继续介绍一下`retrofit-spring-boot-starter`更高级一点的功能。
 
 ### 注解式拦截器
 
