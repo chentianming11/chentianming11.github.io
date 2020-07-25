@@ -1,5 +1,5 @@
 ---
-title: 深入理解mysql-查询优化Explain详解
+title: 深入理解mysql-执行计划Explain详解
 abbrlink: 2001481941
 date: 2020-07-10 08:13:09
 tags: mysql
