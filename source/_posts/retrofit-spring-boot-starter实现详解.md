@@ -1,5 +1,5 @@
 ---
-title: 在spring-boot项目中基于Retrofit实现自己的轻量级http调用工具
+title: 基于Retrofit实现自己的轻量级http调用工具
 abbrlink: 1979374763
 date: 2020-07-16 17:00:05
 tags:
