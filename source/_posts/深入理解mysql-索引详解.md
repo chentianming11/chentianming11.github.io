@@ -1,5 +1,5 @@
 ---
-title: 深入理解mysql-索引详解
+title: 深入理解mysql-从数据结构层面认知索引原理
 tags: mysql
 categories: 数据库
 abbrlink: 2462378631

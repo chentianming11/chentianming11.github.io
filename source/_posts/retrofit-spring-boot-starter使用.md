@@ -1,5 +1,5 @@
 ---
-title: 【spring-boot】项目下最优雅的http客户端工具，用它就够了
+title: spring-boot项目整合Retrofit最佳实践，最优雅的HTTP客户端工具！
 abbrlink: 2257172027
 date: 2020-07-15 16:52:14
 tags:

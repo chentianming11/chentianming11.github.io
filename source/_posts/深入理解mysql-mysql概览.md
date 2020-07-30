@@ -1,5 +1,5 @@
 ---
-title: 深入理解mysql-mysql简介、系统变量和字符集介绍
+title: 深入理解mysql-进阶知识点。启动项、系统变量、字符集介绍！
 tags:
   - mysql
 categories:

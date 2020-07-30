@@ -1,5 +1,5 @@
 ---
-title: 分库分表【Sharding-JDBC】入门与项目实战
+title: 数据量大了一定要分表，分库分表组件Sharding-JDBC入门与项目实战
 tags:
   - sharing-jdbc
 categories:
