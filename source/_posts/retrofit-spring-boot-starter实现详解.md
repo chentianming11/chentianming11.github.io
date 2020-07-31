@@ -9,7 +9,7 @@ categories:
   - 开源项目
 ---
 
-在《[【spring-boot】项目下最优雅的http客户端工具，用它就够了](https://juejin.im/post/5f14d81cf265da22ee7fbff0)》这篇文章中，我们知道了`retrofit-spring-boot-starter`的使用方式。本篇文章继续继续介绍`retrofit-spring-boot-starter`的实现原理，从零开始介绍**如何在spring-boot项目中基于Retrofit实现自己的轻量级http调用工具**。
+在《[spring-boot项目整合Retrofit最佳实践，最优雅的HTTP客户端工具！](https://juejin.im/post/5f14d81cf265da22ee7fbff0)》这篇文章中，我们知道了`retrofit-spring-boot-starter`的使用方式。本篇文章继续继续介绍`retrofit-spring-boot-starter`的实现原理，从零开始介绍**如何在spring-boot项目中基于Retrofit实现自己的轻量级http调用工具**。
 
 > 项目源码：[retrofit-spring-boot-starter](https://github.com/LianjiaTech/retrofit-spring-boot-starter)
 
@@ -91,15 +91,14 @@ categories:
     ```java
     public class RetrofitClientRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, BeanClassLoaderAware {
 
-        private ResourceLoader resourceLoader;
-
-        private ClassLoader classLoader;
+        // 省略其它代码
 
         @Override
         public void registerBeanDefinitions(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
             AnnotationAttributes attributes = AnnotationAttributes
                     .fromMap(metadata.getAnnotationAttributes(RetrofitScan.class.getName()));
             // 扫描指定路径下@RetrofitClient注解的接口，并注册到BeanDefinitionRegistry
+            // 真正的扫描注册逻辑交给了ClassPathRetrofitClientScanner执行
             ClassPathRetrofitClientScanner scanner = new ClassPathRetrofitClientScanner(registry, classLoader);
             if (resourceLoader != null) {
                 scanner.setResourceLoader(resourceLoader);
@@ -110,94 +109,17 @@ categories:
             // 扫描并注册到BeanDefinition
             scanner.doScan(basePackages);
         }
-
-
-        /**
-        * 获取扫描的基础包路径
-        *
-        * @return 基础包路径
-        */
-        private String[] getPackagesToScan(AnnotationAttributes attributes) {
-            String[] value = attributes.getStringArray("value");
-            String[] basePackages = attributes.getStringArray("basePackages");
-            Class<?>[] basePackageClasses = attributes.getClassArray("basePackageClasses");
-            if (!ObjectUtils.isEmpty(value)) {
-                Assert.state(ObjectUtils.isEmpty(basePackages),
-                        "@RetrofitScan basePackages and value attributes are mutually exclusive");
-            }
-            Set<String> packagesToScan = new LinkedHashSet<>();
-            packagesToScan.addAll(Arrays.asList(value));
-            packagesToScan.addAll(Arrays.asList(basePackages));
-            for (Class<?> basePackageClass : basePackageClasses) {
-                packagesToScan.add(ClassUtils.getPackageName(basePackageClass));
-            }
-            return packagesToScan.toArray(new String[packagesToScan.size()]);
-        }
-
-
-        @Override
-        public void setResourceLoader(ResourceLoader resourceLoader) {
-            this.resourceLoader = resourceLoader;
-        }
-
-
-        @Override
-        public void setBeanClassLoader(ClassLoader classLoader) {
-            this.classLoader = classLoader;
-        }
     }
-
     ```
 
 2. `ClassPathRetrofitClientScanner`
 
-    在`ClassPathRetrofitClientScanner`实现中，**`BeanDefinition`的`beanClass`属性全部设置为了`RetrofitFactoryBean.class`，同时将接口自身的类型传递到了`RetrofitFactoryBean`的`retrofitInterface`属性中**。这说明，最终创建Bean实例是通过`RetrofitFactoryBean`来完成的。
+    `ClassPathRetrofitClientScanner`继承了`ClassPathBeanDefinitionScanner`，这是Spring提供的类路径下`BeanDefinition`的扫描器。需要注意的一点是：**`BeanDefinition`的`beanClass`属性全部设置为了`RetrofitFactoryBean.class`，同时将接口自身的类型传递到了`RetrofitFactoryBean`的`retrofitInterface`属性中**。这说明，最终创建Bean实例是通过`RetrofitFactoryBean`来完成的。
 
     ```java
     public class ClassPathRetrofitClientScanner extends ClassPathBeanDefinitionScanner {
 
-        private final ClassLoader classLoader;
-
-        private final static Logger logger = LoggerFactory.getLogger(ClassPathRetrofitClientScanner.class);
-
-        public ClassPathRetrofitClientScanner(BeanDefinitionRegistry registry, ClassLoader classLoader) {
-            super(registry, false);
-            this.classLoader = classLoader;
-        }
-
-        public void registerFilters() {
-            AnnotationTypeFilter annotationTypeFilter = new AnnotationTypeFilter(RetrofitClient.class);
-            this.addIncludeFilter(annotationTypeFilter);
-        }
-
-
-        @Override
-        protected Set<BeanDefinitionHolder> doScan(String... basePackages) {
-            Set<BeanDefinitionHolder> beanDefinitions = super.doScan(basePackages);
-            if (beanDefinitions.isEmpty()) {
-                logger.warn("No RetrofitClient was found in '" + Arrays.toString(basePackages) + "' package. Please check your configuration.");
-            } else {
-                processBeanDefinitions(beanDefinitions);
-            }
-            return beanDefinitions;
-        }
-
-        @Override
-        protected boolean isCandidateComponent(
-                AnnotatedBeanDefinition beanDefinition) {
-            if (beanDefinition.getMetadata().isInterface()) {
-                try {
-                    Class<?> target = ClassUtils.forName(
-                            beanDefinition.getMetadata().getClassName(),
-                            classLoader);
-                    return !target.isAnnotation();
-                } catch (Exception ex) {
-                    logger.error("load class exception:", ex);
-                }
-            }
-            return false;
-        }
-
+        // 省略其它代码
 
         private void processBeanDefinitions(Set<BeanDefinitionHolder> beanDefinitions) {
             GenericBeanDefinition definition;
@@ -239,15 +161,7 @@ categories:
     ```java
     public class RetrofitFactoryBean<T> implements FactoryBean<T>, EnvironmentAware, ApplicationContextAware {
 
-        private Class<T> retrofitInterface;
-
-        private Environment environment;
-
-        private RetrofitProperties retrofitProperties;
-
-        private RetrofitConfigBean retrofitConfigBean;
-
-        private ApplicationContext applicationContext;
+        // 省略其它代码
 
         public RetrofitFactoryBean(Class<T> retrofitInterface) {
             this.retrofitInterface = retrofitInterface;
@@ -256,60 +170,13 @@ categories:
         @Override
         @SuppressWarnings("unchecked")
         public T getObject() throws Exception {
+            // 接口校验
             checkRetrofitInterface(retrofitInterface);
+            // 构建Retrofit对象
             Retrofit retrofit = getRetrofit(retrofitInterface);
+            // 基于Retrofit创建接口代理对象
             return retrofit.create(retrofitInterface);
         }
-
-        /**
-        * RetrofitInterface检查
-        *
-        * @param retrofitInterface .
-        */
-        private void checkRetrofitInterface(Class<T> retrofitInterface) {
-            // check class type
-            Assert.isTrue(retrofitInterface.isInterface(), "@RetrofitClient只能作用在接口类型上！");
-            Method[] methods = retrofitInterface.getMethods();
-            for (Method method : methods) {
-                Class<?> returnType = method.getReturnType();
-                Assert.isTrue(!void.class.isAssignableFrom(returnType),
-                        "不支持使用void关键字做返回类型，请使用java.lang.Void! method=" + method);
-                if (retrofitProperties.isDisableVoidReturnType()) {
-                    Assert.isTrue(!Void.class.isAssignableFrom(returnType),
-                            "已配置禁用Void作为返回值，请指定其他返回类型！method=" + method);
-                }
-            }
-        }
-
-
-        @Override
-        public Class<T> getObjectType() {
-            return this.retrofitInterface;
-        }
-
-
-        @Override
-        public boolean isSingleton() {
-            return true;
-        }
-
-
-        /**
-        * 获取okhttp3连接池
-        *
-        * @param retrofitClientInterfaceClass retrofitClient接口类
-        * @return okhttp3连接池
-        */
-        private synchronized okhttp3.ConnectionPool getConnectionPool(Class<?> retrofitClientInterfaceClass) {
-            RetrofitClient retrofitClient = retrofitClientInterfaceClass.getAnnotation(RetrofitClient.class);
-            String poolName = retrofitClient.poolName();
-            Map<String, ConnectionPool> poolRegistry = retrofitConfigBean.getPoolRegistry();
-            Assert.notNull(poolRegistry, "poolRegistry不存在！请设置retrofitConfigBean.poolRegistry！");
-            ConnectionPool connectionPool = poolRegistry.get(poolName);
-            Assert.notNull(connectionPool, "当前poolName对应的连接池不存在！poolName = " + poolName);
-            return connectionPool;
-        }
-
 
         /**
         * 获取OkHttpClient实例，一个接口接口对应一个OkHttpClient
@@ -318,97 +185,7 @@ categories:
         * @return OkHttpClient实例
         */
         private synchronized OkHttpClient getOkHttpClient(Class<?> retrofitClientInterfaceClass) throws IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
-            okhttp3.ConnectionPool connectionPool = getConnectionPool(retrofitClientInterfaceClass);
-            RetrofitClient retrofitClient = retrofitClientInterfaceClass.getAnnotation(RetrofitClient.class);
-            // 构建一个OkHttpClient对象
-            OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder()
-                    .connectTimeout(retrofitClient.connectTimeoutMs(), TimeUnit.MILLISECONDS)
-                    .readTimeout(retrofitClient.readTimeoutMs(), TimeUnit.MILLISECONDS)
-                    .writeTimeout(retrofitClient.writeTimeoutMs(), TimeUnit.MILLISECONDS)
-                    .connectionPool(connectionPool);
-            // 添加接口上注解定义的拦截器
-            List<Interceptor> interceptors = new ArrayList<>(findInterceptorByAnnotation(retrofitClientInterfaceClass));
-            // 添加全局拦截器
-            Collection<BaseGlobalInterceptor> globalInterceptors = retrofitConfigBean.getGlobalInterceptors();
-            if (!CollectionUtils.isEmpty(globalInterceptors)) {
-                interceptors.addAll(globalInterceptors);
-            }
-            interceptors.forEach(okHttpClientBuilder::addInterceptor);
-
-            // 日志打印拦截器
-            if (retrofitProperties.isEnableLog()) {
-                Class<? extends BaseLoggingInterceptor> loggingInterceptorClass = retrofitProperties.getLoggingInterceptor();
-                Constructor<? extends BaseLoggingInterceptor> constructor = loggingInterceptorClass.getConstructor(Level.class, BaseLoggingInterceptor.LogStrategy.class);
-                BaseLoggingInterceptor loggingInterceptor = constructor.newInstance(retrofitClient.logLevel(), retrofitClient.logStrategy());
-                okHttpClientBuilder.addInterceptor(loggingInterceptor);
-            }
-            //  http异常信息格式化
-            HttpExceptionMessageFormatterInterceptor httpExceptionMessageFormatterInterceptor = retrofitConfigBean.getHttpExceptionMessageFormatterInterceptor();
-            if (httpExceptionMessageFormatterInterceptor != null) {
-                okHttpClientBuilder.addInterceptor(httpExceptionMessageFormatterInterceptor);
-            }
-            return okHttpClientBuilder.build();
-        }
-
-
-        /**
-        * 获取retrofitClient接口类上定义的拦截器集合
-        *
-        * @param retrofitClientInterfaceClass retrofitClient接口类
-        * @return 拦截器实例集合
-        */
-        @SuppressWarnings("unchecked")
-        private List<Interceptor> findInterceptorByAnnotation(Class<?> retrofitClientInterfaceClass) throws InstantiationException, IllegalAccessException {
-            Annotation[] classAnnotations = retrofitClientInterfaceClass.getAnnotations();
-            List<Interceptor> interceptors = new ArrayList<>();
-            // 找出被@InterceptMark标记的注解
-            List<Annotation> interceptAnnotations = new ArrayList<>();
-            for (Annotation classAnnotation : classAnnotations) {
-                Class<? extends Annotation> annotationType = classAnnotation.annotationType();
-                if (annotationType.isAnnotationPresent(InterceptMark.class)) {
-                    interceptAnnotations.add(classAnnotation);
-                }
-            }
-            for (Annotation interceptAnnotation : interceptAnnotations) {
-                // 获取注解属性数据
-                Map<String, Object> annotationAttributes = AnnotationUtils.getAnnotationAttributes(interceptAnnotation);
-                Object handler = annotationAttributes.get("handler");
-                Assert.notNull(handler, "@InterceptMark标记的注解必须配置: Class<? extends BasePathMatchInterceptor> handler()");
-                Assert.notNull(annotationAttributes.get("include"), "@InterceptMark标记的注解必须配置: String[] include()");
-                Assert.notNull(annotationAttributes.get("exclude"), "@InterceptMark标记的注解必须配置: String[] exclude()");
-                Class<? extends BasePathMatchInterceptor> interceptorClass = (Class<? extends BasePathMatchInterceptor>) handler;
-                BasePathMatchInterceptor interceptor = getInterceptorInstance(interceptorClass);
-                Map<String, Object> annotationResolveAttributes = new HashMap<>(8);
-                // 占位符属性替换
-                annotationAttributes.forEach((key, value) -> {
-                    if (value instanceof String) {
-                        String newValue = environment.resolvePlaceholders((String) value);
-                        annotationResolveAttributes.put(key, newValue);
-                    } else {
-                        annotationResolveAttributes.put(key, value);
-                    }
-                });
-                // 动态设置属性值
-                BeanExtendUtils.populate(interceptor, annotationResolveAttributes);
-                interceptors.add(interceptor);
-            }
-            return interceptors;
-        }
-
-        /**
-        * 获取路径拦截器实例，优先从spring容器中取。如果spring容器中不存在，则无参构造器实例化一个
-        *
-        * @param interceptorClass 路径拦截器类的子类，参见@{@link BasePathMatchInterceptor}
-        * @return 路径拦截器实例
-        */
-        private BasePathMatchInterceptor getInterceptorInstance(Class<? extends BasePathMatchInterceptor> interceptorClass) throws IllegalAccessException, InstantiationException {
-            // spring bean
-            try {
-                return applicationContext.getBean(interceptorClass);
-            } catch (BeansException e) {
-                // spring容器获取失败，反射创建
-                return interceptorClass.newInstance();
-            }
+            // 基于各种条件构建OkHttpClient
         }
 
 
@@ -419,6 +196,7 @@ categories:
         * @return Retrofit实例
         */
         private synchronized Retrofit getRetrofit(Class<?> retrofitClientInterfaceClass) throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+            // 构建retrofit
             RetrofitClient retrofitClient = retrofitClientInterfaceClass.getAnnotation(RetrofitClient.class);
             String baseUrl = retrofitClient.baseUrl();
             // 解析baseUrl占位符
@@ -438,19 +216,6 @@ categories:
                 converterFactories.forEach(retrofitBuilder::addConverterFactory);
             }
             return retrofitBuilder.build();
-        }
-
-
-        @Override
-        public void setEnvironment(Environment environment) {
-            this.environment = environment;
-        }
-
-        @Override
-        public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-            this.applicationContext = applicationContext;
-            this.retrofitConfigBean = applicationContext.getBean(RetrofitConfigBean.class);
-            this.retrofitProperties = retrofitConfigBean.getRetrofitProperties();
         }
     ```
 

@@ -557,7 +557,7 @@ mysql> EXPLAIN SELECT * FROM s1 WHERE key1 > 'z' AND key3 = 'a';
 - 如果该索引列可以存储`NULL`值，则`key_len`比不可以存储`NULL`值时多1个字节。
 - 对于变长字段来说，都会有2个字节的空间来存储该变长列的实际长度。
 
-### ref
+### `ref`
 
 当使用索引列等值匹配的条件去执行查询时，也就是在访问方法是`const`、`eq_ref`、`ref`、`ref_or_null`、`unique_subquery`、`index_subquery`其中之一时，`ref`列展示的就是与索引列作等值匹配的具体信息，比如只是一个常数或者是某个列。大家看下边这个查询：
 
