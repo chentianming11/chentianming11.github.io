@@ -2,14 +2,13 @@
 title: Spring Validation最佳实践及其实现原理，参数校验没那么简单！
 abbrlink: 3181057117
 date: 2020-08-01 14:37:50
-tags:
-categories:
+tags: spring
+categories: spring
 ---
 
 之前也写过一篇关于`Spring Validation`使用的文章，不过自我感觉还是浮于表面，本次打算彻底搞懂`Spring Validation`。本文会详细介绍`Spring Validation`各种场景下的最佳实践及其实现原理，死磕到底！
-
-<!--more-->
 项目源码：[spring-validation](https://github.com/chentianming11/spring-validation)
+<!--more-->
 
 ## 简单使用
 
