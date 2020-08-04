@@ -65,7 +65,7 @@ categories:
 
 我们已经知道使用`Retrofit`对象可以创建接口代理对象，接下来看一下`Retrofit`的UML类图(只列出了我们关注的依赖)：
 
-![retrofit-uml](/images/retrofit/retrofit-uml.png)
+![retrofit-uml](https://chentianming11.github.io/images/retrofit/retrofit-uml.png)
 
 通过分析UML类图，我们可以发现，构建`Retrofit`对象的时候，可以注入以下4个属性：
 
@@ -197,25 +197,6 @@ categories:
         */
         private synchronized Retrofit getRetrofit(Class<?> retrofitClientInterfaceClass) throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
             // 构建retrofit
-            RetrofitClient retrofitClient = retrofitClientInterfaceClass.getAnnotation(RetrofitClient.class);
-            String baseUrl = retrofitClient.baseUrl();
-            // 解析baseUrl占位符
-            baseUrl = environment.resolveRequiredPlaceholders(baseUrl);
-            OkHttpClient client = getOkHttpClient(retrofitClientInterfaceClass);
-            Retrofit.Builder retrofitBuilder = new Retrofit.Builder()
-                    .baseUrl(baseUrl)
-                    .client(client);
-            // 添加CallAdapter.Factory
-            List<CallAdapter.Factory> callAdapterFactories = retrofitConfigBean.getCallAdapterFactories();
-            if (!CollectionUtils.isEmpty(callAdapterFactories)) {
-                callAdapterFactories.forEach(retrofitBuilder::addCallAdapterFactory);
-            }
-            // 添加Converter.Factory
-            List<Converter.Factory> converterFactories = retrofitConfigBean.getConverterFactories();
-            if (!CollectionUtils.isEmpty(converterFactories)) {
-                converterFactories.forEach(retrofitBuilder::addConverterFactory);
-            }
-            return retrofitBuilder.build();
         }
     ```
 
