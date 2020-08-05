@@ -9,13 +9,15 @@ categories:
   - 开源项目
 ---
 
-> 大家都知道`okhttp`是一款由[square](https://square.github.io/)公司开源的`java`版本`http`客户端工具。实际上，[square](https://square.github.io/)公司还开源了基于`okhttp`进一步封装的[retrofit](http://square.github.io/retrofit/)工具，用来**支持通过`接口`的方式发起`http`请求**。**如果你的项目中还在直接使用`RestTemplate`或者`okhttp`，或者基于它们封装的`HttpUtils`，那么你可以尝试使用`Retrofit`**。
+大家都知道`okhttp`是一款由[square](https://square.github.io/)公司开源的`java`版本`http`客户端工具。实际上，[square](https://square.github.io/)公司还开源了基于`okhttp`进一步封装的[retrofit](http://square.github.io/retrofit/)工具，用来**支持通过`接口`的方式发起`http`请求**。**如果你的项目中还在直接使用`RestTemplate`或者`okhttp`，或者基于它们封装的`HttpUtils`，那么你可以尝试使用`Retrofit`**。
+
+**`retrofit-spring-boot-starter`实现了`Retrofit`与`spring-boot`框架快速整合，并且支持了部分功能增强，从而极大的简化`spring-boot`项目下`http`接口调用开发**。接下来我们直接通过`retrofit-spring-boot-starter`，来看看`spring-boot`项目发送`http`请求有多简单。
 
 <!--more-->
 
-**[retrofit-spring-boot-starter](https://github.com/LianjiaTech/retrofit-spring-boot-starter)实现了`Retrofit`与`spring-boot`框架快速整合，并且支持了部分功能增强，从而极大的简化`spring-boot`项目下`http`接口调用开发**。接下来我们直接通过`retrofit-spring-boot-starter`，来看看`spring-boot`项目发送`http`请求有多简单。
+> `retrofit`官方并没有提供与`spring-boot`快速整合的`starter`。`retrofit-spring-boot-starter`是笔者封装的，已在生产环境使用，非常稳定。**造轮子不易，跪求各位大佬star**。
 
-> `retrofit`官方并没有提供与`spring-boot`快速整合的`starter`。[retrofit-spring-boot-starter](https://github.com/LianjiaTech/retrofit-spring-boot-starter)是笔者封装的，已在生产环境使用，非常稳定。**造轮子不易，跪求各位大佬star**。
+项目源码：[retrofit-spring-boot-starter](https://github.com/LianjiaTech/retrofit-spring-boot-starter)
 
 ### 引入依赖
 
@@ -402,3 +404,5 @@ public class SourceInterceptor extends BaseGlobalInterceptor {
 ### 结语
 
 至此，spring-boot项目下最优雅的http客户端工具介绍就结束了，更多详细信息可以参考官方文档：[retrofit](http://square.github.io/retrofit/)以及[retrofit-spring-boot-starter](https://github.com/LianjiaTech/retrofit-spring-boot-starter)。
+
+> 原创不易，觉得文章写得不错的小伙伴，点个赞👍 鼓励一下吧~

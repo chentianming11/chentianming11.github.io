@@ -517,3 +517,5 @@ public class MethodValidationInterceptor implements MethodInterceptor {
 ```
 
 **实际上，不管是`requestBody参数校验`还是`方法级别的校验`，最终都是调用`Hibernate Validator`执行校验，`Spring Validation`只是做了一层封装**。
+
+> 原创不易，觉得文章写得不错的小伙伴，点个赞👍 鼓励一下吧~
