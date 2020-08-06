@@ -1,5 +1,5 @@
 ---
-title: 深入理解mysql-事务和锁，你想知道的都在这里
+title: 面试中的老大难-mysql事务和锁，一次性讲清楚！
 abbrlink: 293834368
 date: 2020-07-26 13:25:25
 tags: mysql

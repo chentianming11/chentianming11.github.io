@@ -1,5 +1,5 @@
 ---
-title: 深入理解mysql-InnoDB数据结构，从底层看清存储原理
+title: mysql存储引擎InnoDB详解，从底层看清InnoDB数据结构
 tags:
   - mysql
 categories:
