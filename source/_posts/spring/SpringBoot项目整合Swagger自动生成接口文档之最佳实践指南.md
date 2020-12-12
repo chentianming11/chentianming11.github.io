@@ -12,7 +12,7 @@ date: 2020-12-04 19:50:18
 
 ## Swagger和Springfox
 
-在正式介绍之前，我们首先要了解`Swagger`和`Springfox`之间的关系。相信在`Spring`项目使用过`Swagger`的同学都知道，在`Spring`项目中是通过`Springfox`来整合`Swagger`功能的。因此，我们首先要弄清楚`Swagger`和`Springfox`之间的关系。
+在正式介绍之前，我们首先要了解`Swagger`和`Springfox`之间的关系。相信在`Spring`项目使用过`Swagger`的同学都知道，在`Spring`项目中是通过`Springfox`来整合`Swagger`功能的。
 
 ### Swagger是什么
 
@@ -36,15 +36,15 @@ date: 2020-12-04 19:50:18
 虽然直接通过`Springfox`已经可以实现`SpringBoot`接入`Swagger`生成接口文档。但是这种方式有两个弊端：
 
 1. 原生接口文档页面展示不够友好。
-2. 整合起来比较繁琐。
+2. 使用起来可能比较繁琐。
 
 因此，在这里强烈推荐使用`Knife4j`。`Knife4j`是`Swagger`接口文档服务的通用性解决方案，底层基于`Springfox`实现。最主要的两个特性如下：
 
 1. 重写了前端UI界面，更符合国人使用习惯。
 2. 支持快速接入，并提供了很多实用功能增强。
-3. 文档友好，直接参考`Knife4j`官网文档就能完成接入，不需要管`Swagger`和`Springfox`底层实现细节。
+3. 文档友好，直接参考`Knife4j`官网文档就能完成接入。
 
-能让用户以最低成本接入的方式就是最好的方式，而`Knife4j`就是目前支持的最好的。更多详细信息可以参考官方文档[https://xiaoym.gitee.io/knife4j/documentation/description.html](https://xiaoym.gitee.io/knife4j/documentation/description.html)。
+能让用户以最低成本接入的方式就是最好的方式，而`Knife4j`确实实现的非常好。更多详细信息可以参考官方文档[https://xiaoym.gitee.io/knife4j/documentation/description.html](https://xiaoym.gitee.io/knife4j/documentation/description.html)。
 
 ## 最佳实践指南
 
@@ -57,9 +57,14 @@ date: 2020-12-04 19:50:18
 `Knife4j`的`2.x`版本对应`Springfox`的`2.x`版本，其采用的是`Swagger2`规范，相应的`3.x`版本使用的`OpenAPI3`规范。**关于这两个规范，我们不需要了解太多细节，只需要知道`OpenAPI3`规范能够更准确描述接口就行**。而对于`Springfox`而言，`3.x`版本还有一个优势是：**对于`Bean Validation`支持更好，能够从接口自身解析出更详细的接口信息**。因此，**如果条件允许，强烈建议`3.x`版本**！我甚至觉得，如果是`2.x`版本，接入的价值都不大。我始终觉得，在一个本身已经自描述的接口上，再去专门为文档去写各种注释是一件本末倒置的事情。既然已经自描述，那么最佳的解决方案永远都是框架去解析，而不是人工再写一遍！！！
 
 以下是一个`2.x`和`3.x`版本，对同一接口生成的接口文档，相信大家看完会有一个自己的判断！
+
+`2.x`版本：
 ![swagger2.x](https://chentianming11.github.io/images/spring/swagger2.x.png)
 
+`3.x`版本：
 ![swagger3.x](https://chentianming11.github.io/images/spring/swagger3.x.png)
+
+**`3.x`版本能解析出更多的接口信息，描述更为准确**。
 
 ### 对请求体入参支持不够好
 
@@ -185,6 +190,26 @@ public class PersonVO {
 }
 
 ```
+
+一般来说，生产环境并不需要开启接口文档功能，只需要在生产环境加如下配置即可：
+
+```yaml
+springfox:
+  documentation:
+    enabled: false
+```
+
+#### 常用文档注解
+
+**使用文档注解的目的只是为了添加中文说明，仅此而已**！
+
+| 注解| 说明 | 示例 |
+|------------|-----------|-----------|
+| `@Api` | 标注在`Controller`上，用于给控制器添加中文说明 | @Api(tags = "Person管理") |
+| `@ApiOperation` | 标注在方法上，用于给请求添加中文说明 | @ApiOperation("保存用户") |
+| `@ApiParam` | 标注在方法参数上，用于给请求参数添加中文说明 | @ApiParam("用户id") |
+| `@ApiModel` | 标注在`DTO`实体类上，用于给请求体添加中文说明 | @ApiModel("保存用户DTO类") |
+| `@ApiModelProperty` | 标注在`DTO`实体类的字段上，用于给请求体字段添加中文说明 | @ApiModelProperty("姓名") |
 
 #### 示例截图
 
