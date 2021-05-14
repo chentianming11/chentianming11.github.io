@@ -1,5 +1,5 @@
 ---
-title: 这样实现的Redis分布式锁最简单
+title: 这样实现Redis分布式锁最简单
 tags: redis
 categories: redis
 abbrlink: 82102136
