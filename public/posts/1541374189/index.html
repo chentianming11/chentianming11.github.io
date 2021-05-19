@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"chentianming11.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":{"enable":true,"onlypost":false,"loadingImg":"/uploads/loading.gif"},"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="最近为项目引入Swagger来支持自动生成文档功能，发现很多文章仅仅介绍了如何接入以及如何使用的问题。但是对于实际工程实践，并没有给出相应的最佳实践方案。因此，我重新梳理相关内容以及文档，整理出一套最佳实践指南。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SpringBoot项目整合Swagger自动生成接口文档之最佳实践指南">
+<meta property="og:url" content="https://chentianming11.github.io/posts/1541374189/index.html">
+<meta property="og:site_name" content="伍六七">
+<meta property="og:description" content="最近为项目引入Swagger来支持自动生成文档功能，发现很多文章仅仅介绍了如何接入以及如何使用的问题。但是对于实际工程实践，并没有给出相应的最佳实践方案。因此，我重新梳理相关内容以及文档，整理出一套最佳实践指南。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/swagger2.x.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/swagger3.x.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/swagger-demo.png">
+<meta property="article:published_time" content="2020-12-04T11:50:18.000Z">
+<meta property="article:modified_time" content="2020-12-07T02:37:49.592Z">
+<meta property="article:author" content="陈添明">
+<meta property="article:tag" content="spring">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://chentianming11.github.io/images/spring/swagger2.x.png">
+
+<link rel="canonical" href="https://chentianming11.github.io/posts/1541374189/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>SpringBoot项目整合Swagger自动生成接口文档之最佳实践指南 | 伍六七</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">伍六七</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">一起学Java</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">9</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">38</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/chentianming11" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://chentianming11.github.io/posts/1541374189/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="陈添明">
+      <meta itemprop="description" content="生命的意义在于成为你自己">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="伍六七">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          SpringBoot项目整合Swagger自动生成接口文档之最佳实践指南
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-12-04 19:50:18" itemprop="dateCreated datePublished" datetime="2020-12-04T19:50:18+08:00">2020-12-04</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/" itemprop="url" rel="index"><span itemprop="name">spring</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/posts/1541374189/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/1541374189/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.2k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>13 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>最近为项目引入<code>Swagger</code>来支持自动生成文档功能，发现很多文章仅仅介绍了如何接入以及如何使用的问题。<strong>但是对于实际工程实践，并没有给出相应的最佳实践方案。因此，我重新梳理相关内容以及文档，整理出一套最佳实践指南</strong>。</p>
+<a id="more"></a>
+
+<h2 id="Swagger和Springfox"><a href="#Swagger和Springfox" class="headerlink" title="Swagger和Springfox"></a>Swagger和Springfox</h2><p>在正式介绍之前，我们首先要了解<code>Swagger</code>和<code>Springfox</code>之间的关系。相信在<code>Spring</code>项目使用过<code>Swagger</code>的同学都知道，在<code>Spring</code>项目中是通过<code>Springfox</code>来整合<code>Swagger</code>功能的。</p>
+<h3 id="Swagger是什么"><a href="#Swagger是什么" class="headerlink" title="Swagger是什么"></a>Swagger是什么</h3><p>根据官网的介绍，<code>Swagger</code>是一系列用于<code>Restful API</code>开发的工具，开源的部分包括：</p>
+<ul>
+<li>OpenAPI Specification：API规范，规定了如何描述一个系统的API</li>
+<li>Swagger Codegen：用于通过API规范生成服务端和客户端代码</li>
+<li>Swagger Editor：用来编写API规范</li>
+<li>Swagger UI：用于展示API规范</li>
+</ul>
+<p><strong>简单来说，我们可以认为<code>swagger</code>主要制定并实现了一个<code>API</code>规范，用于描述系统的<code>API</code>接口</strong>。</p>
+<h3 id="Springfox是什么"><a href="#Springfox是什么" class="headerlink" title="Springfox是什么"></a>Springfox是什么</h3><p>简单来说，<code>Springfox</code>其实是一个通过扫描并提取代码中的信息，来生成<code>API</code>文档的工具，支持<code>swagger</code>、<code>RAML</code>、<code>jsonapi</code>等多种<code>API</code>文档的格式。因为我们这里着重讨论<code>swagger</code>，因此我们可以简单理解为：<strong><code>Springfox</code>就是整合<code>SpringMVC</code>和<code>swagger</code>的中间层，以支持自动扫描<code>Controller</code>层的接口来生成符合<code>swagger</code>API规范的描述数据(<code>JSON</code>格式)</strong>。</p>
+<p>通过<code>Springfox</code>，已经可以将<code>swagger</code>与<code>SpringBoot</code>项目整合起来了，网上有一大堆整合的文章，这里就不再赘述了，具体可以参考<a href="https://juejin.cn/post/6844903991793418248" target="_blank" rel="noopener">SpringBoot整合Swagger实战</a>。并且官方最近也出了<code>3.0</code>版本，具体可以参考：<a href="https://juejin.cn/post/6890692970018766856" target="_blank" rel="noopener">还在手动整合Swagger？Swagger官方Starter是真的香！</a>。</p>
+<h2 id="knife4j简介"><a href="#knife4j简介" class="headerlink" title="knife4j简介"></a>knife4j简介</h2><p>虽然直接通过<code>Springfox</code>已经可以实现<code>SpringBoot</code>接入<code>Swagger</code>生成接口文档。但是这种方式有两个弊端：</p>
+<ol>
+<li>原生接口文档页面展示不够友好。</li>
+<li>使用起来可能比较繁琐。</li>
+</ol>
+<p>因此，在这里强烈推荐使用<code>Knife4j</code>。<code>Knife4j</code>是<code>Swagger</code>接口文档服务的通用性解决方案，底层基于<code>Springfox</code>实现。最主要的两个特性如下：</p>
+<ol>
+<li>重写了前端UI界面，更符合国人使用习惯。</li>
+<li>支持快速接入，并提供了很多实用功能增强。</li>
+<li>文档友好，直接参考<code>Knife4j</code>官网文档就能完成接入。</li>
+</ol>
+<p>能让用户以最低成本接入的方式就是最好的方式，而<code>Knife4j</code>确实实现的非常好。更多详细信息可以参考官方文档<a href="https://xiaoym.gitee.io/knife4j/documentation/description.html" target="_blank" rel="noopener">https://xiaoym.gitee.io/knife4j/documentation/description.html</a>。</p>
+<h2 id="最佳实践指南"><a href="#最佳实践指南" class="headerlink" title="最佳实践指南"></a>最佳实践指南</h2><p><strong>实际上，<code>SpringBoot</code>的<code>Controller</code>层方法已经包含描述该接口详细信息了。当然，因为我们要补充中文说明。因此，最为理想的状况是，接口文档直接能直接根据<code>Controller</code>层的方法自动生成，我们顶多为每个参数编写一个中文说明，仅此而已</strong>。</p>
+<p><strong>我觉得完全自描述的接口才是最合理的，同时也是最简便的</strong>。但是，理想很好，现实情况是<code>Springfox</code>对此支持的并不算太好。因此，我们需要在实践的时候，找到一种方式来解决这个问题，下面会介绍一些常见问题的解决思路。</p>
+<h3 id="2-x和3-x版本如何选择"><a href="#2-x和3-x版本如何选择" class="headerlink" title="2.x和3.x版本如何选择"></a>2.x和3.x版本如何选择</h3><p><code>Knife4j</code>的<code>2.x</code>版本对应<code>Springfox</code>的<code>2.x</code>版本，其采用的是<code>Swagger2</code>规范，相应的<code>3.x</code>版本使用的<code>OpenAPI3</code>规范。<strong>关于这两个规范，我们不需要了解太多细节，只需要知道<code>OpenAPI3</code>规范能够更准确描述接口就行</strong>。而对于<code>Springfox</code>而言，<code>3.x</code>版本还有一个优势是：<strong>对于<code>Bean Validation</code>支持更好，能够从接口自身解析出更详细的接口信息</strong>。因此，<strong>如果条件允许，强烈建议<code>3.x</code>版本</strong>！我甚至觉得，如果是<code>2.x</code>版本，接入的价值都不大。我始终觉得，在一个本身已经自描述的接口上，再去专门为文档去写各种注释是一件本末倒置的事情。既然已经自描述，那么最佳的解决方案永远都是框架去解析，而不是人工再写一遍！！！</p>
+<p>以下是一个<code>2.x</code>和<code>3.x</code>版本，对同一接口生成的接口文档，相信大家看完会有一个自己的判断！</p>
+<p><code>2.x</code>版本：<br><img data-src="https://chentianming11.github.io/images/spring/swagger2.x.png" alt="swagger2.x"></p>
+<p><code>3.x</code>版本：<br><img data-src="https://chentianming11.github.io/images/spring/swagger3.x.png" alt="swagger3.x"></p>
+<p><strong><code>3.x</code>版本能解析出更多的接口信息，描述更为准确</strong>。</p>
+<h3 id="对请求体入参支持不够好"><a href="#对请求体入参支持不够好" class="headerlink" title="对请求体入参支持不够好"></a>对请求体入参支持不够好</h3><p>对于<code>Query</code>查询参数，<code>Springfox</code>的<code>3.x</code>版本已经支持的非常好了，我们按之前的方式写接口即可。但是对于请求体参数，现有框架支持的还是不够好。<strong>其中，最为典型的是不支持分组校验</strong>。这样的导致的结果就是，文档上会将整个<code>DTO</code>类的字段以及约束全部展示到任何一个使用了该<code>DTO</code>接收参数的接口上。很明显，这并不合理，因为分组校验做的就是让该接口指定分组下的约束只对这个接口生效。</p>
+<p>针对这个问题，有什么完美的解决方案吗？答案是没有，这里只能做一个取舍。<strong>如果十分看重接口文档准确性的话，只能不使用分组校验，这样的话，意味着每个接口的请求体都要用不同的<code>DTO</code>类来接收，以防止互相干扰</strong>。如果不是特别在意，那还是按分组校验来写，实现更简单。目前，我们项目准备选第一种方式。</p>
+<blockquote>
+<p>如果不了解参数校验，可以戳这里：<a href="https://juejin.cn/post/6856541106626363399" target="_blank" rel="noopener">Spring Validation最佳实践及其实现原理，参数校验没那么简单！</a>。对于参数校验，强烈建议这种注解式的方式。因为只有注解式，才能真正做到接口自描述。</p>
+</blockquote>
+<h3 id="接入和使用示例"><a href="#接入和使用示例" class="headerlink" title="接入和使用示例"></a>接入和使用示例</h3><h4 id="引入依赖"><a href="#引入依赖" class="headerlink" title="引入依赖"></a>引入依赖</h4><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.github.xiaoymin<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>knife4j-spring-boot-starter<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.0.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="编写接口"><a href="#编写接口" class="headerlink" title="编写接口"></a>编写接口</h4><p><strong>只需要额外再为每个字段加中文说明即可</strong>！</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="meta">@RequestMapping</span>(<span class="string">"/api/person"</span>)</span><br><span class="line"><span class="meta">@Validated</span></span><br><span class="line"><span class="meta">@Api</span>(tags = <span class="string">"Person管理"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">PersonController</span> </span>&#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="meta">@ApiOperation</span>(<span class="string">"保存用户"</span>)</span><br><span class="line">    <span class="meta">@PostMapping</span>(<span class="string">"savePerson"</span>)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> Result&lt;PersonVO&gt; <span class="title">savePerson</span><span class="params">(@RequestBody @Valid SavePersonDTO person)</span> </span>&#123;</span><br><span class="line">        PersonVO personVO = <span class="keyword">new</span> PersonVO().setAge(<span class="number">10</span>).setEmail(<span class="string">"xxxxx"</span>).setId(<span class="number">1L</span>).setName(<span class="string">"哈哈"</span>);</span><br><span class="line">        <span class="keyword">return</span> Result.ok(personVO);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@ApiOperation</span>(<span class="string">"更新用户"</span>)</span><br><span class="line">    <span class="meta">@PostMapping</span>(<span class="string">"updatePerson"</span>)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> Result&lt;PersonVO&gt; <span class="title">updatePerson</span><span class="params">(@RequestBody @Valid UpdatePersonDTO person)</span> </span>&#123;</span><br><span class="line">        PersonVO personVO = <span class="keyword">new</span> PersonVO().setAge(<span class="number">10</span>).setEmail(<span class="string">"xxxxx"</span>).setId(<span class="number">1L</span>).setName(<span class="string">"哈哈"</span>);</span><br><span class="line">        <span class="keyword">return</span> Result.ok(personVO);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="meta">@ApiOperation</span>(<span class="string">"查询person"</span>)</span><br><span class="line">    <span class="meta">@GetMapping</span>(<span class="string">"queryPerson"</span>)</span><br><span class="line">    <span class="keyword">public</span> Result&lt;List&lt;PersonVO&gt;&gt; queryPerson(</span><br><span class="line">            <span class="meta">@ApiParam</span>(<span class="string">"用户id"</span>) <span class="meta">@Min</span>(<span class="number">1000</span>) <span class="meta">@Max</span>(<span class="number">10000000</span>) Long id,</span><br><span class="line">            <span class="meta">@ApiParam</span>(<span class="string">"姓名"</span>) <span class="meta">@NotNull</span> <span class="meta">@Size</span>(min = <span class="number">2</span>, max = <span class="number">10</span>) String name,</span><br><span class="line">            <span class="meta">@ApiParam</span>(<span class="string">"年龄"</span>) <span class="meta">@NotNull</span> <span class="meta">@Max</span>(<span class="number">200</span>) Integer age,</span><br><span class="line">            <span class="meta">@ApiParam</span>(<span class="string">"邮箱"</span>) <span class="meta">@Pattern</span>(regexp = <span class="string">"^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$"</span>) String email) &#123;</span><br><span class="line">        List&lt;PersonVO&gt; list = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        list.add(<span class="keyword">new</span> PersonVO().setAge(<span class="number">10</span>).setEmail(<span class="string">"xxxxx"</span>).setId(<span class="number">1L</span>).setName(<span class="string">"哈哈"</span>));</span><br><span class="line">        <span class="keyword">return</span> Result.ok(list);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="meta">@Accessors</span>(chain = <span class="keyword">true</span>)</span><br><span class="line"><span class="meta">@ApiModel</span>(<span class="string">"保存用户DTO类"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SavePersonDTO</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@ApiModelProperty</span>(<span class="string">"姓名"</span>)</span><br><span class="line">    <span class="meta">@NotNull</span></span><br><span class="line">    <span class="meta">@Size</span>(min = <span class="number">2</span>, max = <span class="number">10</span>)</span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@ApiModelProperty</span>(<span class="string">"年龄"</span>)</span><br><span class="line">    <span class="meta">@NotNull</span></span><br><span class="line">    <span class="meta">@Max</span>(<span class="number">200</span>)</span><br><span class="line">    <span class="keyword">private</span> Integer age;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@ApiModelProperty</span>(<span class="string">"邮箱"</span>)</span><br><span class="line">    <span class="meta">@Pattern</span>(regexp = <span class="string">"^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$"</span>)</span><br><span class="line">    <span class="keyword">private</span> String email;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="meta">@Accessors</span>(chain = <span class="keyword">true</span>)</span><br><span class="line"><span class="meta">@ApiModel</span>(<span class="string">"更新用户DTO类"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">UpdatePersonDTO</span> </span>&#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="meta">@ApiModelProperty</span>(<span class="string">"用户id"</span>)</span><br><span class="line">    <span class="meta">@NotNull</span></span><br><span class="line">    <span class="keyword">private</span> Long id;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@ApiModelProperty</span>(<span class="string">"姓名"</span>)</span><br><span class="line">    <span class="meta">@Size</span>(min = <span class="number">2</span>, max = <span class="number">10</span>)</span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@ApiModelProperty</span>(<span class="string">"年龄"</span>)</span><br><span class="line">    <span class="meta">@Max</span>(<span class="number">200</span>)</span><br><span class="line">    <span class="keyword">private</span> Integer age;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@ApiModelProperty</span>(<span class="string">"邮箱"</span>)</span><br><span class="line">    <span class="meta">@Pattern</span>(regexp = <span class="string">"^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$"</span>)</span><br><span class="line">    <span class="keyword">private</span> String email;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="meta">@Accessors</span>(chain = <span class="keyword">true</span>)</span><br><span class="line"><span class="meta">@ApiModel</span>(<span class="string">"用户VO类"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">PersonVO</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@ApiModelProperty</span>(<span class="string">"用户id"</span>)</span><br><span class="line">    <span class="keyword">private</span> Long id;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@ApiModelProperty</span>(<span class="string">"姓名"</span>)</span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@ApiModelProperty</span>(<span class="string">"年龄"</span>)</span><br><span class="line">    <span class="keyword">private</span> Integer age;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@ApiModelProperty</span>(<span class="string">"邮箱"</span>)</span><br><span class="line">    <span class="keyword">private</span> String email;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>一般来说，生产环境并不需要开启接口文档功能，只需要在生产环境加如下配置即可：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">springfox:</span></span><br><span class="line">  <span class="attr">documentation:</span></span><br><span class="line">    <span class="attr">enabled:</span> <span class="literal">false</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="常用文档注解"><a href="#常用文档注解" class="headerlink" title="常用文档注解"></a>常用文档注解</h4><p><strong>使用文档注解的目的只是为了添加中文说明，仅此而已</strong>！</p>
+<table>
+<thead>
+<tr>
+<th>注解</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>@Api</code></td>
+<td>标注在<code>Controller</code>上，用于给控制器添加中文说明</td>
+<td>@Api(tags = “Person管理”)</td>
+</tr>
+<tr>
+<td><code>@ApiOperation</code></td>
+<td>标注在方法上，用于给请求添加中文说明</td>
+<td>@ApiOperation(“保存用户”)</td>
+</tr>
+<tr>
+<td><code>@ApiParam</code></td>
+<td>标注在方法参数上，用于给请求参数添加中文说明</td>
+<td>@ApiParam(“用户id”)</td>
+</tr>
+<tr>
+<td><code>@ApiModel</code></td>
+<td>标注在<code>DTO</code>实体类上，用于给请求体添加中文说明</td>
+<td>@ApiModel(“保存用户DTO类”)</td>
+</tr>
+<tr>
+<td><code>@ApiModelProperty</code></td>
+<td>标注在<code>DTO</code>实体类的字段上，用于给请求体字段添加中文说明</td>
+<td>@ApiModelProperty(“姓名”)</td>
+</tr>
+</tbody></table>
+<h4 id="示例截图"><a href="#示例截图" class="headerlink" title="示例截图"></a>示例截图</h4><p><img data-src="https://chentianming11.github.io/images/spring/swagger-demo.png" alt="swagger-demo"></p>
+<h4 id="源码"><a href="#源码" class="headerlink" title="源码"></a>源码</h4><p>源码地址：<a href="https://github.com/chentianming11/spring-validation" target="_blank" rel="noopener">https://github.com/chentianming11/spring-validation</a></p>
+<p>启动项目，访问<a href="http://localhost:8080/doc.html" target="_blank" rel="noopener">http://localhost:8080/doc.html</a>可查看接口文档。</p>
+<blockquote>
+<p>原创不易，觉得文章写得不错的小伙伴，点个赞👍 鼓励一下吧~</p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/spring/" rel="tag"># spring</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/3833574358/" rel="prev" title="推荐一个适用于SpringBoot项目的轻量级HTTP客户端框架，快来试试它!">
+      <i class="fa fa-chevron-left"></i> 推荐一个适用于SpringBoot项目的轻量级HTTP客户端框架，快来试试它!
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/2971920835/" rel="next" title="2020，我写了个开源项目 | 掘金年度征文">
+      2020，我写了个开源项目 | 掘金年度征文 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Swagger和Springfox"><span class="nav-number">1.</span> <span class="nav-text">Swagger和Springfox</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Swagger是什么"><span class="nav-number">1.1.</span> <span class="nav-text">Swagger是什么</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Springfox是什么"><span class="nav-number">1.2.</span> <span class="nav-text">Springfox是什么</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#knife4j简介"><span class="nav-number">2.</span> <span class="nav-text">knife4j简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#最佳实践指南"><span class="nav-number">3.</span> <span class="nav-text">最佳实践指南</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-x和3-x版本如何选择"><span class="nav-number">3.1.</span> <span class="nav-text">2.x和3.x版本如何选择</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#对请求体入参支持不够好"><span class="nav-number">3.2.</span> <span class="nav-text">对请求体入参支持不够好</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#接入和使用示例"><span class="nav-number">3.3.</span> <span class="nav-text">接入和使用示例</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#引入依赖"><span class="nav-number">3.3.1.</span> <span class="nav-text">引入依赖</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#编写接口"><span class="nav-number">3.3.2.</span> <span class="nav-text">编写接口</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#常用文档注解"><span class="nav-number">3.3.3.</span> <span class="nav-text">常用文档注解</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#示例截图"><span class="nav-number">3.3.4.</span> <span class="nav-text">示例截图</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#源码"><span class="nav-number">3.3.5.</span> <span class="nav-text">源码</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="陈添明"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">陈添明</p>
+  <div class="site-description" itemprop="description">生命的意义在于成为你自己</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈添明</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">254k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">10:34</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+  <script src="//cdn.jsdelivr.net/npm/quicklink@1/dist/quicklink.umd.js"></script>
+  <script>
+      window.addEventListener('load', () => {
+      quicklink({
+        timeout : 3000,
+        priority: true,
+        ignores : [uri => uri.includes('#'),uri => uri === 'https://chentianming11.github.io/posts/1541374189/',]
+      });
+      });
+  </script>
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : 'SoPxUkme2aynTULaNuIc5TIq-gzGzoHsz',
+      appKey     : '4TDP7SMCbgDKTOGGUtpIeA0H',
+      placeholder: "留下点足迹吧~",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+    </div>
+</body>
+</html>

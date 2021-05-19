@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"chentianming11.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":{"enable":true,"onlypost":false,"loadingImg":"/uploads/loading.gif"},"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="zookeeper是一种为分布式应用所设计的高可用、高性能且一致的开源协调服务，主要可用来实现分布式锁、配置维护、分布式消息队列、分布式通知&#x2F;协调等。 zookeeper设计了一种全新的数据结构(Znode)，并且在Znode上定义了一些原语（关于该数据结构的一些操作）。因为zookeeper是工作在一个分布式的环境下，所以还需要一个通知机制(watch机制)来将消息通过网络发送给分布式应用程序。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入理解zookeeper-zookeeper基本介绍及使用">
+<meta property="og:url" content="https://chentianming11.github.io/posts/4128331822/index.html">
+<meta property="og:site_name" content="伍六七">
+<meta property="og:description" content="zookeeper是一种为分布式应用所设计的高可用、高性能且一致的开源协调服务，主要可用来实现分布式锁、配置维护、分布式消息队列、分布式通知&#x2F;协调等。 zookeeper设计了一种全新的数据结构(Znode)，并且在Znode上定义了一些原语（关于该数据结构的一些操作）。因为zookeeper是工作在一个分布式的环境下，所以还需要一个通知机制(watch机制)来将消息通过网络发送给分布式应用程序。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://chentianming11.github.io/public/images/zookeeper/znode.png">
+<meta property="og:image" content="https://chentianming11.github.io/public/images/zookeeper/znode-file.png">
+<meta property="og:image" content="https://chentianming11.github.io/public/images/zookeeper/watch.png">
+<meta property="og:image" content="https://chentianming11.github.io/public/images/zookeeper/ls-path.png">
+<meta property="og:image" content="https://chentianming11.github.io/public/images/zookeeper/create-path-data.png">
+<meta property="og:image" content="https://chentianming11.github.io/public/images/zookeeper/get-path.png">
+<meta property="og:image" content="https://chentianming11.github.io/public/images/zookeeper/set-path-data.png">
+<meta property="og:image" content="https://chentianming11.github.io/public/images/zookeeper/delete-path.png">
+<meta property="og:image" content="https://chentianming11.github.io/public/images/zookeeper/api.png">
+<meta property="article:published_time" content="2021-05-04T02:51:29.000Z">
+<meta property="article:modified_time" content="2021-05-04T14:41:56.707Z">
+<meta property="article:author" content="陈添明">
+<meta property="article:tag" content="zookeeper">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://chentianming11.github.io/public/images/zookeeper/znode.png">
+
+<link rel="canonical" href="https://chentianming11.github.io/posts/4128331822/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>深入理解zookeeper-zookeeper基本介绍及使用 | 伍六七</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">伍六七</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">一起学Java</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">9</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">38</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/chentianming11" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://chentianming11.github.io/posts/4128331822/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="陈添明">
+      <meta itemprop="description" content="生命的意义在于成为你自己">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="伍六七">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          深入理解zookeeper-zookeeper基本介绍及使用
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-05-04 10:51:29" itemprop="dateCreated datePublished" datetime="2021-05-04T10:51:29+08:00">2021-05-04</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/zookeeper/" itemprop="url" rel="index"><span itemprop="name">zookeeper</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/posts/4128331822/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/4128331822/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>21k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>53 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><strong>zookeeper是一种为分布式应用所设计的高可用、高性能且一致的开源协调服务，主要可用来实现分布式锁、配置维护、分布式消息队列、分布式通知/协调等</strong>。</p>
+<p>zookeeper设计了一种全新的数据结构(<code>Znode</code>)，并且在<code>Znode</code>上定义了一些原语（关于该数据结构的一些操作）。因为zookeeper是工作在一个分布式的环境下，所以还需要一个通知机制(<strong>watch机制</strong>)来将消息通过网络发送给分布式应用程序。总结一下，<strong>zookeeper所提供的服务主要是通过：Znode数据结构+原语+watch机制，三个部分来实现的</strong>，那么接下来就从这三个方面来简单介绍一下zookeeper。</p>
+<a id="more"></a>
+
+<p>源码：<a href="https://github.com/chentianming11/zookeeper-demo" target="_blank" rel="noopener">https://github.com/chentianming11/zookeeper-demo</a></p>
+<h2 id="zookeeper数据模型"><a href="#zookeeper数据模型" class="headerlink" title="zookeeper数据模型"></a>zookeeper数据模型</h2><h3 id="Znode"><a href="#Znode" class="headerlink" title="Znode"></a>Znode</h3><p>zookeeper拥有一个层次的命名空间，这个和标准的文件系统非常相似，如下图所示。<br><img data-src="../../../public/images/zookeeper/znode.png" alt=""><br><img data-src="../../../public/images/zookeeper/znode-file.png" alt=""></p>
+<p>从图中我们可以看出，zookeeper的数据模型在结构上和标准文件系统的非常相似，都是采用<strong>树形层次结构</strong>，zookeeper树中的每个节点被称为—<code>Znode</code>。和文件系统的目录树一样，zookeeper树中的每个节点可以拥有子节点。当然，也有不同之处：</p>
+<ul>
+<li><p>引用方式</p>
+<p>Zonde通过路径引用，如同Unix中的文件路径。<strong>路径必须是绝对且唯一的</strong>，因此他们必须由斜杠字符来开头，并且每一个路径只有一个表示。</p>
+</li>
+<li><p>Znode结构</p>
+<p>zookeeper命名空间中的Znode，兼具文件和目录两种特点。<strong>既像文件一样维护着数据、元信息、ACL、时间戳等数据结构，又像目录一样可以作为路径标识的一部分</strong>。图中的每个节点称为一个Znode。 每个Znode由3部分组成:</p>
+<ul>
+<li><p>stat：状态信息, 描述该Znode的版本, 权限等信息；</p>
+</li>
+<li><p>data：与该Znode关联的数据；</p>
+</li>
+<li><p>children：该Znode下的子节点</p>
+<p>zookeeper虽然可以关联一些数据，但并没有被设计为常规的数据库或者大数据存储，相反的是，它用来管理调度数据，比如分布式应用中的配置文件信息、状态信息、汇集位置等等。这些数据的共同特性就是它们都是很小的数据，通常以KB为大小单位。zookeeper的服务器和客户端都被设计为严格检查并限制每个Znode的数据大小至多1M，但常规使用中应该远小于此值。</p>
+</li>
+</ul>
+</li>
+<li><p>数据访问</p>
+<p>  zookeeper中的每个节点存储的数据要被原子性的操作。也就是说读操作将获取与节点相关的所有数据，写操作也将替换掉节点的所有数据。另外，每一个节点都拥有自己的ACL(访问控制列表)，这个列表规定了用户的权限，即限定了特定用户对目标节点可以执行的操作。</p>
+</li>
+<li><p>节点类型</p>
+<p><strong>zookeeper中的节点有两种，分别为临时节点和永久节点。节点的类型在创建时即被确定，并且不能改变</strong>。</p>
+<ul>
+<li><strong>临时节点</strong>：<em>该节点的生命周期依赖于创建它们的会话。一旦会话(Session)结束，临时节点将被自动删除</em>，当然可以也可以手动删除。虽然每个临时的Znode都会绑定到一个客户端会话，但他们对所有的客户端还是可见的。另外，<em>zookeeper的临时节点不允许拥有子节点</em>。</li>
+<li><strong>永久节点</strong>：该节点的生命周期不依赖于会话，并且只有在客户端显示执行删除操作的时候，他们才能被删除。</li>
+</ul>
+</li>
+<li><p>顺序节点</p>
+<p><strong>当创建Znode的时候，用户可以请求在zookeeper的路径结尾添加一个递增的计数</strong>。这个计数对于此节点的父节点来说是唯一的，它的格式为”%10d”(10位数字，没有数值的数位用0补充，例如”0000000001”)。当计数值大于232-1时，计数器将溢出。</p>
+</li>
+<li><p>监视器</p>
+<p>客户端可以在节点上设置watch，我们称之为监视器。<strong>当节点状态发生改变时(Znode的增、删、改)将会触发watch所对应的操作</strong>。当watch被触发时，zookeeper将会向客户端发送且仅发送一条通知，因此watch只能被触发一次，这样可以减少网络流量。</p>
+</li>
+</ul>
+<h3 id="zookeeper中的时间"><a href="#zookeeper中的时间" class="headerlink" title="zookeeper中的时间"></a>zookeeper中的时间</h3><p>zookeeper有多种记录时间的形式，其中包含以下几个主要属性：</p>
+<ul>
+<li><p>Zxid</p>
+<p>致使zookeeper节点状态改变的每一个操作都将使节点接收到一个Zxid格式的时间戳，并且这个时间戳全局有序。也就是说，也就是说，<strong>每个对节点的改变都将产生一个唯一的Zxid</strong>。如果Zxid1的值小于Zxid2的值，那么Zxid1所对应的事件发生在Zxid2所对应的事件之前。实际 上，zookeeper的每个节点维护者三个Zxid值，为别为：cZxid、mZxid、pZxid。</p>
+<ul>
+<li>cZxid：节点创建时间所对应的Zxid格式时间戳</li>
+<li>mZxid：节点最近一次修改的时间所对应的Zxid格式时间戳</li>
+<li>pZxid：子节点（或该节点）的最近一次创建/删除的时间所对应的Zxid格式时间戳</li>
+</ul>
+<p>实现中Zxid是一个64为的数字，它高32位是epoch用来标识leader关系是否改变，每次一个leader被选出来，它都会有一个 新的epoch。低32位是个递增计数。</p>
+</li>
+<li><p>版本号</p>
+<p>对节点的每一个操作都将致使这个节点的版本号增加。每个节点维护着三个版本号，他们分别为：</p>
+<ul>
+<li>version：节点数据版本号</li>
+<li>cversion：子节点版本号</li>
+<li>aversion：节点所拥有的ACL版本号</li>
+</ul>
+</li>
+</ul>
+<h3 id="zookeeper节点属性"><a href="#zookeeper节点属性" class="headerlink" title="zookeeper节点属性"></a>zookeeper节点属性</h3><table>
+<thead>
+<tr>
+<th>属性</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>cZxid</td>
+<td>节点创建时间所对应的Zxid格式时间戳</td>
+</tr>
+<tr>
+<td>mZxid</td>
+<td>节点最近一次修改的时间所对应的Zxid格式时间戳</td>
+</tr>
+<tr>
+<td>pZxid</td>
+<td>子节点（或该节点）的最近一次创建/删除的时间所对应的Zxid格式时间戳</td>
+</tr>
+<tr>
+<td>ctime</td>
+<td>节点创建时间</td>
+</tr>
+<tr>
+<td>mtime</td>
+<td>节点最近修改时间</td>
+</tr>
+<tr>
+<td>version</td>
+<td>节点数据版本号</td>
+</tr>
+<tr>
+<td>cversion</td>
+<td>子节点版本号</td>
+</tr>
+<tr>
+<td>aversion</td>
+<td>节点所拥有的ACL版本号</td>
+</tr>
+<tr>
+<td>ephemeralOwner</td>
+<td>如果此节点为临时节点，这个值为会话ID，否则，值为0</td>
+</tr>
+<tr>
+<td>dataLength</td>
+<td>节点数据长度</td>
+</tr>
+<tr>
+<td>numChildren</td>
+<td>子节点数量</td>
+</tr>
+</tbody></table>
+<h3 id="zookeeper节点操作"><a href="#zookeeper节点操作" class="headerlink" title="zookeeper节点操作"></a>zookeeper节点操作</h3><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>create</td>
+<td>创建Znode(父节点必须存在)</td>
+</tr>
+<tr>
+<td>delete</td>
+<td>删除Znode(没有子节点)</td>
+</tr>
+<tr>
+<td>exists</td>
+<td>测试Znode是否存在，并获取它的元数据</td>
+</tr>
+<tr>
+<td>getACL/setACL</td>
+<td>为Znode获取/设置ACL</td>
+</tr>
+<tr>
+<td>getChildren</td>
+<td>获取Znode所有子节点列表</td>
+</tr>
+<tr>
+<td>getData/setData</td>
+<td>获取/设置Znode相关数据</td>
+</tr>
+<tr>
+<td>sync</td>
+<td>使客户端的Znode视图与zookeeper同步</td>
+</tr>
+</tbody></table>
+<p>更新zookeeper操作是有限制的。delete或setData必须明确要更新的Znode的版本号，我们可以调用exists找到。如果版本号不匹配，更新将会失败。<br>更新zookeeper操作是非阻塞式的。因此客户端如果失去了一个更新(由于另一个进程在同时更新这个Znode)，他可以在不阻塞其他进程执行的情况下，选择重新尝试或进行其他操作。</p>
+<h2 id="watch触发器"><a href="#watch触发器" class="headerlink" title="watch触发器"></a>watch触发器</h2><p><strong>zookeeper可以为所有的读操作设置watch，这些读操作包括：<code>exists()</code>、<code>getChildren()</code>及<code>getData()</code></strong>。watch事件是<strong>一次性的触发器</strong>，当watch的对象状态发生改变时，将会触发此对象上watch所对应的事件。watch事件将被异步地发送给客户端，并且zookeeper为watch机制提供了有序的一致性保证。理论上，客户端接收watch事件的时间要快于其看到watch对象状态变化的时间。</p>
+<h3 id="watch类型"><a href="#watch类型" class="headerlink" title="watch类型"></a>watch类型</h3><ul>
+<li><strong>数据watch(data watches)</strong>：getData和exists负责设置数据watch;</li>
+<li><strong>孩子watch(child watches)</strong>：getChildren负责设置孩子watch。</li>
+</ul>
+<h3 id="watch注册与处触发"><a href="#watch注册与处触发" class="headerlink" title="watch注册与处触发"></a>watch注册与处触发</h3><p><img data-src="../../../public/images/zookeeper/watch.png" alt=""></p>
+<ol>
+<li><code>exists</code>操作上的watch，在被监视的Znode创建、删除或数据更新时被触发。</li>
+<li><code>getData</code>操作上的watch，在被监视的Znode删除或数据更新时被触发。在被创建时不能被触发，因为只有Znode一定存在，<code>getData</code>操作才会成功。</li>
+<li><code>getChildren</code>操作上的watch，在被监视的Znode的子节点创建或删除，或是这个Znode自身被删除时被触发。可以通过查看watch事件类型来区分是Znode，还是他的子节点被删除：<code>NodeDelete</code>表示Znode被删除，<code>NodeDeletedChanged</code>表示子节点被删除。</li>
+</ol>
+<h2 id="zookeeper的简单操作"><a href="#zookeeper的简单操作" class="headerlink" title="zookeeper的简单操作"></a>zookeeper的简单操作</h2><p>下载zookeeper：<a href="https://downloads.apache.org/zookeeper/zookeeper-3.5.9/apache-zookeeper-3.5.9-bin.tar.gz" target="_blank" rel="noopener">https://downloads.apache.org/zookeeper/zookeeper-3.5.9/apache-zookeeper-3.5.9-bin.tar.gz</a></p>
+<h3 id="shell操作"><a href="#shell操作" class="headerlink" title="shell操作"></a>shell操作</h3><p>进入zookeeper目录，在conf目录下，新建一个名为<code>zoo.cfg</code>的文件，其中内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"># 服务器与客户端之间交互的基本时间单元（ms） </span><br><span class="line">tickTime&#x3D;2000   </span><br><span class="line"># zookeeper所能接受的客户端数量 </span><br><span class="line">initLimit&#x3D;10  </span><br><span class="line"># 服务器和客户端之间请求和应答之间的时间间隔 </span><br><span class="line">syncLimit&#x3D;5</span><br><span class="line"># zookeeper中使用的基本时间单位, 毫秒值.</span><br><span class="line">tickTime&#x3D;2000</span><br><span class="line"># 数据目录. 可以是任意目录.</span><br><span class="line">dataDir&#x3D;&#x2F;tmp&#x2F;zookeeper&#x2F;data</span><br><span class="line"># log目录, 同样可以是任意目录. 如果没有设置该参数, 将使用和#dataDir相同的设置.</span><br><span class="line">dataLogDir&#x3D;&#x2F;tmp&#x2F;zookeeper&#x2F;log</span><br><span class="line"># t监听client连接的端口号.</span><br><span class="line">clientPort&#x3D;2181</span><br></pre></td></tr></table></figure>
+
+<p>启动zookeeper服务：<code>./bin/zkServer.sh start</code>;<br>在启动Zookeeper服务之后，输入<code>./bin/zkCli.sh -server localhost:2181</code>，连接到Zookeeper服务。</p>
+<p>连接成功之后，系统会输出Zookeeper的相关环境及配置信息，并在屏幕输出“welcome to Zookeeper！”等信息。</p>
+<ol>
+<li><p><code>ls path</code> : 列出指定路径节点下包含的子节点信息，例如 <code>ls /</code><br><img data-src="../../../public/images/zookeeper/ls-path.png" alt=""></p>
+</li>
+<li><p><code>create path data</code>: 创建一个路径节点。例如 <code>create /zk hello</code><br><img data-src="../../../public/images/zookeeper/create-path-data.png" alt=""></p>
+</li>
+<li><p><code>get path</code>: 获取指定路径节点的信息<br><img data-src="../../../public/images/zookeeper/get-path.png" alt=""></p>
+</li>
+<li><p><code>set path data</code>: 给指定路径节点设置数据<br><img data-src="../../../public/images/zookeeper/set-path-data.png" alt=""></p>
+</li>
+<li><p><code>delete path</code>: 删除指定路径节点<br><img data-src="../../../public/images/zookeeper/delete-path.png" alt=""></p>
+</li>
+</ol>
+<h3 id="Zookeeper的API的简单使用"><a href="#Zookeeper的API的简单使用" class="headerlink" title="Zookeeper的API的简单使用"></a>Zookeeper的API的简单使用</h3><p>Zookeeper API共包含五个包，分别为：</p>
+<ul>
+<li>org.apache.zookeeper</li>
+<li>org.apache.zookeeper.data</li>
+<li>org.apache.zookeeper.server</li>
+<li>org.apache.zookeeper.server.quorum</li>
+<li>org.apache.zookeeper.server.upgrade</li>
+</ul>
+<p>其中<code>org.apache.zookeeper</code>，包含<code>Zookeeper</code>类，他是我们编程时最常用的类文件。这个类是Zookeeper客户端的主要类文件。如果要使用Zookeeper服务，应用程序首先必须创建一个Zookeeper实例， 这时就需要使用此类。一旦客户端和Zookeeper服务建立起了连接，Zookeeper系统将会给次连接会话分配一个ID值，并且客户端将会周期性的 向服务器端发送心跳来维持会话连接。只要连接有效，客户端就可以使用<code>Zookeeper API</code>来做相应处理了。<br><img data-src="../../../public/images/zookeeper/api.png" alt=""></p>
+<h2 id="curator使用详解"><a href="#curator使用详解" class="headerlink" title="curator使用详解"></a>curator使用详解</h2><p><strong><code>Apache Curator</code>是一个比较完善的zookeeper客户端框架，通过封装的一套高级API，简化了ZooKeeper的操作，因此在实际应用中都是使用<code>Apache Curator</code>来操作zookeeper的</strong>。通过查看官方文档，可以发现Curator主要解决了三类问题：</p>
+<ul>
+<li>封装<code>ZooKeeper client</code>与<code>ZooKeeper server</code>之间的连接处理。</li>
+<li>提供了一套Fluent风格的操作API。</li>
+<li>提供ZooKeeper各种应用场景(recipe， 比如：分布式锁服务、集群领导选举、共享计数器、缓存机制、分布式队列等)的抽象封装。</li>
+</ul>
+<h3 id="引入依赖"><a href="#引入依赖" class="headerlink" title="引入依赖"></a>引入依赖</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.curator<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>curator-framework<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.12.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.curator<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>curator-recipes<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.12.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="创建会话"><a href="#创建会话" class="headerlink" title="创建会话"></a>创建会话</h3><h4 id="使用静态工程方法创建客户端"><a href="#使用静态工程方法创建客户端" class="headerlink" title="使用静态工程方法创建客户端"></a>使用静态工程方法创建客户端</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 重试策略 </span></span><br><span class="line">ExponentialBackoffRetry retry = <span class="keyword">new</span> ExponentialBackoffRetry(<span class="number">1000</span>, <span class="number">3</span>);</span><br><span class="line">CuratorFramework curatorFramework = CuratorFrameworkFactory.newClient(connectionStr,<span class="number">5000</span>,<span class="number">5000</span>, retry);</span><br></pre></td></tr></table></figure>
+
+<p>newClient静态工厂方法包含四个主要参数：</p>
+<table>
+<thead>
+<tr>
+<th>参数名</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>connectionString</td>
+<td>服务器列表，格式host1:port1,host2:port2,…</td>
+</tr>
+<tr>
+<td>retryPolicy</td>
+<td>重试策略,内建有四种重试策略,也可以自行实现RetryPolicy接口</td>
+</tr>
+<tr>
+<td>sessionTimeoutMs</td>
+<td>会话超时时间，单位毫秒，默认60000ms</td>
+</tr>
+<tr>
+<td>connectionTimeoutMs</td>
+<td>连接创建超时时间，单位毫秒，默认60000ms</td>
+</tr>
+</tbody></table>
+<h4 id="使用Fluent风格的Api创建客户端"><a href="#使用Fluent风格的Api创建客户端" class="headerlink" title="使用Fluent风格的Api创建客户端"></a>使用Fluent风格的Api创建客户端</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">RetryPolicy retryPolicy = <span class="keyword">new</span> ExponentialBackoffRetry(<span class="number">1000</span>, <span class="number">3</span>);</span><br><span class="line">        CuratorFramework client =</span><br><span class="line">                CuratorFrameworkFactory.builder()</span><br><span class="line">                        .connectString(connectionInfo)</span><br><span class="line">                        .sessionTimeoutMs(<span class="number">5000</span>)</span><br><span class="line">                        .connectionTimeoutMs(<span class="number">5000</span>)</span><br><span class="line">                        .retryPolicy(retryPolicy)</span><br><span class="line">                        .build();</span><br></pre></td></tr></table></figure>
+
+<h4 id="创建包含隔离命名空间的客户端"><a href="#创建包含隔离命名空间的客户端" class="headerlink" title="创建包含隔离命名空间的客户端"></a>创建包含隔离命名空间的客户端</h4><p><strong>为了实现不同的Zookeeper业务之间的隔离，需要为每个业务分配一个独立的命名空间（<code>NameSpace</code>），即指定一个Zookeeper的根路径（官方术语：为Zookeeper添加“Chroot”特性）</strong>。例如（下面的例子）当客户端指定了独立命名空间为“/base”，那么该客户端对Zookeeper上的数据节点的操作都是基于该目录进行的。通过设置Chroot可以将客户端应用与Zookeeper服务端的一课子树相对应，在多个应用共用一个Zookeeper集群的场景下，这对于实现不同应用之间的相互隔离十分有意义。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">RetryPolicy retryPolicy = <span class="keyword">new</span> ExponentialBackoffRetry(<span class="number">1000</span>, <span class="number">3</span>);</span><br><span class="line">        CuratorFramework client =</span><br><span class="line">        CuratorFrameworkFactory.builder()</span><br><span class="line">                .connectString(connectionInfo)</span><br><span class="line">                .sessionTimeoutMs(<span class="number">5000</span>)</span><br><span class="line">                .connectionTimeoutMs(<span class="number">5000</span>)</span><br><span class="line">                .retryPolicy(retryPolicy)</span><br><span class="line">                .namespace(<span class="string">"base"</span>)</span><br><span class="line">                .build();</span><br></pre></td></tr></table></figure>
+
+<p><em>当客户端创建成功，直接调用<code>start()</code>方法即可启动客户端</em>。</p>
+<h3 id="数据节点操作"><a href="#数据节点操作" class="headerlink" title="数据节点操作"></a>数据节点操作</h3><h4 id="创建数据节点"><a href="#创建数据节点" class="headerlink" title="创建数据节点"></a>创建数据节点</h4><p>Zookeeper的节点创建模式：</p>
+<ul>
+<li>PERSISTENT：持久化节点</li>
+<li>PERSISTENT_SEQUENTIAL：持久化顺序节点</li>
+<li>EPHEMERAL：临时节点</li>
+<li>EPHEMERAL_SEQUENTIAL：临时顺序节点</li>
+</ul>
+<p><strong>创建一个节点，初始内容为空</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client.create().forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p>如果没有设置节点属性，<strong>节点创建模式默认为持久化节点，内容默认为空</strong>。</p>
+<p><strong>创建一个节点，附带初始化内容</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client.create().forPath(<span class="string">"/path2"</span>, <span class="string">"test1"</span>.getBytes());</span><br></pre></td></tr></table></figure>
+
+<p><strong>创建一个节点，指定创建模式（临时节点），内容为空</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client.create().withMode(CreateMode.EPHEMERAL).forPath(<span class="string">"/path3"</span>);</span><br></pre></td></tr></table></figure>
+
+<p><strong>创建一个节点，指定创建模式（临时节点），附带初始化内容</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client.create().withMode(CreateMode.EPHEMERAL).forPath(<span class="string">"/path"</span>, <span class="string">"demo"</span>.getBytes());</span><br></pre></td></tr></table></figure>
+
+<p><strong>创建一个节点，指定创建模式（临时节点），附带初始化内容，并且自动递归创建父节点</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">client.create()</span><br><span class="line">      .creatingParentContainersIfNeeded()</span><br><span class="line">      .withMode(CreateMode.EPHEMERAL)</span><br><span class="line">      .forPath(<span class="string">"/abc/path"</span>, <span class="string">"init"</span>.getBytes());</span><br></pre></td></tr></table></figure>
+
+<p><code>creatingParentContainersIfNeeded()</code>接口非常有用，因为一般情况开发人员在创建一个子节点必须判断它的父节点是否存在，如果不存在直接创建会抛出<code>NoNodeException</code>，<strong>使用<code>creatingParentContainersIfNeeded()</code>之后Curator能够自动递归创建所有所需的父节点</strong>。</p>
+<h4 id="删除数据节点"><a href="#删除数据节点" class="headerlink" title="删除数据节点"></a>删除数据节点</h4><p><strong>删除一个节点</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client.delete().forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p><em>注意，此方法只能删除叶子节点，否则会抛出异常</em>。</p>
+<p><strong>删除一个节点，并且递归删除其所有的子节点</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">client.delete()</span><br><span class="line">                .deletingChildrenIfNeeded()</span><br><span class="line">                .forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p><strong>删除一个节点，强制指定版本进行删除</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">client.delete()</span><br><span class="line">      .withVersion(<span class="number">100</span>)</span><br><span class="line">      .forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p><strong>删除一个节点，强制保证删除</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">client.delete()</span><br><span class="line">      .guaranteed()</span><br><span class="line">      .forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p><em>上面的多个流式接口是可以自由组合</em>，例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">client.delete()</span><br><span class="line">      .guaranteed()</span><br><span class="line">      .deletingChildrenIfNeeded()</span><br><span class="line">      .withVersion(<span class="number">10086</span>)</span><br><span class="line">      .forPath(<span class="string">"path"</span>);</span><br></pre></td></tr></table></figure>
+
+<h4 id="读取数据节点数据"><a href="#读取数据节点数据" class="headerlink" title="读取数据节点数据"></a>读取数据节点数据</h4><p><strong>读取一个节点的数据内容</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">byte[] data &#x3D; client.getData().forPath(&quot;&#x2F;path2&quot;);</span><br></pre></td></tr></table></figure>
+
+<p><strong>读取一个节点的数据内容，同时获取到该节点的stat</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Stat stat = <span class="keyword">new</span> Stat();</span><br><span class="line"><span class="keyword">byte</span>[] data = client.getData()</span><br><span class="line">        .storingStatIn(stat)</span><br><span class="line">        .forPath(<span class="string">"/path2"</span>);</span><br></pre></td></tr></table></figure>
+
+<h4 id="更新数据节点数据"><a href="#更新数据节点数据" class="headerlink" title="更新数据节点数据"></a>更新数据节点数据</h4><p><strong>更新一个节点的数据内容</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client.setData().forPath(<span class="string">"/path"</span>,<span class="string">"data"</span>.getBytes());</span><br></pre></td></tr></table></figure>
+
+<p><strong>更新一个节点的数据内容，强制指定版本进行更新</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client.setData().withVersion(<span class="number">10086</span>).forPath(<span class="string">"/path"</span>,<span class="string">"data"</span>.getBytes());</span><br></pre></td></tr></table></figure>
+
+<h4 id="检查节点是否存在"><a href="#检查节点是否存在" class="headerlink" title="检查节点是否存在"></a>检查节点是否存在</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Stat stat = client.checkExists().forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p>注意：该方法返回一个Stat实例，不存在，则返回null。</p>
+<h4 id="获取某个节点的所有子节点路径"><a href="#获取某个节点的所有子节点路径" class="headerlink" title="获取某个节点的所有子节点路径"></a>获取某个节点的所有子节点路径</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; list = client.getChildren().forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p>该方法的返回值为List<String>,获得ZNode的子节点Path列表。 </p>
+<h4 id="事务"><a href="#事务" class="headerlink" title="事务"></a>事务</h4><p>CuratorFramework的实例包含<code>inTransaction()</code>接口方法，调用此方法开启一个ZooKeeper事务. 可以复合<code>create</code>, <code>setData</code>, <code>check</code>, <code>and/or delete</code> 等操作然后调用<code>commit()</code>作为一个<strong>原子操作提交</strong>。一个例子如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">client.inTransaction()</span><br><span class="line">               .check().forPath(<span class="string">"/path"</span>)</span><br><span class="line">               .and()</span><br><span class="line">               .create().withMode(CreateMode.EPHEMERAL).forPath(<span class="string">"/path"</span>, <span class="string">"data"</span>.getBytes())</span><br><span class="line">               .and()</span><br><span class="line">               .setData().withVersion(<span class="number">1000</span>).forPath(<span class="string">"/path"</span>, <span class="string">"data2"</span>.getBytes())</span><br><span class="line">               .and()</span><br><span class="line">               .commit();</span><br></pre></td></tr></table></figure>
+
+<p>上面提到的创建、删除、更新、读取等方法都是同步的，<code>Curator</code>提供异步接口，引入了<code>BackgroundCallback</code>接口用于处理异步接口调用之后服务端返回的结果信息。<code>BackgroundCallback</code>接口中一个重要的回调值为<code>CuratorEvent</code>，里面包含事件类型、响应吗和节点的详细信息。</p>
+<p><strong>CuratorEventType</strong></p>
+<table>
+<thead>
+<tr>
+<th>事件类型</th>
+<th>对应CuratorFramework实例的方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CREATE</td>
+<td>create()</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td>delete()</td>
+</tr>
+<tr>
+<td>EXISTS</td>
+<td>checkExists()</td>
+</tr>
+<tr>
+<td>GET_DATA</td>
+<td>getData()</td>
+</tr>
+<tr>
+<td>SET_DATA</td>
+<td>setData()</td>
+</tr>
+<tr>
+<td>CHILDREN</td>
+<td>getChildren()</td>
+</tr>
+<tr>
+<td>SYNC</td>
+<td>sync(String,Object)</td>
+</tr>
+<tr>
+<td>GET_ACL</td>
+<td>getACL()</td>
+</tr>
+<tr>
+<td>SET_ACL</td>
+<td>setACL()</td>
+</tr>
+<tr>
+<td>WATCHED</td>
+<td>Watcher(Watcher)</td>
+</tr>
+<tr>
+<td>CLOSING</td>
+<td>close()</td>
+</tr>
+</tbody></table>
+<p><strong>响应码(<code>getResultCode()</code>)</strong></p>
+<table>
+<thead>
+<tr>
+<th>响应码</th>
+<th>意义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>OK，即调用成功</td>
+</tr>
+<tr>
+<td>-4</td>
+<td>ConnectionLoss，即客户端与服务端断开连接</td>
+</tr>
+<tr>
+<td>-110</td>
+<td>NodeExists，即节点已经存在</td>
+</tr>
+<tr>
+<td>-112</td>
+<td>SessionExpired，即会话过期</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">ExecutorService executor = Executors.newFixedThreadPool(<span class="number">2</span>);</span><br><span class="line">        client.create()</span><br><span class="line">                .creatingParentsIfNeeded()</span><br><span class="line">                .withMode(CreateMode.EPHEMERAL)</span><br><span class="line">                <span class="comment">// 异步</span></span><br><span class="line"><span class="comment">// .inBackground()</span></span><br><span class="line">                .inBackground((client1, event) -&gt; &#123;</span><br><span class="line">                    <span class="comment">// 事件类型</span></span><br><span class="line">                    CuratorEventType type = event.getType();</span><br><span class="line">                    <span class="comment">// 结果编码</span></span><br><span class="line">                    <span class="keyword">int</span> resultCode = event.getResultCode();</span><br><span class="line">                    System.out.println(<span class="string">"事件类型: "</span> + type + <span class="string">", 结果编码: "</span> + resultCode);</span><br><span class="line">                &#125;, executor)</span><br><span class="line">                .forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p>注意：如果<code>inBackground()</code>方法不指定executor，那么会默认使用Curator的EventThread去进行异步处理。</p>
+<h3 id="缓存"><a href="#缓存" class="headerlink" title="缓存"></a>缓存</h3><p><strong>强烈推荐使用<code>ConnectionStateListener</code>监控连接的状态，当连接状态为LOST，curator-recipes下的所有Api将会失效或者过期</strong>。</p>
+<p>zookeeper原生支持通过注册<code>Watcher</code>来进行事件监听，但是开发者需要反复注册(Watcher只能单次注册单次使用)。<strong>Cache是Curator中对事件监听的包装，可以看作是对事件监听的本地缓存视图，能够自动为开发者处理反复注册监听</strong>。Curator提供了三种Watcher(Cache)来监听结点的变化。</p>
+<ul>
+<li>Path Cache</li>
+</ul>
+<p><strong>Path Cache用来监控一个Znode的子节点</strong>. 当一个子节点增加， 更新，删除时， Path Cache会改变它的状态，会包含最新的子节点，子节点的数据和状态，而状态的变更将通过<code>PathChildrenCacheListener</code>通知。</p>
+<p>实际使用时会涉及到四个类：</p>
+<ul>
+<li>PathChildrenCache</li>
+<li>PathChildrenCacheEvent</li>
+<li>PathChildrenCacheListener</li>
+<li>ChildData</li>
+</ul>
+<p>通过下面的构造函数创建Path Cache:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">PathChildrenCache</span><span class="params">(CuratorFramework client, String path, <span class="keyword">boolean</span> cacheData)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>想使用cache，必须调用它的start方法，使用完后调用close方法。 可以设置StartMode来实现启动的模式。</p>
+<ul>
+<li>NORMAL：正常初始化。</li>
+<li>BUILD_INITIAL_CACHE：在调用start()之前会调用rebuild()。</li>
+<li>POST_INITIALIZED_EVENT： 当Cache初始化数据后发送一个<code>PathChildrenCacheEvent.Type#INITIALIZED</code>事件</li>
+</ul>
+<p><code>addListener(PathChildrenCacheListener listener)</code>可以增加listener监听缓存的变化。<br><code>getCurrentData()</code>方法返回一个List对象，可以遍历所有的子节点。</p>
+<p><em>设置/更新、移除其实是使用client (CuratorFramework)来操作, 不通过PathChildrenCache操作</em>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建path cache</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 注意：如果new PathChildrenCache(client, PATH, cacheData)中的参数cacheData值设置为false，</span></span><br><span class="line"><span class="comment"> * 则示例中的event.getData() 将返回null，cache将不会缓存节点数据。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">PathChildrenCache cache = <span class="keyword">new</span> PathChildrenCache(client, PATH, <span class="keyword">true</span>);</span><br><span class="line">cache.start(PathChildrenCache.StartMode.NORMAL);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 添加一个监听器</span></span><br><span class="line">cache.getListenable()</span><br><span class="line">        .addListener((client1, event) -&gt; &#123;</span><br><span class="line">            <span class="comment">// 事件类型</span></span><br><span class="line">            PathChildrenCacheEvent.Type type = event.getType();</span><br><span class="line">            System.out.println(<span class="string">"事件类型："</span> + type);</span><br><span class="line">            <span class="comment">// 子节点数据</span></span><br><span class="line">            ChildData data = event.getData();</span><br><span class="line">            System.out.println(<span class="string">"子节点数据："</span> + data);</span><br><span class="line">        &#125;);</span><br></pre></td></tr></table></figure>
+
+<p>注意：如果<code>new PathChildrenCache(client, PATH, cacheData)</code>中的参数<code>cacheData</code>值设置为<code>false</code>，则示例中的<code>event.getData()</code>将返回null，cache将不会缓存节点数据。</p>
+<h4 id="Node-Cache"><a href="#Node-Cache" class="headerlink" title="Node Cache"></a>Node Cache</h4><p><code>Node Cache</code>与<code>Path Cache</code>类似，<strong><code>Node Cache</code>只是监听某一个特定的节点</strong>。它涉及到下面的三个类：</p>
+<ul>
+<li><code>NodeCache</code>：Node Cache实现类</li>
+<li><code>NodeCacheListener</code>：节点监听器</li>
+<li><code>ChildData</code>： 节点数据</li>
+</ul>
+<p><code>getCurrentData()</code>将得到节点当前的状态，通过它的状态可以得到当前的值。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建NodeCache</span></span><br><span class="line">NodeCache nodeCache = <span class="keyword">new</span> NodeCache(client, PATH);</span><br><span class="line"><span class="comment">// 必须要先start</span></span><br><span class="line">nodeCache.start();</span><br><span class="line"></span><br><span class="line">NodeCacheListener listener = () -&gt; &#123;</span><br><span class="line">    System.out.println(<span class="string">"节点变化"</span>);</span><br><span class="line">    ChildData currentData = nodeCache.getCurrentData();</span><br><span class="line">    <span class="keyword">if</span> (currentData != <span class="keyword">null</span>) &#123;</span><br><span class="line">        System.out.println(<span class="string">"节点数据："</span> + currentData);</span><br><span class="line">    &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">"节点无数据"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line">nodeCache.getListenable().addListener(listener);</span><br></pre></td></tr></table></figure>
+
+<h4 id="Tree-Cache"><a href="#Tree-Cache" class="headerlink" title="Tree Cache"></a>Tree Cache</h4><p>Tree Cache可以监控整个树上的所有节点，主要涉及到下面四个类：</p>
+<ul>
+<li><code>TreeCache</code>：Tree Cache实现类</li>
+<li><code>TreeCacheListener</code>：监听器类</li>
+<li><code>TreeCacheEvent</code>：触发的事件类</li>
+<li><code>ChildData</code>：节点数据</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">TreeCache treeCache = <span class="keyword">new</span> TreeCache(client, PATH);</span><br><span class="line">treeCache.start();</span><br><span class="line"></span><br><span class="line">treeCache.getListenable().addListener((client1, event) -&gt; &#123;</span><br><span class="line">    TreeCacheEvent.Type type = event.getType();</span><br><span class="line">    ChildData data = event.getData();</span><br><span class="line">    System.out.println(<span class="string">"事件类型："</span> + type + <span class="string">", 节点数据："</span> + data);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<h3 id="Leader选举"><a href="#Leader选举" class="headerlink" title="Leader选举"></a>Leader选举</h3><p>在分布式计算中，<code>leader elections</code>是很重要的一个功能。这个选举过程是这样子的： 指派一个进程作为组织者，将任务分发给各节点。 在任务开始前， 哪个节点都不知道谁是leader(领导者)或者coordinator(协调者). 当选举算法开始执行后， 每个节点最终会得到一个唯一的节点作为任务leader. 除此之外，选举还经常会发生在leader意外宕机的情况下，新的leader要被选举出来。</p>
+<p><strong>在zookeeper集群中，leader负责写操作，然后通过Zab协议实现follower的同步，leader或者follower都可以处理读操作</strong>。<br>Curator有两种leader选举的recipe,分别是<code>LeaderSelector</code>和<code>LeaderLatch</code>。</p>
+<ul>
+<li><code>LeaderSelector</code>：所有存活的客户端不间断的轮流做Leader。</li>
+<li><code>LeaderLatch</code>：一旦选举出Leader，除非有客户端挂掉重新触发选举，否则不会交出领导权。</li>
+</ul>
+<h4 id="LeaderLatch"><a href="#LeaderLatch" class="headerlink" title="LeaderLatch"></a>LeaderLatch</h4><p><code>LeaderLatch</code>会和其它使用相同latch path的其它<code>LeaderLatch</code>交涉，然后其中一个最终会被选举为<code>leader</code>，可以通过<code>hasLeadership()</code>方法查看<code>LeaderLatch</code>实例是否leader。</p>
+<p>类似JDK的<code>CountDownLatch</code>， <code>LeaderLatch</code>在请求成为<code>leadership</code>会<code>block</code>(阻塞)，一旦不使用<code>LeaderLatch</code>了，必须调用<code>close()</code>方法。 如果它是leader,会释放leadership， 其它的参与者将会选举一个leader。</p>
+<p>异常处理： <code>LeaderLatch</code>实例可以增加<code>ConnectionStateListener</code>来监听网络连接问题。 当<code>SUSPENDED</code>或<code>LOST</code>时, leader不再认为自己还是leader。当<code>LOST</code>后连接重连后<code>RECONNECTED</code>, LeaderLatch会删除先前的ZNode然后重新创建一个。<strong>LeaderLatch用户必须考虑导致leadership丢失的连接问题。 强烈推荐你使用<code>ConnectionStateListener</code></strong>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 参与选举的所有节点，会创建一个顺序节点，其中最小的 节点会设置为 master 节点, 没抢到 Leader 的节点都监听 前一个节点的删除事件，</span></span><br><span class="line"><span class="comment"> * 在前一个节点删除后进行重新抢主，当 master 节点手动调用 close()方法或者 master 节点挂了之后，后续的子节点会抢占 master。</span></span><br><span class="line"><span class="comment"> 其中 spark 使用的就是这种方法</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 陈添明</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2018/12/14</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LeaderLatchTest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">static</span> String PATH = <span class="string">"/francis/leader"</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> String connectionInfo = <span class="string">"127.0.0.1:2181"</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> CLIENT_QTY = <span class="number">10</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        List&lt;CuratorFramework&gt; clients = Lists.newArrayList();</span><br><span class="line">        List&lt;LeaderLatch&gt; examples = Lists.newArrayList();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/**</span></span><br><span class="line"><span class="comment">             * 创建10个客户端，并且创建对应的LeaderLatch</span></span><br><span class="line"><span class="comment">             */</span></span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; CLIENT_QTY; i++) &#123;</span><br><span class="line">                CuratorFramework client</span><br><span class="line">                        = CuratorFrameworkFactory.newClient(connectionInfo, <span class="keyword">new</span> ExponentialBackoffRetry(<span class="number">20000</span>, <span class="number">3</span>));</span><br><span class="line">                clients.add(client);</span><br><span class="line">                LeaderLatch latch = <span class="keyword">new</span> LeaderLatch(client, PATH, <span class="string">"Client #"</span> + i);</span><br><span class="line"></span><br><span class="line">                latch.addListener(<span class="keyword">new</span> LeaderLatchListener()&#123;</span><br><span class="line">                    <span class="meta">@Override</span></span><br><span class="line">                    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">isLeader</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                        System.out.println(<span class="string">"I am Leader"</span>);</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    <span class="meta">@Override</span></span><br><span class="line">                    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">notLeader</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                        System.out.println(<span class="string">"I am not Leader"</span>);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;);</span><br><span class="line"></span><br><span class="line">                examples.add(latch);</span><br><span class="line">                client.start();</span><br><span class="line">                latch.start();</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            Thread.sleep(<span class="number">10_000</span>);</span><br><span class="line">            <span class="comment">/**</span></span><br><span class="line"><span class="comment">             * 获取当前的leader</span></span><br><span class="line"><span class="comment">             */</span></span><br><span class="line">            LeaderLatch currentLeader = <span class="keyword">null</span>;</span><br><span class="line">            <span class="keyword">for</span> (LeaderLatch latch : examples) &#123;</span><br><span class="line">                <span class="keyword">if</span> (latch.hasLeadership()) &#123;</span><br><span class="line">                    currentLeader = latch;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            System.out.println(<span class="string">"current leader is "</span> + currentLeader.getId());</span><br><span class="line">            System.out.println(<span class="string">"release the leader "</span> + currentLeader.getId());</span><br><span class="line">            <span class="comment">// 只能通过close释放当前的领导权</span></span><br><span class="line">            currentLeader.close();</span><br><span class="line"></span><br><span class="line">            Thread.sleep(<span class="number">5000</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">/**</span></span><br><span class="line"><span class="comment">             * 再次获取leader</span></span><br><span class="line"><span class="comment">             */</span></span><br><span class="line">            <span class="keyword">for</span> (LeaderLatch latch : examples) &#123;</span><br><span class="line">                <span class="keyword">if</span> (latch.hasLeadership()) &#123;</span><br><span class="line">                    currentLeader = latch;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            System.out.println(<span class="string">"current leader is "</span> + currentLeader.getId());</span><br><span class="line">            System.out.println(<span class="string">"release the leader "</span> + currentLeader.getId());</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">for</span> (LeaderLatch latch : examples) &#123;</span><br><span class="line">                <span class="keyword">if</span> (<span class="keyword">null</span> != latch.getState())</span><br><span class="line">                    CloseableUtils.closeQuietly(latch);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">for</span> (CuratorFramework client : clients) &#123;</span><br><span class="line">                CloseableUtils.closeQuietly(client);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先我们创建了10个<code>LeaderLatch</code>，启动后它们中的一个会被选举为leader。 因为选举会花费一些时间，start后并不能马上就得到leader。 通过<code>hasLeadership()</code>查看自己是否是leader， 如果是的话返回true。 可以通过<code>getId()</code>可以得到当前的leader的ID。只能通过<code>close()</code>释放当前的领导权。</p>
+<h4 id="LeaderSelector"><a href="#LeaderSelector" class="headerlink" title="LeaderSelector"></a>LeaderSelector</h4><p>LeaderSelector使用的时候主要涉及下面几个类：</p>
+<ul>
+<li>LeaderSelector</li>
+<li>LeaderSelectorListener</li>
+<li>LeaderSelectorListenerAdapter </li>
+<li>CancelLeadershipException</li>
+</ul>
+<p>类似<code>LeaderLatch</code>,<code>LeaderSelector</code>必须start:<code>leaderSelector.start()</code>; 一旦启动，当实例取得领导权时你的listener的<code>takeLeadership()</code>方法被调用。而<code>takeLeadership()</code>方法只有领导权被释放时才返回。 当你不再使用LeaderSelector实例时，应该调用它的<code>close()</code>方法。</p>
+<p><strong>异常处理</strong>：<code>LeaderSelectorListener</code>类继承<code>ConnectionStateListener</code>。LeaderSelector必须小心连接状态的改变。如果实例成为leader, 它应该响应<code>SUSPENDED</code>或<code>LOST</code>。 当<code>SUSPENDED</code>状态出现时，实例必须假定在重新连接成功之前, 它可能不再是leader了。 如果LOST状态出现， 实例不再是leader， <code>takeLeadership()</code>方法返回。</p>
+<p><strong>重要</strong>: 推荐处理方式是当收到<code>SUSPENDED</code> 或<code>LOST</code>时抛出<code>CancelLeadershipException</code>异常。这是会导致<code>LeaderSelector</code>实例中断并取消执行<code>takeLeadership</code>方法的异常。这非常重要， 你必须考虑扩展<code>LeaderSelectorListenerAdapter</code>。 <code>LeaderSelectorListenerAdapter</code>提供了推荐的处理逻辑。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 当实例被选为leader之后，调用takeLeadership方法进行业务逻辑处理，处理完成即释放领导权。</span></span><br><span class="line"><span class="comment"> * autoRequeue()方法的调用确保此实例在释放领导权后还可能获得领导权。</span></span><br><span class="line"><span class="comment"> * 这样保证了每个节点都可以获得领导权。</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 陈添明</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2019/11/10</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LeaderSelectorTest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        List&lt;LeaderSelector&gt; leaderSelectors = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        List&lt;CuratorFramework&gt; clients = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++) &#123;</span><br><span class="line">            CuratorFramework client = CuratorFrameworkFactory.newClient(<span class="string">"localhost:2181"</span>, <span class="keyword">new</span> ExponentialBackoffRetry(<span class="number">1000</span>, <span class="number">3</span>));</span><br><span class="line">            client.start();</span><br><span class="line">            clients.add(client);</span><br><span class="line"></span><br><span class="line">            LeaderSelector leaderSelector = <span class="keyword">new</span> LeaderSelector(client, <span class="string">"/master"</span>, <span class="keyword">new</span> LeaderSelectorListenerAdapter() &#123;</span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">takeLeadership</span><span class="params">(CuratorFramework curatorFramework)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">                    System.out.println(Thread.currentThread().getName() + <span class="string">" is a leader"</span>);</span><br><span class="line">                    Thread.sleep(Integer.MAX_VALUE);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">stateChanged</span><span class="params">(CuratorFramework client, ConnectionState newState)</span> </span>&#123;</span><br><span class="line">                    <span class="keyword">super</span>.stateChanged(client, newState);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line">            leaderSelectors.add(leaderSelector);</span><br><span class="line">        &#125;</span><br><span class="line">        leaderSelectors.forEach(leaderSelector -&gt; &#123;</span><br><span class="line">            leaderSelector.autoRequeue();</span><br><span class="line">            leaderSelector.start();</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">        System.out.println(<span class="string">"=================="</span>);</span><br><span class="line">        clients.forEach(client -&gt; &#123;</span><br><span class="line">            client.close();</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        Thread.sleep(<span class="number">100</span> * <span class="number">1000</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="分布式锁"><a href="#分布式锁" class="headerlink" title="分布式锁"></a>分布式锁</h3><ol>
+<li>推荐使用<code>ConnectionStateListener</code>监控连接的状态，因为当连接LOST时你不再拥有锁。</li>
+<li>分布式的锁全局同步，这意味着任何一个时间点不会有两个客户端都拥有相同的锁。</li>
+</ol>
+<h4 id="可重入共享锁—Shared-Reentrant-Lock"><a href="#可重入共享锁—Shared-Reentrant-Lock" class="headerlink" title="可重入共享锁—Shared Reentrant Lock"></a>可重入共享锁—Shared Reentrant Lock</h4><p><code>Shared</code>意味着锁是全局可见的，客户端都可以请求锁。<code>Reentrant</code>和JDK的<code>ReentrantLock</code>类似，即可重入。意味着<strong>同一个客户端在拥有锁的同时，可以多次获取，不会被阻塞</strong>。 它是由类<code>InterProcessMutex</code>来实现。 它的构造函数为：<code>public InterProcessMutex(CuratorFramework client, String path)</code>。</p>
+<ul>
+<li>通过<code>acquire()</code>获得锁，并提供超时机制。</li>
+<li>通过<code>release()</code>方法释放锁。<code>InterProcessMutex</code>实例可以重用。</li>
+</ul>
+<p>zookeeper还提供了可协商的撤销机制，通过为<code>mutex</code>设置<em>撤销监听器</em>来支持撤销<code>mutex</code>, 通过调用<code>makeRevocable(RevocationListener&lt;T&gt; listener)</code>来实现。</p>
+<p>如果你请求撤销当前的锁，可以调用<code>Revoker.attemptRevoke(CuratorFramework client, String path)</code>方法,此时<code>RevocationListener</code>将会回调。</p>
+<p><strong>代码示例</strong>：</p>
+<p>首先让我们创建一个模拟的共享资源， 这个资源期望只能单客户端的访问，否则会有并发问题。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 共享资源</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">FakeLimitedResource</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> AtomicBoolean inUse = <span class="keyword">new</span> AtomicBoolean(<span class="keyword">false</span>);</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Random random = <span class="keyword">new</span> Random(System.currentTimeMillis());</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * use方法最多只能有一个客户端调用</span></span><br><span class="line"><span class="comment">     * 否则，抛出异常</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@throws</span> InterruptedException</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">use</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        <span class="comment">// 真实环境中我们会在这里访问/维护一个共享的资源</span></span><br><span class="line">        <span class="comment">//这个例子在使用锁的情况下不会非法并发异常IllegalStateException</span></span><br><span class="line">        <span class="comment">//但是在无锁的情况由于sleep了一段时间，很容易抛出异常</span></span><br><span class="line">        <span class="keyword">if</span> (!inUse.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>)) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"同一时间，只能被一个客户端访问！！！"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Thread.sleep(random.nextInt(<span class="number">2_000</span>));</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            inUse.set(<span class="keyword">false</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后创建一个<code>InterProcessMutexDemo</code>类， 它负责请求锁， 使用资源，释放锁这样一个完整的访问过程。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 然后创建一个InterProcessMutexDemo类， 它负责请求锁， 使用资源，释放锁这样一个完整的访问过程。</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 陈添明</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2018/12/15</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">InterProcessMutexDemo</span> </span>&#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 代码也很简单，生成10个client， 每个client重复执行10次 请求锁–访问资源–释放锁的过程。</span></span><br><span class="line"><span class="comment">     * 每个client都在独立的线程中。 结果可以看到，锁是随机的被每个实例排他性的使用。</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> InterProcessMutex lock;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> FakeLimitedResource resource;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> String clientName;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">InterProcessMutexDemo</span><span class="params">(CuratorFramework client, String lockPath, FakeLimitedResource resource, String clientName)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.resource = resource;</span><br><span class="line">        <span class="keyword">this</span>.clientName = clientName;</span><br><span class="line">        <span class="keyword">this</span>.lock = <span class="keyword">new</span> InterProcessMutex(client, lockPath);</span><br><span class="line">        <span class="comment">// 将锁设为可撤销的. 当别的进程或线程想让你释放锁时Listener会被调用。</span></span><br><span class="line">        lock.makeRevocable((forLock -&gt; &#123;</span><br><span class="line"></span><br><span class="line">        &#125;));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 同一线程再次 acquire，首先判断当前的 映射表内(threadData)是否有该线程的锁信息，如果有 则原子+1，然后返回</span></span><br><span class="line"><span class="comment">     * 可重入互斥锁</span></span><br><span class="line"><span class="comment">     * 加锁执行</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> time</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> unit</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@throws</span> Exception</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doWork</span><span class="params">(<span class="keyword">long</span> time, TimeUnit unit)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (!lock.acquire(time, unit)) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(clientName + <span class="string">"获取互斥锁锁失败"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            System.out.println(clientName + <span class="string">" 获取到互斥锁"</span>);</span><br><span class="line">            resource.use(); <span class="comment">//access resource exclusively</span></span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            System.out.println(clientName + <span class="string">" 释放互斥锁"</span>);</span><br><span class="line">            lock.release(); <span class="comment">// always release the lock in a finally block</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> QTY = <span class="number">5</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> REPETITIONS = QTY * <span class="number">10</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String PATH = <span class="string">"/examples/locks"</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="keyword">final</span> FakeLimitedResource resource = <span class="keyword">new</span> FakeLimitedResource();</span><br><span class="line">        ExecutorService service = Executors.newFixedThreadPool(QTY);</span><br><span class="line">        <span class="keyword">final</span> TestingServer server = <span class="keyword">new</span> TestingServer();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; QTY; ++i) &#123;</span><br><span class="line">                <span class="keyword">final</span> <span class="keyword">int</span> index = i;</span><br><span class="line">                Callable&lt;Void&gt; task = () -&gt; &#123;</span><br><span class="line">                    <span class="comment">// 创建客户端</span></span><br><span class="line">                    CuratorFramework client = CuratorFrameworkFactory.newClient(server.getConnectString(), <span class="keyword">new</span> ExponentialBackoffRetry(<span class="number">1000</span>, <span class="number">3</span>));</span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                        <span class="comment">// 启动</span></span><br><span class="line">                        client.start();</span><br><span class="line">                        <span class="keyword">final</span> InterProcessMutexDemo example = <span class="keyword">new</span> InterProcessMutexDemo(client, PATH, resource, <span class="string">"Client "</span> + index);</span><br><span class="line">                        <span class="comment">// 执行</span></span><br><span class="line">                        <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; REPETITIONS; ++j) &#123;</span><br><span class="line">                            example.doWork(<span class="number">10</span>, TimeUnit.SECONDS);</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">                        e.printStackTrace();</span><br><span class="line">                    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                        CloseableUtils.closeQuietly(client);</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">                &#125;;</span><br><span class="line">                service.submit(task);</span><br><span class="line">            &#125;</span><br><span class="line">            service.shutdown();</span><br><span class="line">            service.awaitTermination(<span class="number">10</span>, TimeUnit.MINUTES);</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            CloseableUtils.closeQuietly(server);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="不可重入共享锁—Shared-Lock"><a href="#不可重入共享锁—Shared-Lock" class="headerlink" title="不可重入共享锁—Shared Lock"></a>不可重入共享锁—Shared Lock</h4><p>这个锁和上面的<code>InterProcessMutex</code>相比，就是少了<code>Reentrant</code>的功能，也就意味着它不能在同一客户端中重入。这个类是<code>InterProcessSemaphoreMutex</code>,使用方法和<code>InterProcessMutex</code>类似</p>
+<blockquote>
+<p>源码见<code>InterProcessSemaphoreMutexDemo</code>类。</p>
+</blockquote>
+<p>运行后发现，有且只有一个client成功获取第一个锁(第一个<code>acquire()</code>方法返回true)，然后它自己阻塞在第二个<code>acquire()</code>方法，获取第二个锁超时；其他所有的客户端都阻塞在第一个<code>acquire()</code>方法超时并且抛出异常。<br>这样也就验证了<code>InterProcessSemaphoreMutex</code>实现的锁是不可重入的。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/zookeeper/" rel="tag"># zookeeper</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/2971920835/" rel="prev" title="2020，我写了个开源项目 | 掘金年度征文">
+      <i class="fa fa-chevron-left"></i> 2020，我写了个开源项目 | 掘金年度征文
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/2790402318/" rel="next" title="【转载】为何springMVC可获取到方法参数名，而MyBatis却不行？">
+      【转载】为何springMVC可获取到方法参数名，而MyBatis却不行？ <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#zookeeper数据模型"><span class="nav-number">1.</span> <span class="nav-text">zookeeper数据模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Znode"><span class="nav-number">1.1.</span> <span class="nav-text">Znode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#zookeeper中的时间"><span class="nav-number">1.2.</span> <span class="nav-text">zookeeper中的时间</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#zookeeper节点属性"><span class="nav-number">1.3.</span> <span class="nav-text">zookeeper节点属性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#zookeeper节点操作"><span class="nav-number">1.4.</span> <span class="nav-text">zookeeper节点操作</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#watch触发器"><span class="nav-number">2.</span> <span class="nav-text">watch触发器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#watch类型"><span class="nav-number">2.1.</span> <span class="nav-text">watch类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#watch注册与处触发"><span class="nav-number">2.2.</span> <span class="nav-text">watch注册与处触发</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#zookeeper的简单操作"><span class="nav-number">3.</span> <span class="nav-text">zookeeper的简单操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#shell操作"><span class="nav-number">3.1.</span> <span class="nav-text">shell操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Zookeeper的API的简单使用"><span class="nav-number">3.2.</span> <span class="nav-text">Zookeeper的API的简单使用</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#curator使用详解"><span class="nav-number">4.</span> <span class="nav-text">curator使用详解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#引入依赖"><span class="nav-number">4.1.</span> <span class="nav-text">引入依赖</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#创建会话"><span class="nav-number">4.2.</span> <span class="nav-text">创建会话</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#使用静态工程方法创建客户端"><span class="nav-number">4.2.1.</span> <span class="nav-text">使用静态工程方法创建客户端</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#使用Fluent风格的Api创建客户端"><span class="nav-number">4.2.2.</span> <span class="nav-text">使用Fluent风格的Api创建客户端</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#创建包含隔离命名空间的客户端"><span class="nav-number">4.2.3.</span> <span class="nav-text">创建包含隔离命名空间的客户端</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#数据节点操作"><span class="nav-number">4.3.</span> <span class="nav-text">数据节点操作</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#创建数据节点"><span class="nav-number">4.3.1.</span> <span class="nav-text">创建数据节点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#删除数据节点"><span class="nav-number">4.3.2.</span> <span class="nav-text">删除数据节点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#读取数据节点数据"><span class="nav-number">4.3.3.</span> <span class="nav-text">读取数据节点数据</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#更新数据节点数据"><span class="nav-number">4.3.4.</span> <span class="nav-text">更新数据节点数据</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#检查节点是否存在"><span class="nav-number">4.3.5.</span> <span class="nav-text">检查节点是否存在</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#获取某个节点的所有子节点路径"><span class="nav-number">4.3.6.</span> <span class="nav-text">获取某个节点的所有子节点路径</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#事务"><span class="nav-number">4.3.7.</span> <span class="nav-text">事务</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#缓存"><span class="nav-number">4.4.</span> <span class="nav-text">缓存</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Node-Cache"><span class="nav-number">4.4.1.</span> <span class="nav-text">Node Cache</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Tree-Cache"><span class="nav-number">4.4.2.</span> <span class="nav-text">Tree Cache</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Leader选举"><span class="nav-number">4.5.</span> <span class="nav-text">Leader选举</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#LeaderLatch"><span class="nav-number">4.5.1.</span> <span class="nav-text">LeaderLatch</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#LeaderSelector"><span class="nav-number">4.5.2.</span> <span class="nav-text">LeaderSelector</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#分布式锁"><span class="nav-number">4.6.</span> <span class="nav-text">分布式锁</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#可重入共享锁—Shared-Reentrant-Lock"><span class="nav-number">4.6.1.</span> <span class="nav-text">可重入共享锁—Shared Reentrant Lock</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#不可重入共享锁—Shared-Lock"><span class="nav-number">4.6.2.</span> <span class="nav-text">不可重入共享锁—Shared Lock</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="陈添明"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">陈添明</p>
+  <div class="site-description" itemprop="description">生命的意义在于成为你自己</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈添明</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">254k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">10:34</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+  <script src="//cdn.jsdelivr.net/npm/quicklink@1/dist/quicklink.umd.js"></script>
+  <script>
+      window.addEventListener('load', () => {
+      quicklink({
+        timeout : 3000,
+        priority: true,
+        ignores : [uri => uri.includes('#'),uri => uri === 'https://chentianming11.github.io/posts/4128331822/',]
+      });
+      });
+  </script>
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : 'SoPxUkme2aynTULaNuIc5TIq-gzGzoHsz',
+      appKey     : '4TDP7SMCbgDKTOGGUtpIeA0H',
+      placeholder: "留下点足迹吧~",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"chentianming11.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":{"enable":true,"onlypost":false,"loadingImg":"/uploads/loading.gif"},"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="软件设计六大原则包括：单一职责原则、里氏替换原则、依赖倒置原则、接口隔离原则、迪米特法则和开闭原则。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="重新理解软件设计六大原则">
+<meta property="og:url" content="https://chentianming11.github.io/posts/263077743/index.html">
+<meta property="og:site_name" content="伍六七">
+<meta property="og:description" content="软件设计六大原则包括：单一职责原则、里氏替换原则、依赖倒置原则、接口隔离原则、迪米特法则和开闭原则。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://chentianming11.github.io/images/design/IUserInfo.jpg">
+<meta property="og:image" content="https://chentianming11.github.io/images/design/IUserInfo_v2.jpg">
+<meta property="og:image" content="https://chentianming11.github.io/images/design/IUserInfo_v3.jpg">
+<meta property="og:image" content="https://chentianming11.github.io/images/design/IUserManager.jpg">
+<meta property="og:image" content="https://chentianming11.github.io/images/design/IUserManager_v2.jpg">
+<meta property="og:image" content="https://chentianming11.github.io/images/design/InstallSoftware.jpg">
+<meta property="og:image" content="https://chentianming11.github.io/images/design/InstallSoftware_v2.jpg">
+<meta property="article:published_time" content="2018-12-20T08:15:18.000Z">
+<meta property="article:modified_time" content="2021-01-03T14:16:38.251Z">
+<meta property="article:author" content="陈添明">
+<meta property="article:tag" content="设计模式">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://chentianming11.github.io/images/design/IUserInfo.jpg">
+
+<link rel="canonical" href="https://chentianming11.github.io/posts/263077743/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>重新理解软件设计六大原则 | 伍六七</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">伍六七</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">一起学Java</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">9</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">38</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/chentianming11" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://chentianming11.github.io/posts/263077743/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="陈添明">
+      <meta itemprop="description" content="生命的意义在于成为你自己">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="伍六七">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          重新理解软件设计六大原则
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-20 16:15:18" itemprop="dateCreated datePublished" datetime="2018-12-20T16:15:18+08:00">2018-12-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/posts/263077743/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/263077743/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>9.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>24 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>软件设计六大原则包括：单一职责原则、里氏替换原则、依赖倒置原则、接口隔离原则、迪米特法则和开闭原则。</p>
+<a id="more"></a>
+
+<blockquote>
+<p>本文主要内容参考自《设计模式之禅》</p>
+</blockquote>
+<h2 id="单一职责原则"><a href="#单一职责原则" class="headerlink" title="单一职责原则"></a>单一职责原则</h2><h3 id="单一职责原则定义"><a href="#单一职责原则定义" class="headerlink" title="单一职责原则定义"></a>单一职责原则定义</h3><p>单一职责原则的英文名称是<code>Single Responsibility Principle</code>，简称是<code>SRP</code>。单一职责原则的定义是：<strong>应该有且仅有一个原因引起类的变更</strong>。</p>
+<p>我们以用户管理为例进行说明，包含修改用户的信息、增加机构、增加角色等，用户有这么多的信息和行为要维护，我们就把这些写到一个用户管理接口中。类图如下：<br><img data-src="https://chentianming11.github.io/images/design/IUserInfo.jpg" alt="IUserInfo"></p>
+<p>相信大家都看的出来，这个接口设计有问题，用户属性和用户行为没有分开，违背了单一职责设计原则。应该把用户的信息抽取成一个BO（Business Object，业务对象），把行为抽取成一个Biz（Business Logic，业务逻辑）。修改后的类图如下：<br><img data-src="https://chentianming11.github.io/images/design/IUserInfo_v2.jpg" alt="IUserInfo_v2"></p>
+<p>重新拆封成两个接口，<code>IUserBO</code>负责用户的属性，简单地说，<code>IUserBO</code>的职责就是收集和反馈用户的属性信息；<code>IUserBiz</code>负责用户的行为，完成用户信息的维护和变更。我们现在是面向接口编程，所以产生了这个<code>UserInfo</code>对象之后，当然可以把它当<code>IUserBO</code>接口使用。也可以当<code>IUserBiz</code>接口使用，这要看你在什么地方使用了。要获得用户信息，就当是<code>IUserBO</code>的实现类；要是希望维护用户的信息，就把它当作<code>IUserBiz</code>的实现类就成了。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">IUserInfo userInfo = <span class="keyword">new</span> UserInfo();</span><br><span class="line"><span class="comment">//我要赋值了，我就认为它是一个纯粹的BO</span></span><br><span class="line">IUserBO userBO = (IUserBO)userInfo;</span><br><span class="line">userBO.setPassword(<span class="string">"abc"</span>);</span><br><span class="line"><span class="comment">//我要执行动作了，我就认为是一个业务逻辑类</span></span><br><span class="line">IUserBiz userBiz = (IUserBiz)userInfo;</span><br><span class="line">userBiz.deleteUser();</span><br></pre></td></tr></table></figure>
+
+<p>上面的实现虽然能够解决问题，但是在实际的使用中，我们更倾向于使用两个不同的类或接口：一个是<code>IUserBO</code>，一个是<code>IUserBiz</code>。类图如下：<br><img data-src="https://chentianming11.github.io/images/design/IUserInfo_v3.jpg" alt="IUserInfo_v3"></p>
+<p>单一职责原则的优点如下：</p>
+<ul>
+<li>类的复杂性降低。实现什么职责都有清晰明确的定义；</li>
+<li>可读性提高。复杂性降低，那当然可读性提高了；</li>
+<li>可维护性提高。可读性提高，那当然更容易维护了；</li>
+<li>变更引起的风险降低。变更是必不可少的，如果接口的单一职责做得好，一个接口修改只对相应的实现类有影响，对其他的接口无影响，这对系统的扩展性、维护性都有非常大的帮助。</li>
+</ul>
+<h3 id="单一职责原则最佳实践"><a href="#单一职责原则最佳实践" class="headerlink" title="单一职责原则最佳实践"></a>单一职责原则最佳实践</h3><p><strong>单一职责适用于接口、类，同时也适用于方法</strong>。一个方法尽可能做一件事情，比如一个方法修改用户密码，不要把这个方法放到“修改用户信息”方法中，这个方法的颗粒度很粗，比如下图所示的方法。<br><img data-src="https://chentianming11.github.io/images/design/IUserManager.jpg" alt="IUserManager"></p>
+<p>在<code>IUserManager</code>中定义了一个方法<code>changeUser</code>，根据传递的类型不同，把可变长度参数<code>changeOptions</code>修改到<code>userBO</code>这个对象上，并调用持久层的方法保存到数据库中。<br>更好的实现如下图所示，如果要修改用户名称，就调用<code>changeUserName</code>方法；要修改家庭地址，就调用<code>changeHomeAddress</code>方法；要修改单位电话，就调用<code>changeOfficeTel</code>方法。每个方法的职责非常清晰明确，不仅开发简单，而且日后的维护也非常容易，大家可以逐渐养成这样的习惯。<br><img data-src="https://chentianming11.github.io/images/design/IUserManager_v2.jpg" alt="IUserManager_v2"></p>
+<p>虽然单一职责说起来比较简单，但是<strong>在工程实践中往往综合考虑项目工期、成本、人员技术水平等因素，这就导致了类设计很难严格遵守单一职责原则</strong>。因此，<strong>对于单一职责原则，建议是接口一定要做到单一职责，类的设计尽量做到只有一个原因引起变化</strong>。</p>
+<h2 id="里氏替换原则"><a href="#里氏替换原则" class="headerlink" title="里氏替换原则"></a>里氏替换原则</h2><h3 id="里氏替换原则定义"><a href="#里氏替换原则定义" class="headerlink" title="里氏替换原则定义"></a>里氏替换原则定义</h3><p>在面向对象的语言中，继承是必不可少的、非常优秀的语言机制，它有如下优点：</p>
+<ul>
+<li>代码共享，减少创建类的工作量，每个子类都拥有父类的方法和属性；</li>
+<li>提高代码的重用性；</li>
+<li>子类可以形似父类，但又异于父类，“龙生龙，凤生凤，老鼠生来会打洞”是说子拥有父的“种”，“世界上没有两片完全相同的叶子”是指明子与父的不同；</li>
+<li>提高代码的可扩展性，实现父类的方法就可以“为所欲为”了，君不见很多开源框架的扩展接口都是通过继承父类来完成的；</li>
+<li>提高产品或项目的开放性。</li>
+</ul>
+<p>有有点肯定也有缺点，继承的缺点如下：</p>
+<ul>
+<li>继承是侵入性的。只要继承，就必须拥有父类的所有属性和方法；</li>
+<li>降低代码的灵活性。子类必须拥有父类的属性和方法，让子类自由的世界中多了些约束；</li>
+<li>增强了耦合性。当父类的常量、变量和方法被修改时，需要考虑子类的修改，而且在缺乏规范的环境下，这种修改可能带来非常糟糕的结果——大段的代码需要重构</li>
+</ul>
+<p>从整体上来看，继承利大于弊，怎么才能让“利”的因素发挥最大的作用，同时减少“弊”带来的麻烦呢？解决方案是引入里氏替换原则（Liskov Substitution Principle，LSP）。简单来讲，里氏替换原则含义如下：<br><strong>只要父类能出现的地方子类就可以出现，而且替换为子类也不会产生任何错误或异常，使用者可能根本就不需要知道是父类还是子类</strong>。</p>
+<h3 id="里氏替换原则四层含义"><a href="#里氏替换原则四层含义" class="headerlink" title="里氏替换原则四层含义"></a>里氏替换原则四层含义</h3><p><strong>里氏替换原则为良好的继承定义了一个规范，一句简单的定义包含了4层含义</strong>。</p>
+<ol>
+<li><p><strong>子类必须完全实现父类的方法</strong><br> 我们在做系统设计时，经常会定义一个接口或抽象类，然后编码实现，调用类则直接传入接口或抽象类，其实这里已经使用了里氏替换原则。</p>
+</li>
+<li><p><strong>子类可以有自己的个性</strong><br>子类当然可以有自己的行为和外观了，也就是方法和属性，那这里为什么要再提呢？是因为里氏替换原则可以正着用，但是不能反过来用。在子类出现的地方，父类未必就可以胜任。</p>
+</li>
+<li><p><strong>覆盖或实现父类的方法时输入参数可以被放大</strong><br>这个比较难理解，我们来看一个例子，我们先定义一个Father类：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Father</span> </span>&#123;           </span><br><span class="line">    <span class="function"><span class="keyword">public</span> Collection <span class="title">doSomething</span><span class="params">(HashMap map)</span></span>&#123;             </span><br><span class="line">        System.out.println(<span class="string">"父类被执行..."</span>);                 </span><br><span class="line">        <span class="keyword">return</span> map.values();     </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个类非常简单，就是把HashMap转换为Collection集合类型，然后再定义一个子类：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Son</span> <span class="keyword">extends</span> <span class="title">Father</span> </span>&#123;     </span><br><span class="line">    <span class="comment">//放大输入参数类型     </span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Collection <span class="title">doSomething</span><span class="params">(Map map)</span></span>&#123;             </span><br><span class="line">        System.out.println(<span class="string">"子类被执行..."</span>);             </span><br><span class="line">        <span class="keyword">return</span> map.values();     </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> 请注意，子类与父类的方法名相同，但又不是覆写（Override）父类的方法，而是重载（Overload）！父类和子类都已经声明了，场景类的调用如下：</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Client</span> </span>&#123;     </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">invoker</span><span class="params">()</span></span>&#123;             </span><br><span class="line">        <span class="comment">//父类存在的地方，子类就应该能够存在             </span></span><br><span class="line">        Father f = <span class="keyword">new</span> Father();             </span><br><span class="line">        HashMap map = <span class="keyword">new</span> HashMap();             </span><br><span class="line">        f.doSomething(map);     </span><br><span class="line">    &#125;     </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123; </span><br><span class="line">        invoker();     </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> 代码运行后的结果是：<code>父类被执行...</code>。</p>
+<p> 根据里氏替换原则，父类出现的地方子类就可以出现。将上面的类型替换为子类执行：</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Client</span> </span>&#123;     </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">invoker</span><span class="params">()</span></span>&#123;             </span><br><span class="line">        <span class="comment">//父类存在的地方，子类就应该能够存在             </span></span><br><span class="line">        Son f =<span class="keyword">new</span> Son();           </span><br><span class="line">        HashMap map = <span class="keyword">new</span> HashMap();             </span><br><span class="line">        f.doSomething(map);     </span><br><span class="line">    &#125;     </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123; </span><br><span class="line">        invoker();     </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> 运行结果还是一样。父类方法的输入参数是<code>HashMap</code>类型，子类的输入参数是<code>Map</code>类型，也就是说<strong>子类的输入参数类型的范围扩大了，子类代替父类传递到调用者中，子类的方法永远都不会被执行</strong>。这是正确的，如果你想让子类的方法运行，就必须覆写父类的方法。<br> 我们再反过来想一下，如果<code>Father</code>类的输入参数类型宽于子类的输入参数类型，会出现什么问题呢？</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Father</span> </span>&#123;     </span><br><span class="line">    <span class="function"><span class="keyword">public</span> Collection <span class="title">doSomething</span><span class="params">(Map map)</span></span>&#123;             </span><br><span class="line">        System.out.println(<span class="string">"父类被执行..."</span>);             </span><br><span class="line">        <span class="keyword">return</span> map.values();     </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> 把父类的前置条件修改为<code>Map</code>类型，我们再修改一下子类方法的输入参数，相对父类缩小输入参数的类型范围。</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Son</span> <span class="keyword">extends</span> <span class="title">Father</span> </span>&#123;     </span><br><span class="line">    <span class="comment">//缩小输入参数范围     </span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Collection <span class="title">doSomething</span><span class="params">(HashMap map)</span></span>&#123;             </span><br><span class="line">        System.out.println(<span class="string">"子类被执行..."</span>);             </span><br><span class="line">        <span class="keyword">return</span> map.values();     </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> 业务场景的源代码如下：</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Client</span> </span>&#123;     </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">invoker</span><span class="params">()</span></span>&#123;             </span><br><span class="line">        <span class="comment">//有父类的地方就有子类             </span></span><br><span class="line">        Father f= <span class="keyword">new</span> Father();             </span><br><span class="line">        HashMap map = <span class="keyword">new</span> HashMap();             </span><br><span class="line">        f.doSomething(map);     </span><br><span class="line">    &#125;       </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;             </span><br><span class="line">        invoker();     </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> 代码运行后的结果是：<code>父类被执行...</code>。那我们再把里氏替换原则引入进来会有什么问题？有父类的地方子类就可以使用，好，我们把这个<code>Client</code>类修改一下：</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Client</span> </span>&#123;     </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">invoker</span><span class="params">()</span></span>&#123;             </span><br><span class="line">        <span class="comment">//有父类的地方就有子类             </span></span><br><span class="line">        Son f =<span class="keyword">new</span> Son();             </span><br><span class="line">        HashMap map = <span class="keyword">new</span> HashMap();             </span><br><span class="line">        f.doSomething(map);     </span><br><span class="line">    &#125;     </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;             </span><br><span class="line">        invoker();     </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> 代码运行后的结果是：<code>子类类被执行...</code>。完蛋了吧？！子类在没有覆写父类的方法的前提下，子类方法被执行了，这会引起业务逻辑混乱。明显违背了里氏替换原则。</p>
+</li>
+<li><p><strong>覆写或实现父类的方法时输出结果可以被缩小</strong><br><strong>父类的一个方法的返回值是一个类型<code>T</code>，子类的相同方法（重载或覆写）的返回值为<code>S</code>，那么里氏替换原则就要求<code>S</code>必须小于等于<code>T</code></strong>，也就是说，要么S和T是同一个类型，要么S是T的子类。分两种情况，如果是覆写，父类和子类的同名方法的输入参数是相同的，两个方法的范围值<code>S</code>小于等于<code>T</code>，这是覆写的要求，子类覆写父类的方法，天经地义。如果是重载，则要求方法的输入参数类型或数量不相同，在里氏替换原则要求下，就是子类的输入参数宽于或等于父类的输入参数，也就是说你写的这个方法是不会被调用的。</p>
+</li>
+</ol>
+<p><strong>采用里氏替换原则的目的就是增强程序的健壮性，版本升级时也可以保持非常好的兼容性</strong>。即使增加子类，原有的子类还可以继续运行。在实际项目中，每个子类对应不同的业务含义，使用父类作为参数，传递不同的子类完成不同的业务逻辑，非常完美！</p>
+<h2 id="依赖倒置原则"><a href="#依赖倒置原则" class="headerlink" title="依赖倒置原则"></a>依赖倒置原则</h2><h3 id="依赖倒置原则的定义"><a href="#依赖倒置原则的定义" class="headerlink" title="依赖倒置原则的定义"></a>依赖倒置原则的定义</h3><p>依赖倒置原则含义如下：</p>
+<ul>
+<li>高层模块不应该依赖低层模块，两者都应该依赖其抽象；</li>
+<li>抽象不应该依赖细节；</li>
+<li>细节应该依赖抽象</li>
+</ul>
+<p>高层模块和低层模块容易理解，每一个逻辑的实现都是由原子逻辑组成的，不可分割的原子逻辑就是低层模块，原子逻辑的再组装就是高层模块。依赖倒置原则在Java语言中的表现就是：</p>
+<ul>
+<li>模块间的依赖通过抽象发生，实现类之间不发生直接的依赖关系，其依赖关系是通过接口或抽象类产生的；</li>
+<li>接口或抽象类不依赖于实现类；</li>
+<li>实现类依赖接口或抽象类</li>
+</ul>
+<p>采用依赖倒置原则可以减少类间的耦合性，提高系统的稳定性，降低并行开发引起的风险，提高代码的可读性和可维护性。</p>
+<h3 id="依赖的三种写法"><a href="#依赖的三种写法" class="headerlink" title="依赖的三种写法"></a>依赖的三种写法</h3><p>依赖是可以传递的，A对象依赖B对象，B又依赖C，C又依赖D……生生不息，依赖不止，记住一点：只要做到抽象依赖，即使是多层的依赖传递也无所畏惧！对象的依赖关系有三种方式来传递，如下所示：</p>
+<ol>
+<li><p><strong>构造函数传递依赖对象</strong><br>在类中通过构造函数声明依赖对象，按照依赖注入的说法，这种方式叫做构造函数注入。</p>
+</li>
+<li><p><strong><code>Setter</code>方法传递依赖对象</strong><br> 在抽象中设置Setter方法声明依赖关系，依照依赖注入的说法，这是<code>Setter</code>依赖注入。</p>
+</li>
+<li><p><strong>接口声明依赖对象</strong><br> 在接口的方法中声明依赖对象，该方法也叫做接口注入。</p>
+</li>
+</ol>
+<h3 id="依赖倒置原则最佳实践"><a href="#依赖倒置原则最佳实践" class="headerlink" title="依赖倒置原则最佳实践"></a>依赖倒置原则最佳实践</h3><p>依赖倒置原则的本质就是通过抽象（接口或抽象类）使各个类或模块的实现彼此独立，不互相影响，实现模块间的松耦合，我们怎么在项目中使用这个规则呢？只要遵循以下的几个规则就可以：</p>
+<ul>
+<li><strong>每个类尽量都有接口或抽象类，或者抽象类和接口两者都具备</strong><br>  这是依赖倒置的基本要求，接口和抽象类都是属于抽象的，有了抽象才可能依赖倒置。</li>
+<li><strong>变量的表面类型尽量是接口或者是抽象类</strong></li>
+<li><strong>任何类都不应该从具体类派生</strong></li>
+<li><strong>尽量不要覆写基类的方法</strong><br>  如果基类是一个抽象类，而且这个方法已经实现了，子类尽量不要覆写。类间依赖的是抽象，覆写了抽象方法，对依赖的稳定性会产生一定的影响。</li>
+<li><strong>结合里氏替换原则使用</strong><br>   接口负责定义<code>public</code>属性和方法，并且声明与其他对象的依赖关系，抽象类负责公共构造部分的实现，实现类准确的实现业务逻辑，同时在适当的时候对父类进行细化。</li>
+</ul>
+<h2 id="接口隔离原则"><a href="#接口隔离原则" class="headerlink" title="接口隔离原则"></a>接口隔离原则</h2><h3 id="接口隔离原则的定义"><a href="#接口隔离原则的定义" class="headerlink" title="接口隔离原则的定义"></a>接口隔离原则的定义</h3><p>接口隔离原则定义如下：</p>
+<ul>
+<li><strong>客户端不应该依赖它不需要的接口</strong></li>
+<li><strong>类间的依赖关系应该建立在最小的接口上</strong></li>
+</ul>
+<p>我们把这两个定义剖析一下，先说第一种定义：“客户端不应该依赖它不需要的接口”，那依赖什么？依赖它需要的接口，客户端需要什么接口就提供什么接口，把不需要的接口剔除掉，那就需要对接口进行细化，保证其纯洁性；再看第二种定义：“类间的依赖关系应该建立在最小的接口上”，它要求是最小的接口，也是要求接口细化，接口纯洁，与第一个定义如出一辙，只是一个事物的两种不同描述。</p>
+<p>我们可以把这两个定义概括为一句话：<strong>建立单一接口，不要建立臃肿庞大的接口</strong>。再通俗一点讲：接口尽量细化，同时接口中的方法尽量少。看到这里大家有可能要疑惑了，这与单一职责原则不是相同的吗？错，<strong>接口隔离原则与单一职责的审视角度是不相同的，单一职责要求的是类和接口职责单一，注重的是职责，这是业务逻辑上的划分，而接口隔离原则要求接口的方法尽量少</strong>。例如一个接口的职责可能包含10个方法，这10个方法都放在一个接口中，并且提供给多个模块访问，各个模块按照规定的权限来访问，在系统外通过文档约束“不使用的方法不要访问”，按照单一职责原则是允许的，按照接口隔离原则是不允许的，因为它要求“尽量使用多个专门的接口”。专门的接口指什么？就是指提供给每个模块的都应该是单一接口，提供给几个模块就应该有几个接口，而不是建立一个庞大的臃肿的接口，容纳所有的客户端访问。</p>
+<h3 id="保证接口的纯洁性"><a href="#保证接口的纯洁性" class="headerlink" title="保证接口的纯洁性"></a>保证接口的纯洁性</h3><p>接口隔离原则是对接口进行规范约束，其包含以下4层含义：</p>
+<ol>
+<li><p><strong>接口要尽量小</strong><br>这是接口隔离原则的核心定义，不出现臃肿的接口（Fat Interface），但是“小”是有限度的，首先就是不能违反单一职责原则。<strong>根据接口隔离原则拆分接口时，首先必须满足单一职责原则</strong>。</p>
+</li>
+<li><p><strong>接口要高内聚</strong><br>什么是高内聚？高内聚就是提高接口、类、模块的处理能力，减少对外的交互。<strong>具体到接口隔离原则就是，要求在接口中尽量少公布public方法，接口是对外的承诺，承诺越少对系统的开发越有利，变更的风险也就越少，同时也有利于降低成本</strong>。</p>
+</li>
+<li><p><strong>定制服务</strong><br>一个系统或系统内的模块之间必然会有耦合，有耦合就要有相互访问的接口。我们设计时就需要为各个访问者（即客户端）定制服务，什么是定制服务？定制服务就是单独为一个个体提供优良的服务。<strong>我们在做系统设计时也需要考虑对系统之间或模块之间的接口采用定制服务，采用定制服务就必然有一个要求：只提供访问者需要的方法</strong>。</p>
+</li>
+<li><p><strong>接口设计是有限度的</strong><br>接口的设计粒度越小，系统越灵活，这是不争的事实。但是，灵活的同时也带来了结构的复杂化，开发难度增加，可维护性降低，这不是一个项目或产品所期望看到的，所以接口设计一定要注意适度，这个“度”如何来判断呢？根据经验和常识判断，没有一个固化或可测量的标准。</p>
+</li>
+</ol>
+<h3 id="接口隔离原则最佳实践"><a href="#接口隔离原则最佳实践" class="headerlink" title="接口隔离原则最佳实践"></a>接口隔离原则最佳实践</h3><p>接口隔离原则是对接口的定义，同时也是对类的定义，接口和类尽量使用原子接口或原子类来组装。但是，这个原子该怎么划分是设计模式中的一大难题，在实践中可以根据以下几个规则来衡量：</p>
+<ul>
+<li>一个接口只服务于一个子模块或业务逻辑；</li>
+<li>通过业务逻辑压缩接口中的<code>public</code>方法，接口时常去回顾，尽量让接口达到“满身筋骨肉”，而不是“肥嘟嘟”的一大堆方法；</li>
+<li>已经被污染了的接口，尽量去修改，若变更的风险较大，则采用适配器模式进行转化处理；</li>
+<li>了解环境，拒绝盲从。每个项目或产品都有特定的环境因素，别看到大师是这样做的你就照抄。</li>
+</ul>
+<h2 id="迪米特法则"><a href="#迪米特法则" class="headerlink" title="迪米特法则"></a>迪米特法则</h2><h3 id="迪米特法则的定义"><a href="#迪米特法则的定义" class="headerlink" title="迪米特法则的定义"></a>迪米特法则的定义</h3><p>迪米特法则（Law of Demeter，LoD）也称为最少知识原则（Least Knowledge Principle，LKP）。<strong>一个对象应该对其他对象有最少的了解</strong>。通俗地讲，一个类应该对自己需要耦合或调用的类知道得最少，你（被耦合或调用的类）的内部是如何复杂都和我没关系，那是你的事情，我就知道你提供的这么多public方法，我就调用这么多，其他的我一概不关心。</p>
+<h3 id="迪米特法则三层含义"><a href="#迪米特法则三层含义" class="headerlink" title="迪米特法则三层含义"></a>迪米特法则三层含义</h3><p>迪米特法则对类的低耦合提出了明确的要求，其包含以下4层含义。</p>
+<ol>
+<li><p><strong>只和朋友交流</strong><br> 迪米特法则还有一个英文解释是：Only talk to your immediate friends（只与直接的朋友交流）。什么叫做直接的朋友呢？每个对象都必然会与其他对象有耦合关系，两个对象之间的耦合就成为朋友关系，这种关系的类型有很多，例如组合、聚合、依赖等。<strong>朋友类的定义是这样的：出现在成员变量、方法的输入输出参数中的类称为成员朋友类，而出现在方法体内部的类不属于朋友类</strong>。一个类只和朋友交流，不与陌生类交流，不要出现getA().getB().getC().getD()这种情况。</p>
+</li>
+<li><p><strong>朋友间也是有距离</strong><br> 对朋友关系描述最贴切的故事就是：两只刺猬取暖，太远取不到暖，太近刺伤了对方，必须保持一个既能取暖又不刺伤对方的距离。迪米特法则就是对这个距离进行描述，即使是朋友类之间也不能无话不说，无所不知。<br> 我们在安装软件的时候，经常会有一个导向动作，第一步是确认是否安装，第二步确认<code>License</code>，再然后选择安装目录……这是一个典型的顺序执行动作，<strong>具体到程序中就是：调用一个或多个类，先执行第一个方法，然后是第二个方法，根据返回结果再来看是否可以调用第三个方法，或者第四个方法，等等</strong>，其类图如下所示：<br> <img data-src="https://chentianming11.github.io/images/design/InstallSoftware.jpg" alt="InstallSoftware"><br> 在Wizard类中分别定义了三个步骤方法，每个步骤中都有相关的业务逻辑完成指定的任务。软件安装InstallSoftware类代码如下：</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">InstallSoftware</span> </span>&#123;          </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">installWizard</span><span class="params">(Wizard wizard)</span></span>&#123;             </span><br><span class="line">        <span class="keyword">int</span> first = wizard.first();               </span><br><span class="line">        <span class="comment">//根据first返回的结果，看是否需要执行second             </span></span><br><span class="line">        <span class="keyword">if</span>(first&gt;<span class="number">50</span>)&#123;                      </span><br><span class="line">            <span class="keyword">int</span> second = wizard.second();                      </span><br><span class="line">            <span class="keyword">if</span>(second&gt;<span class="number">50</span>)&#123;                                </span><br><span class="line">                <span class="keyword">int</span> third = wizard.third();                                </span><br><span class="line">                <span class="keyword">if</span>(third &gt;<span class="number">50</span>)&#123;                                          </span><br><span class="line">                    wizard.first();                      </span><br><span class="line">                &#125;                 </span><br><span class="line">            &#125;            </span><br><span class="line">        &#125;                </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> <code>Wizard</code>类把太多的方法暴露给<code>InstallSoftware</code>类，两者的朋友关系太亲密了，耦合关系变得异常牢固。如果要将<code>Wizard</code>类中的<code>first</code>方法返回值的类型由int改为<code>boolean</code>，就需要修改<code>InstallSoftware</code>类，从而把修改变更的风险扩散开了。因此，这样的耦合是极度不合适的，我们需要对设计进行重构，重构后的类图如下所示。<br> <img data-src="https://chentianming11.github.io/images/design/InstallSoftware_v2.jpg" alt="InstallSoftware_v2"><br> 将三个步骤的访问权限修改为<code>private</code>，同时把<code>InstallSoftware</code>中的方法<code>installWizad</code>移动到<code>Wizard</code>方法中。通过这样的重构后，<code>Wizard</code>类就只对外公布了一个<code>public</code>方法，即使要修改<code>first</code>方法的返回值，影响的也仅仅只是<code>Wizard</code>本身，其他类不受影响，这显示了类的高内聚特性。</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">InstallSoftware</span> </span>&#123;     </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">installWizard</span><span class="params">(Wizard wizard)</span></span>&#123;             </span><br><span class="line">        <span class="comment">//直接调用             </span></span><br><span class="line">        wizard.installWizard();     </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> 一个类公开的<code>public</code>属性或方法越多，修改时涉及的面也就越大，变更引起的风险扩散也就越大。因此，<strong>为了保持朋友类间的距离，在设计时需要反复衡量：是否还可以再减少<code>public</code>方法和属性，是否可以修改为<code>private</code>、<code>package-private</code>（包类型，在类、方法、变量前不加访问权限，则默认为包类型）、<code>protected</code>等访问权限，是否可以加上<code>final</code>关键字等</strong>。</p>
+</li>
+<li><p><strong>是自己的就是自己的</strong><br> 在实际应用中经常会出现这样一个方法：放在本类中也可以，放在其他类中也没有错，那怎么去衡量呢？你可以坚持这样一个原则：<strong>如果一个方法放在本类中，既不增加类间关系，也对本类不产生负面影响，那就放置在本类中</strong>。</p>
+</li>
+</ol>
+<h3 id="迪米特法则最佳实践"><a href="#迪米特法则最佳实践" class="headerlink" title="迪米特法则最佳实践"></a>迪米特法则最佳实践</h3><p>迪米特法则的核心观念就是类间解耦，弱耦合，只有弱耦合了以后，类的复用率才可以提高。其要求的结果就是产生了大量的中转或跳转类，导致系统的复杂性提高，同时也为维护带来了难度。读者在采用迪米特法则时需要反复权衡，既做到让结构清晰，又做到高内聚低耦合。</p>
+<h2 id="开闭原则"><a href="#开闭原则" class="headerlink" title="开闭原则"></a>开闭原则</h2><h3 id="开闭原则的定义"><a href="#开闭原则的定义" class="headerlink" title="开闭原则的定义"></a>开闭原则的定义</h3><p>开闭原则的定义：一个软件实体如类、模块和函数应该对扩展开放，对修改关闭。其含义是说一个软件实体应该通过扩展来实现变化，而不是通过修改已有的代码来实现变化。那什么又是软件实体呢？软件实体包括以下几个部分：</p>
+<ul>
+<li>项目或软件产品中按照一定的逻辑规则划分的模块。</li>
+<li>抽象和类。</li>
+<li>方法</li>
+</ul>
+<h3 id="开闭原则最佳实践"><a href="#开闭原则最佳实践" class="headerlink" title="开闭原则最佳实践"></a>开闭原则最佳实践</h3><p>开闭原则是一个非常虚的原则，前面5个原则是对开闭原则的具体解释，但是开闭原则并不局限于这么多，它“虚”得没有边界。可以通过以下4个方面来使用开闭原则：</p>
+<ol>
+<li><p><strong>抽象约束</strong><br> 抽象是对一组事物的通用描述，没有具体的实现，也就表示它可以有非常多的可能性，可以跟随需求的变化而变化。因此，通过接口或抽象类可以约束一组可能变化的行为，并且能够实现对扩展开放，其包含三层含义：</p>
+<ol>
+<li><strong>通过接口或抽象类约束扩展，对扩展进行边界限定，不允许出现在接口或抽象类中不存在的public方法</strong>；</li>
+<li><strong>参数类型、引用对象尽量使用接口或者抽象类，而不是实现类</strong>；</li>
+<li><strong>抽象层尽量保持稳定，一旦确定即不允许修改</strong>。</li>
+</ol>
+</li>
+<li><p><strong>元数据（metadata）控制模块行为</strong><br>编程是一个很苦很累的活，那怎么才能减轻我们的压力呢？<strong>答案是尽量使用元数据来控制程序的行为，减少重复开发</strong>。什么是元数据？用来描述环境和数据的数据，通俗地说就是配置参数，参数可以从文件中获得，也可以从数据库中获得。</p>
+</li>
+<li><p><strong>制定项目章程</strong><br> 在一个团队中，建立项目章程是非常重要的，因为章程中指定了所有人员都必须遵守的约定，对项目来说，约定优于配置。</p>
+</li>
+<li><p><strong>封装变化</strong><br>对变化的封装包含两层含义：第一，<strong>将相同的变化封装到一个接口或抽象类中</strong>；第二，<strong>将不同的变化封装到不同的接口或抽象类中</strong>，不应该有两个不同的变化出现在同一个接口或抽象类中。封装变化，也就是受保护的变化（protected variations），找出预计有变化或不稳定的点，我们为这些变化点创建稳定的接口，准确地讲是封装可能发生的变化，一旦预测到或“第六感”发觉有变化，就可以进行封装。</p>
+</li>
+</ol>
+<blockquote>
+<p>原创不易，觉得文章写得不错的小伙伴，点个赞👍 鼓励一下吧~</p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" rel="tag"># 设计模式</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/posts/1927526001/" rel="next" title="一、策略模式">
+      一、策略模式 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#单一职责原则"><span class="nav-number">1.</span> <span class="nav-text">单一职责原则</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#单一职责原则定义"><span class="nav-number">1.1.</span> <span class="nav-text">单一职责原则定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#单一职责原则最佳实践"><span class="nav-number">1.2.</span> <span class="nav-text">单一职责原则最佳实践</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#里氏替换原则"><span class="nav-number">2.</span> <span class="nav-text">里氏替换原则</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#里氏替换原则定义"><span class="nav-number">2.1.</span> <span class="nav-text">里氏替换原则定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#里氏替换原则四层含义"><span class="nav-number">2.2.</span> <span class="nav-text">里氏替换原则四层含义</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#依赖倒置原则"><span class="nav-number">3.</span> <span class="nav-text">依赖倒置原则</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#依赖倒置原则的定义"><span class="nav-number">3.1.</span> <span class="nav-text">依赖倒置原则的定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#依赖的三种写法"><span class="nav-number">3.2.</span> <span class="nav-text">依赖的三种写法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#依赖倒置原则最佳实践"><span class="nav-number">3.3.</span> <span class="nav-text">依赖倒置原则最佳实践</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#接口隔离原则"><span class="nav-number">4.</span> <span class="nav-text">接口隔离原则</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#接口隔离原则的定义"><span class="nav-number">4.1.</span> <span class="nav-text">接口隔离原则的定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#保证接口的纯洁性"><span class="nav-number">4.2.</span> <span class="nav-text">保证接口的纯洁性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#接口隔离原则最佳实践"><span class="nav-number">4.3.</span> <span class="nav-text">接口隔离原则最佳实践</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#迪米特法则"><span class="nav-number">5.</span> <span class="nav-text">迪米特法则</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#迪米特法则的定义"><span class="nav-number">5.1.</span> <span class="nav-text">迪米特法则的定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#迪米特法则三层含义"><span class="nav-number">5.2.</span> <span class="nav-text">迪米特法则三层含义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#迪米特法则最佳实践"><span class="nav-number">5.3.</span> <span class="nav-text">迪米特法则最佳实践</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#开闭原则"><span class="nav-number">6.</span> <span class="nav-text">开闭原则</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#开闭原则的定义"><span class="nav-number">6.1.</span> <span class="nav-text">开闭原则的定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#开闭原则最佳实践"><span class="nav-number">6.2.</span> <span class="nav-text">开闭原则最佳实践</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="陈添明"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">陈添明</p>
+  <div class="site-description" itemprop="description">生命的意义在于成为你自己</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈添明</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">254k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">10:34</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+  <script src="//cdn.jsdelivr.net/npm/quicklink@1/dist/quicklink.umd.js"></script>
+  <script>
+      window.addEventListener('load', () => {
+      quicklink({
+        timeout : 3000,
+        priority: true,
+        ignores : [uri => uri.includes('#'),uri => uri === 'https://chentianming11.github.io/posts/263077743/',]
+      });
+      });
+  </script>
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : 'SoPxUkme2aynTULaNuIc5TIq-gzGzoHsz',
+      appKey     : '4TDP7SMCbgDKTOGGUtpIeA0H',
+      placeholder: "留下点足迹吧~",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"chentianming11.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":{"enable":true,"onlypost":false,"loadingImg":"/uploads/loading.gif"},"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="大家都知道，mysql在执行查询的时候会进行查询优化。简单来讲就是执行的时候先基于成本和规则优化生成执行计划，然后再按照执行计划执行查询。本文主要介绍EXPLAIN各输出项的含义，从而帮助大家更好的进行sql性能优化！">
+<meta property="og:type" content="article">
+<meta property="og:title" content="mysql执行计划Explain详解，再也不用怕sql优化了！">
+<meta property="og:url" content="https://chentianming11.github.io/posts/2001481941/index.html">
+<meta property="og:site_name" content="伍六七">
+<meta property="og:description" content="大家都知道，mysql在执行查询的时候会进行查询优化。简单来讲就是执行的时候先基于成本和规则优化生成执行计划，然后再按照执行计划执行查询。本文主要介绍EXPLAIN各输出项的含义，从而帮助大家更好的进行sql性能优化！">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://chentianming11.github.io/images/mysql/looseScan.webp">
+<meta property="article:published_time" content="2020-07-10T00:13:09.000Z">
+<meta property="article:modified_time" content="2020-11-29T03:59:08.322Z">
+<meta property="article:author" content="陈添明">
+<meta property="article:tag" content="mysql">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://chentianming11.github.io/images/mysql/looseScan.webp">
+
+<link rel="canonical" href="https://chentianming11.github.io/posts/2001481941/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>mysql执行计划Explain详解，再也不用怕sql优化了！ | 伍六七</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">伍六七</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">一起学Java</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">9</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">38</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/chentianming11" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://chentianming11.github.io/posts/2001481941/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="陈添明">
+      <meta itemprop="description" content="生命的意义在于成为你自己">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="伍六七">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          mysql执行计划Explain详解，再也不用怕sql优化了！
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-07-10 08:13:09" itemprop="dateCreated datePublished" datetime="2020-07-10T08:13:09+08:00">2020-07-10</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/" itemprop="url" rel="index"><span itemprop="name">数据库</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/posts/2001481941/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/2001481941/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>35k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>1:27</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>大家都知道，mysql在执行查询的时候会进行查询优化。简单来讲就是执行的时候先<strong>基于成本和规则优化</strong>生成<strong>执行计划</strong>，然后再按照执行计划执行查询。本文主要介绍<code>EXPLAIN</code>各输出项的含义，从而帮助大家更好的进行<strong>sql性能优化</strong>！</p>
+<a id="more"></a>
+
+<blockquote>
+<p>本文主要内容是根据掘金小册《从根儿上理解 MySQL》整理而来。如想详细了解，建议购买掘金小册阅读。</p>
+</blockquote>
+<p>我们可以在查询语句前面加上<code>EXPLAIN</code>关键字来查看这个查询的<strong>执行计划</strong>。例如</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT 1;</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+----------------+</span><br><span class="line">| id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra          |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+----------------+</span><br><span class="line">|  1 | SIMPLE      | NULL  | NULL       | NULL | NULL          | NULL | NULL    | NULL | NULL |     NULL | No tables used |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+----------------+</span><br><span class="line">1 row in set, 1 warning (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，执行计划包含很多输出列，我们先简单过一下各列的大致作用，后面再进行详细讲解。</p>
+<table>
+<thead>
+<tr>
+<th>列名</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>id</td>
+<td>在一个大的查询语句中每个<code>SELECT</code>关键字都对应一个唯一的id</td>
+</tr>
+<tr>
+<td>select_type</td>
+<td><code>SELECT</code>关键字对应的那个查询的类型</td>
+</tr>
+<tr>
+<td>table</td>
+<td>表名</td>
+</tr>
+<tr>
+<td>partitions</td>
+<td>匹配的分区信息</td>
+</tr>
+<tr>
+<td>type</td>
+<td>针对单表的访问方法</td>
+</tr>
+<tr>
+<td>possible_keys</td>
+<td>可能用到的索引</td>
+</tr>
+<tr>
+<td>key</td>
+<td>实际上使用的索引</td>
+</tr>
+<tr>
+<td>key_len</td>
+<td>实际使用到的索引长度</td>
+</tr>
+<tr>
+<td>ref</td>
+<td>当使用索引列等值查询时，与索引列进行等值匹配的对象信息</td>
+</tr>
+<tr>
+<td>rows</td>
+<td>预估的需要读取的记录条数</td>
+</tr>
+<tr>
+<td>filtered</td>
+<td>某个表经过搜索条件过滤后剩余记录条数的百分比</td>
+</tr>
+<tr>
+<td>Extra</td>
+<td>一些额外的信息</td>
+</tr>
+</tbody></table>
+<h2 id="前置相关知识点"><a href="#前置相关知识点" class="headerlink" title="前置相关知识点"></a>前置相关知识点</h2><p>为了详细了解执行计划各列含义，我们先得了解以下相关知识点。</p>
+<h3 id="不相关子查询"><a href="#不相关子查询" class="headerlink" title="不相关子查询"></a>不相关子查询</h3><p>如果<em>子查询</em>可以单独运行出结果，而不依赖于外层查询，我们把这个子查询称之为<em>不相关子查询</em>。</p>
+<h3 id="相关子查询"><a href="#相关子查询" class="headerlink" title="相关子查询"></a>相关子查询</h3><p>如果子查询的执行需要依赖于外层查询的值，我们就把这个子查询称之为<em>相关子查询</em>。</p>
+<h3 id="子查询物化"><a href="#子查询物化" class="headerlink" title="子查询物化"></a>子查询物化</h3><p><strong>不直接将不相关子查询的结果集当作外层查询的参数，而是将该结果集写入一个临时表(物化表)里</strong>。例如：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> s1 <span class="keyword">WHERE</span> key1 <span class="keyword">IN</span> (<span class="keyword">SELECT</span> common_field <span class="keyword">FROM</span> s2 <span class="keyword">WHERE</span> key3 = <span class="string">'a'</span>);</span><br></pre></td></tr></table></figure>
+
+<p>假设子查询物化表的名称为<code>materialized_table</code>，该物化表存储的子查询结果集的列为<code>m_val</code>。子查询物化之后<strong>可以将表<code>s1</code>和子查询物化表<code>materialized_table</code>进行内连接操作</strong>，然后获取对应的查询结果。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> s1.* <span class="keyword">FROM</span> s1 <span class="keyword">INNER</span> <span class="keyword">JOIN</span> materialized_table <span class="keyword">ON</span> key1 = m_val;</span><br></pre></td></tr></table></figure>
+
+<h3 id="将子查询转换为semi-join"><a href="#将子查询转换为semi-join" class="headerlink" title="将子查询转换为semi-join"></a>将子查询转换为semi-join</h3><p>将子查询进行物化之后再执行查询都会有建立临时表的成本，能不能不进行物化操作直接把子查询转换为连接呢？让我们重新审视一下上边的查询语句：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> s1 <span class="keyword">WHERE</span> key1 <span class="keyword">IN</span> (<span class="keyword">SELECT</span> common_field <span class="keyword">FROM</span> s2 <span class="keyword">WHERE</span> key3 = <span class="string">'a'</span>);</span><br></pre></td></tr></table></figure>
+
+<p>我们可以把这个查询理解成：<strong>对于<code>s1</code>表中的某条记录，如果我们能在<code>s2</code>表（准确的说是执行完<code>WHERE s2.key3 = &#39;a&#39;</code>之后的结果集）中找到一条或多条符合<code>s2.common_field=s1.key1</code>的记录，那么该条<code>s1</code>表的记录就会被加入到最终的结果集</strong>。这个过程其实和把<code>s1</code>和<code>s2</code>两个表连接起来的效果很像：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> s1.* <span class="keyword">FROM</span> s1 <span class="keyword">INNER</span> <span class="keyword">JOIN</span> s2 <span class="keyword">ON</span> s1.key1 = s2.common_field <span class="keyword">WHERE</span> s2.key3 = <span class="string">'a'</span>;</span><br></pre></td></tr></table></figure>
+
+<p>这么做唯一的问题在于，对于<code>s1</code>表的某条记录来说，如果<code>s2</code>表中有<strong>多条记录</strong>满足<code>s1.key1 = s2.common_field</code>这个条件，那么该记录会被多次加入最终的结果集，因此<strong>二者不能认为是完全等价</strong>的，因此就有了<code>semi-join</code>(半连接)。将<code>s1</code>表和<code>s2</code>表进行半连接的意思就是：<strong>对于<code>s1</code>表的某条记录来说，我们只关心在<code>s2</code>表中是否存在与之匹配的记录，而不关心具体有多少条记录与之匹配，最终的结果集中只保留<code>s1</code>表的记录</strong>。当然<code>semi-join</code>是mysql内部机制，无法直接用在sql语句中。</p>
+<h4 id="semi-join实现机制"><a href="#semi-join实现机制" class="headerlink" title="semi-join实现机制"></a>semi-join实现机制</h4><h5 id="Table-pullout-（子查询中的表上拉）"><a href="#Table-pullout-（子查询中的表上拉）" class="headerlink" title="Table pullout （子查询中的表上拉）"></a>Table pullout （子查询中的表上拉）</h5><p>当子查询的查询列表处<strong>只有主键或者唯一索引列</strong>时，可以直接把子查询中的表上拉到外层查询的<code>FROM</code>子句中，并把子查询中的搜索条件合并到外层查询的搜索条件中，比如这个：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> s1  <span class="keyword">WHERE</span> key2 <span class="keyword">IN</span> (<span class="keyword">SELECT</span> key2 <span class="keyword">FROM</span> s2 <span class="keyword">WHERE</span> key3 = <span class="string">'a'</span>);</span><br></pre></td></tr></table></figure>
+
+<p>由于<code>key2</code>列是<code>s2</code>表的唯一二级索引列，所以我们可以直接把<code>s2</code>表上拉到外层查询的<code>FROM</code>子句中，并且把子查询中的搜索条件合并到外层查询的搜索条件中，实际上就是直接将子查询优化为连接查询，上拉之后的查询就是这样的：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> s1.* <span class="keyword">FROM</span> s1 <span class="keyword">INNER</span> <span class="keyword">JOIN</span> s2 <span class="keyword">ON</span> s1.key2 = s2.key2 <span class="keyword">WHERE</span> s2.key3 = <span class="string">'a'</span>;</span><br></pre></td></tr></table></figure>
+
+<h5 id="DuplicateWeedout-execution-strategy-（重复值消除）"><a href="#DuplicateWeedout-execution-strategy-（重复值消除）" class="headerlink" title="DuplicateWeedout execution strategy （重复值消除）"></a>DuplicateWeedout execution strategy （重复值消除）</h5><p>比如下面这个查询语句：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> s1  <span class="keyword">WHERE</span> key1 <span class="keyword">IN</span> (<span class="keyword">SELECT</span> common_field <span class="keyword">FROM</span> s2 <span class="keyword">WHERE</span> key3 = <span class="string">'a'</span>);</span><br></pre></td></tr></table></figure>
+
+<p>转换为半连接查询后，<code>s1</code>表中的某条记录可能在<code>s2</code>表中有多条匹配的记录，所以该条记录可能多次被添加到最后的结果集中。为了消除重复，我们可以建立一个临时表，比方说这个临时表长这样：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> tmp (</span><br><span class="line">    <span class="keyword">id</span> PRIMARY <span class="keyword">KEY</span></span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p>这样在执行连接查询的过程中，每当某条s1表中的记录要加入结果集时，就首先把这条记录的id值加入到这个临时表里。这种使用临时表消除<code>semi-join</code>结果集中的重复值的方式称之为<code>DuplicateWeedout</code>。</p>
+<h5 id="LooseScan-execution-strategy-（松散扫描）"><a href="#LooseScan-execution-strategy-（松散扫描）" class="headerlink" title="LooseScan execution strategy （松散扫描）"></a>LooseScan execution strategy （松散扫描）</h5><p>比如下面这个查询语句：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> s1 <span class="keyword">WHERE</span> key3 <span class="keyword">IN</span> (<span class="keyword">SELECT</span> key1 <span class="keyword">FROM</span> s2 <span class="keyword">WHERE</span> key1 &gt; <span class="string">'a'</span> <span class="keyword">AND</span> key1 &lt; <span class="string">'b'</span>);</span><br></pre></td></tr></table></figure>
+
+<p>在子查询中，对于<code>s2</code>表的访问可以使用到<code>key1</code>列的索引，而恰好子查询的查询列表处就是<code>key1</code>列，这样在将该查询转换为半连接查询后，如果将<code>s2</code>作为驱动表执行查询的话，那么执行过程就是这样：<br><img data-src="https://chentianming11.github.io/images/mysql/looseScan.webp" alt="looseScan"><br>如图所示，在<code>s2</code>表的<code>idx_key1</code>索引中，值为<code>&#39;aa&#39;</code>的二级索引记录一共有3条，那么只需要取第一条的值到s1表中查找<code>s1.key3 = &#39;aa&#39;</code>的记录，如果能在<code>s1</code>表中找到对应的记录，那么就把对应的记录加入到结果集。<strong>这种虽然是扫描索引，但只取值相同的记录的第一条去做匹配操作的方式称之为松散扫描。</strong></p>
+<h5 id="FirstMatch-execution-strategy-（首次匹配）"><a href="#FirstMatch-execution-strategy-（首次匹配）" class="headerlink" title="FirstMatch execution strategy （首次匹配）"></a>FirstMatch execution strategy （首次匹配）</h5><p><code>FirstMatch</code>是一种最原始的半连接执行方式，简单来说就是说先取一条外层查询的中的记录，然后到子查询的表中寻找符合匹配条件的记录，如果能找到一条，则将该外层查询的记录放入最终的结果集并且停止查找更多匹配的记录，如果找不到则把该外层查询的记录丢弃掉；然后再开始取下一条外层查询中的记录，重复上边这个过程。</p>
+<h2 id="执行计划详解"><a href="#执行计划详解" class="headerlink" title="执行计划详解"></a>执行计划详解</h2><p>为了详细解释执行计划各列含义，先建2张示例表<code>s1</code>和<code>s2</code>，它们的表结构完全一样。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> s1 (</span><br><span class="line">    <span class="keyword">id</span> <span class="built_in">INT</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT,</span><br><span class="line">    key1 <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    key2 <span class="built_in">INT</span>,</span><br><span class="line">    key3 <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    key_part1 <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    key_part2 <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    key_part3 <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    common_field <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="keyword">id</span>),</span><br><span class="line">    <span class="keyword">KEY</span> idx_key1 (key1),</span><br><span class="line">    <span class="keyword">UNIQUE</span> <span class="keyword">KEY</span> idx_key2 (key2),</span><br><span class="line">    <span class="keyword">KEY</span> idx_key3 (key3),</span><br><span class="line">    <span class="keyword">KEY</span> idx_key_part(key_part1, key_part2, key_part3)</span><br><span class="line">) <span class="keyword">Engine</span>=<span class="keyword">InnoDB</span> <span class="keyword">CHARSET</span>=utf8;</span><br></pre></td></tr></table></figure>
+
+<h3 id="table"><a href="#table" class="headerlink" title="table"></a>table</h3><p>不论我们的查询语句有多复杂，里边儿包含了多少个表，到最后也是需要对每个表进行单表访问的，因此<strong>EXPLAIN语句输出的每条记录都对应着某个单表的访问方法</strong>。其中的<code>table</code>列代表的就是该表的表名。比如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1;</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------+</span><br><span class="line">| id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 9688 |   100.00 | NULL  |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------+</span><br><span class="line">1 row in set, 1 warning (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<p>上面的查询只涉及单表查询，因此<code>EXPLAIN</code>只输出了一条记录。<code>table</code>列的值是<code>s1</code>，表示该条记录描述了<strong>对<code>s1</code>表的访问方法</strong>。</p>
+<p>下边我们看一下一个连接查询的执行计划：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 INNER JOIN s2;</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+---------------------------------------+</span><br><span class="line">| id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra                                 |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+---------------------------------------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 9688 |   100.00 | NULL                                  |</span><br><span class="line">|  1 | SIMPLE      | s2    | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 9954 |   100.00 | Using join buffer (Block Nested Loop) |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+---------------------------------------+</span><br><span class="line">2 rows in set, 1 warning (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，<code>EXPLAIN</code>只输出了两条记录。<code>table</code>列的值是<code>s1</code>和<code>s2</code>，分别表示了<strong>对<code>s1</code>表和<code>s2</code>表的访问方法</strong>。</p>
+<h3 id="id"><a href="#id" class="headerlink" title="id"></a>id</h3><p>大家都知道，查询语句中一般都会包含一个或多个<code>select</code>关键字。可以简单认为，<strong>查询语句每出现一个<code>select</code>关键字，执行计划中就会有一个对应的id值</strong>。比如下边这个查询中只有一个<code>SELECT</code>关键字：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key1 &#x3D; &#39;a&#39;;</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------+------+----------+-------+</span><br><span class="line">| id | select_type | table | partitions | type | possible_keys | key      | key_len | ref   | rows | filtered | Extra |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------+------+----------+-------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ref  | idx_key1      | idx_key1 | 303     | const |    8 |   100.00 | NULL  |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------+------+----------+-------+</span><br><span class="line">1 row in set, 1 warning (0.03 sec)</span><br></pre></td></tr></table></figure>
+
+<p><strong>对于连接查询来说，一个<code>select</code>往往是对多张表进行查询的，所以在执行计划中就会有多条记录，但是它们的<code>id</code>都是一样的</strong>。其中，出现在前边的表是驱动表，出现在后边的表是被驱动表。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 INNER JOIN s2;</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+---------------------------------------+</span><br><span class="line">| id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra                                 |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+---------------------------------------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 9688 |   100.00 | NULL                                  |</span><br><span class="line">|  1 | SIMPLE      | s2    | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 9954 |   100.00 | Using join buffer (Block Nested Loop) |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+---------------------------------------+</span><br><span class="line">2 rows in set, 1 warning (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<p><strong>对于子查询来说，就可能包含多个<code>select</code>关键字，每个<code>select</code>关键字都会对应一个唯一的id值</strong>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key1 IN (SELECT key1 FROM s2) OR key3 &#x3D; &#39;a&#39;;</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">| id | select_type | table | partitions | type  | possible_keys | key      | key_len | ref  | rows | filtered | Extra       |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">|  1 | PRIMARY     | s1    | NULL       | ALL   | idx_key3      | NULL     | NULL    | NULL | 9688 |   100.00 | Using where |</span><br><span class="line">|  2 | SUBQUERY    | s2    | NULL       | index | idx_key1      | idx_key1 | 303     | NULL | 9954 |   100.00 | Using index |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">2 rows in set, 1 warning (0.02 sec)</span><br></pre></td></tr></table></figure>
+
+<p>但是还有一点需要注意：<strong>查询优化器可能对涉及子查询的查询语句进行重写，从而转换为连接查询</strong>。此时执行计划的id值就是一样的了。</p>
+<p>对于包含<code>union</code>关键字的查询来说，除了每个<code>select</code>关键字对应一个id值，还会包含一个<code>id</code>值为<code>NULL</code>的记录。这条记录主要用来表示将两次查询的结果集进行去重的(<code>union all</code>因为不需要去重，所以没有这条记录)。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1  UNION SELECT * FROM s2;</span><br><span class="line">+----+--------------+------------+------------+------+---------------+------+---------+------+------+----------+-----------------+</span><br><span class="line">| id | select_type  | table      | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra           |</span><br><span class="line">+----+--------------+------------+------------+------+---------------+------+---------+------+------+----------+-----------------+</span><br><span class="line">|  1 | PRIMARY      | s1         | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 9688 |   100.00 | NULL            |</span><br><span class="line">|  2 | UNION        | s2         | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 9954 |   100.00 | NULL            |</span><br><span class="line">| NULL | UNION RESULT | &lt;union1,2&gt; | NULL       | ALL  | NULL          | NULL | NULL    | NULL | NULL |     NULL | Using temporary |</span><br><span class="line">+----+--------------+------------+------------+------+---------------+------+---------+------+------+----------+-----------------+</span><br><span class="line">3 rows in set, 1 warning (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<h3 id="select-type"><a href="#select-type" class="headerlink" title="select_type"></a>select_type</h3><p>我们已经知道，每一个<code>select</code>关键字都代表一次小查询，而<code>select_type</code>属性就是用来描述当前这个小查询的含义的。<code>select_type</code>属性含义(直接用官网英文表示)如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">名称</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">SIMPLE</td>
+<td align="center">Simple SELECT (not using UNION or subqueries)</td>
+</tr>
+<tr>
+<td align="center">PRIMARY</td>
+<td align="center">Outermost SELECT</td>
+</tr>
+<tr>
+<td align="center">UNION</td>
+<td align="center">Second or later SELECT statement in a UNION</td>
+</tr>
+<tr>
+<td align="center">UNION RESULT</td>
+<td align="center">Result of a UNION</td>
+</tr>
+<tr>
+<td align="center">SUBQUERY</td>
+<td align="center">First SELECT in subquery</td>
+</tr>
+<tr>
+<td align="center">DEPENDENT SUBQUERY</td>
+<td align="center">First SELECT in subquery, dependent on outer query</td>
+</tr>
+<tr>
+<td align="center">DEPENDENT UNION</td>
+<td align="center">Second or later SELECT statement in a UNION, dependent on outer query</td>
+</tr>
+<tr>
+<td align="center">DERIVED</td>
+<td align="center">Derived table</td>
+</tr>
+<tr>
+<td align="center">MATERIALIZED</td>
+<td align="center">Materialized subquery</td>
+</tr>
+<tr>
+<td align="center">UNCACHEABLE SUBQUERY</td>
+<td align="center">A subquery for which the result cannot be cached and must be re-evaluated for each row of the outer query</td>
+</tr>
+<tr>
+<td align="center">UNCACHEABLE UNION</td>
+<td align="center">The second or later select in a UNION that belongs to an uncacheable subquery (see UNCACHEABLE SUBQUERY)</td>
+</tr>
+</tbody></table>
+<h4 id="SIMPLE"><a href="#SIMPLE" class="headerlink" title="SIMPLE"></a>SIMPLE</h4><p>查询语句中不包含<code>UNION</code>或者<code>子查询</code>的查询都算作是<code>SIMPLE</code>类型，比如常见的单表查询和连接查询等。</p>
+<h4 id="PRIMARY"><a href="#PRIMARY" class="headerlink" title="PRIMARY"></a>PRIMARY</h4><p>对于包含<code>UNION</code>、<code>UNION ALL</code>或者<code>子查询</code>的大查询来说，它是由几个小查询组成的，其中最左边的那个查询的<code>select_type</code>值就是<code>PRIMARY</code>，比方说：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 UNION SELECT * FROM s2;</span><br><span class="line">+----+--------------+------------+------------+------+---------------+------+---------+------+------+----------+-----------------+</span><br><span class="line">| id | select_type  | table      | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra           |</span><br><span class="line">+----+--------------+------------+------------+------+---------------+------+---------+------+------+----------+-----------------+</span><br><span class="line">|  1 | PRIMARY      | s1         | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 9688 |   100.00 | NULL            |</span><br><span class="line">|  2 | UNION        | s2         | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 9954 |   100.00 | NULL            |</span><br><span class="line">| NULL | UNION RESULT | &lt;union1,2&gt; | NULL       | ALL  | NULL          | NULL | NULL    | NULL | NULL |     NULL | Using temporary |</span><br><span class="line">+----+--------------+------------+------------+------+---------------+------+---------+------+------+----------+-----------------+</span><br><span class="line">3 rows in set, 1 warning (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="UNION"><a href="#UNION" class="headerlink" title="UNION"></a>UNION</h4><p>对于包含<code>UNION</code>或者<code>UNION ALL</code>的大查询来说，它是由几个小查询组成的，其中除了最左边的那个小查询以外，其余的小查询的<code>select_type</code>值就是<code>UNION</code>。</p>
+<h4 id="UNION-RESULT"><a href="#UNION-RESULT" class="headerlink" title="UNION RESULT"></a>UNION RESULT</h4><p><code>MySQL</code>选择使用临时表来完成<code>UNION</code>查询的去重工作，针对该临时表的查询的<code>select_type</code>就是<code>UNION RESULT</code>。</p>
+<h4 id="SUBQUERY"><a href="#SUBQUERY" class="headerlink" title="SUBQUERY"></a>SUBQUERY</h4><p>如果包含子查询的查询语句不能够转为对应的<code>semi-join</code>的形式，并且该子查询是不相关子查询，并且查询优化器决定采用将该<strong>子查询物化</strong>的方案来执行该子查询时，该子查询的第一个<code>SELECT</code>关键字代表的那个查询的<code>select_type</code>就是<code>SUBQUERY</code>，比如下边这个查询：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key1 IN (SELECT key1 FROM s2) OR key3 &#x3D; &#39;a&#39;;</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">| id | select_type | table | partitions | type  | possible_keys | key      | key_len | ref  | rows | filtered | Extra       |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">|  1 | PRIMARY     | s1    | NULL       | ALL   | idx_key3      | NULL     | NULL    | NULL | 9688 |   100.00 | Using where |</span><br><span class="line">|  2 | SUBQUERY    | s2    | NULL       | index | idx_key1      | idx_key1 | 303     | NULL | 9954 |   100.00 | Using index |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">2 rows in set, 1 warning (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="DEPENDENT-SUBQUERY"><a href="#DEPENDENT-SUBQUERY" class="headerlink" title="DEPENDENT SUBQUERY"></a>DEPENDENT SUBQUERY</h4><p>如果包含子查询的查询语句不能够转为对应的<code>semi-join</code>的形式，并且该子查询是相关子查询，则该子查询的第一个<code>SELECT</code>关键字代表的那个查询的<code>select_type</code>就是<code>DEPENDENT SUBQUERY</code>，比如下边这个查询：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key1 IN (SELECT key1 FROM s2 WHERE s1.key2 &#x3D; s2.key2) OR key3 &#x3D; &#39;a&#39;;</span><br><span class="line">+----+--------------------+-------+------------+------+-------------------+----------+---------+-------------------+------+----------+-------------+</span><br><span class="line">| id | select_type        | table | partitions | type | possible_keys     | key      | key_len | ref               | rows | filtered | Extra       |</span><br><span class="line">+----+--------------------+-------+------------+------+-------------------+----------+---------+-------------------+------+----------+-------------+</span><br><span class="line">|  1 | PRIMARY            | s1    | NULL       | ALL  | idx_key3          | NULL     | NULL    | NULL              | 9688 |   100.00 | Using where |</span><br><span class="line">|  2 | DEPENDENT SUBQUERY | s2    | NULL       | ref  | idx_key2,idx_key1 | idx_key2 | 5       | xiaohaizi.s1.key2 |    1 |    10.00 | Using where |</span><br><span class="line">+----+--------------------+-------+------------+------+-------------------+----------+---------+-------------------+------+----------+-------------+</span><br><span class="line">2 rows in set, 2 warnings (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="DEPENDENT-UNION"><a href="#DEPENDENT-UNION" class="headerlink" title="DEPENDENT UNION"></a>DEPENDENT UNION</h4><p>在包含<code>UNION</code>或者<code>UNION ALL</code>的大查询中，如果各个小查询都依赖于外层查询的话，那除了最左边的那个小查询之外，其余的小查询的<code>select_type</code>的值就是<code>DEPENDENT UNION</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key1 IN (SELECT key1 FROM s2 WHERE key1 &#x3D; &#39;a&#39; UNION SELECT key1 FROM s1 WHERE key1 &#x3D; &#39;b&#39;);</span><br><span class="line">+----+--------------------+------------+------------+------+---------------+----------+---------+-------+------+----------+--------------------------+</span><br><span class="line">| id | select_type        | table      | partitions | type | possible_keys | key      | key_len | ref   | rows | filtered | Extra                    |</span><br><span class="line">+----+--------------------+------------+------------+------+---------------+----------+---------+-------+------+----------+--------------------------+</span><br><span class="line">|  1 | PRIMARY            | s1         | NULL       | ALL  | NULL          | NULL     | NULL    | NULL  | 9688 |   100.00 | Using where              |</span><br><span class="line">|  2 | DEPENDENT SUBQUERY | s2         | NULL       | ref  | idx_key1      | idx_key1 | 303     | const |   12 |   100.00 | Using where; Using index |</span><br><span class="line">|  3 | DEPENDENT UNION    | s1         | NULL       | ref  | idx_key1      | idx_key1 | 303     | const |    8 |   100.00 | Using where; Using index |</span><br><span class="line">| NULL | UNION RESULT       | &lt;union2,3&gt; | NULL       | ALL  | NULL          | NULL     | NULL    | NULL  | NULL |     NULL | Using temporary          |</span><br><span class="line">+----+--------------------+------------+------------+------+---------------+----------+---------+-------+------+----------+--------------------------+</span><br><span class="line">4 rows in set, 1 warning (0.03 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="DERIVED"><a href="#DERIVED" class="headerlink" title="DERIVED"></a>DERIVED</h4><p>对于采用物化的方式执行的包含派生表的查询，该派生表对应的子查询的<code>select_type</code>就是<code>DERIVED</code>，比方说下边这个查询：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM (SELECT key1, count(*) as c FROM s1 GROUP BY key1) AS derived_s1 where c &gt; 1;</span><br><span class="line">+----+-------------+------------+------------+-------+---------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">| id | select_type | table      | partitions | type  | possible_keys | key      | key_len | ref  | rows | filtered | Extra       |</span><br><span class="line">+----+-------------+------------+------------+-------+---------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">|  1 | PRIMARY     | &lt;derived2&gt; | NULL       | ALL   | NULL          | NULL     | NULL    | NULL | 9688 |    33.33 | Using where |</span><br><span class="line">|  2 | DERIVED     | s1         | NULL       | index | idx_key1      | idx_key1 | 303     | NULL | 9688 |   100.00 | Using index |</span><br><span class="line">+----+-------------+------------+------------+-------+---------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">2 rows in set, 1 warning (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="MATERIALIZED"><a href="#MATERIALIZED" class="headerlink" title="MATERIALIZED"></a>MATERIALIZED</h4><p>当查询优化器在执行包含子查询的语句时，选择将子查询物化之后与外层查询进行连接查询时，该子查询对应的<code>select_type</code>属性就是<code>MATERIALIZED</code>，比如下边这个查询：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key1 IN (SELECT key1 FROM s2);</span><br><span class="line">+----+--------------+-------------+------------+--------+---------------+------------+---------+-------------------+------+----------+-------------+</span><br><span class="line">| id | select_type  | table       | partitions | type   | possible_keys | key        | key_len | ref               | rows | filtered | Extra       |</span><br><span class="line">+----+--------------+-------------+------------+--------+---------------+------------+---------+-------------------+------+----------+-------------+</span><br><span class="line">|  1 | SIMPLE       | s1          | NULL       | ALL    | idx_key1      | NULL       | NULL    | NULL              | 9688 |   100.00 | Using where |</span><br><span class="line">|  1 | SIMPLE       | &lt;subquery2&gt; | NULL       | eq_ref | &lt;auto_key&gt;    | &lt;auto_key&gt; | 303     | xiaohaizi.s1.key1 |    1 |   100.00 | NULL        |</span><br><span class="line">|  2 | MATERIALIZED | s2          | NULL       | index  | idx_key1      | idx_key1   | 303     | NULL              | 9954 |   100.00 | Using index |</span><br><span class="line">+----+--------------+-------------+------------+--------+---------------+------------+---------+-------------------+------+----------+-------------+</span><br><span class="line">3 rows in set, 1 warning (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<h3 id="type"><a href="#type" class="headerlink" title="type"></a>type</h3><p>上面提到过，<strong>执行计划的一条记录就代表了对一张表的访问方法</strong>，其中的<code>type</code>列就是用描述访问方法的。完整的访问方法如下：<code>system</code>，<code>const</code>，<code>eq_ref</code>，<code>ref</code>，<code>fulltext</code>，<code>ref_or_null</code>，<code>index_merge</code>，<code>unique_subquery</code>，<code>index_subquery</code>，<code>range</code>，<code>index</code>，<code>ALL</code>。</p>
+<h4 id="system"><a href="#system" class="headerlink" title="system"></a>system</h4><p>当表中只有一条记录并且该表使用的存储引擎的统计数据是精确的，比如<code>MyISAM</code>、<code>Memory</code>，那么对该表的访问方法就是<code>system</code>。</p>
+<h4 id="const"><a href="#const" class="headerlink" title="const"></a>const</h4><p>根据主键或者唯一二级索引列与常数进行等值匹配时，对单表的访问方法就是<code>const</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE id &#x3D; 5;</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+---------+---------+-------+------+----------+-------+</span><br><span class="line">| id | select_type | table | partitions | type  | possible_keys | key     | key_len | ref   | rows | filtered | Extra |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+---------+---------+-------+------+----------+-------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | const | PRIMARY       | PRIMARY | 4       | const |    1 |   100.00 | NULL  |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+---------+---------+-------+------+----------+-------+</span><br><span class="line">1 row in set, 1 warning (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="eq-ref"><a href="#eq-ref" class="headerlink" title="eq_ref"></a>eq_ref</h4><p>在连接查询时，如果被驱动表是通过主键或者唯一二级索引列等值匹配的方式进行访问的（如果该主键或者唯一二级索引是联合索引的话，所有的索引列都必须进行等值比较），则对该被驱动表的访问方法就是<code>eq_ref</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 INNER JOIN s2 ON s1.id &#x3D; s2.id;</span><br><span class="line">+----+-------------+-------+------------+--------+---------------+---------+---------+-----------------+------+----------+-------+</span><br><span class="line">| id | select_type | table | partitions | type   | possible_keys | key     | key_len | ref             | rows | filtered | Extra |</span><br><span class="line">+----+-------------+-------+------------+--------+---------------+---------+---------+-----------------+------+----------+-------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ALL    | PRIMARY       | NULL    | NULL    | NULL            | 9688 |   100.00 | NULL  |</span><br><span class="line">|  1 | SIMPLE      | s2    | NULL       | eq_ref | PRIMARY       | PRIMARY | 4       | xiaohaizi.s1.id |    1 |   100.00 | NULL  |</span><br><span class="line">+----+-------------+-------+------------+--------+---------------+---------+---------+-----------------+------+----------+-------+</span><br><span class="line">2 rows in set, 1 warning (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="ref"><a href="#ref" class="headerlink" title="ref"></a>ref</h4><p>当通过普通的二级索引列与常量进行等值匹配时来查询某个表，那么对该表的访问方法就可能是<code>ref</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key1 &#x3D; &#39;a&#39;;</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------+------+----------+-------+</span><br><span class="line">| id | select_type | table | partitions | type | possible_keys | key      | key_len | ref   | rows | filtered | Extra |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------+------+----------+-------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ref  | idx_key1      | idx_key1 | 303     | const |    8 |   100.00 | NULL  |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------+------+----------+-------+</span><br><span class="line">1 row in set, 1 warning (0.04 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="ref-or-null"><a href="#ref-or-null" class="headerlink" title="ref_or_null"></a>ref_or_null</h4><p>当对普通二级索引进行等值匹配查询，该索引列的值也可以是<code>NULL</code>值时，那么对该表的访问方法就可能是<code>ref_or_null</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key1 &#x3D; &#39;a&#39; OR key1 IS NULL;</span><br><span class="line">+----+-------------+-------+------------+-------------+---------------+----------+---------+-------+------+----------+-----------------------+</span><br><span class="line">| id | select_type | table | partitions | type        | possible_keys | key      | key_len | ref   | rows | filtered | Extra                 |</span><br><span class="line">+----+-------------+-------+------------+-------------+---------------+----------+---------+-------+------+----------+-----------------------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ref_or_null | idx_key1      | idx_key1 | 303     | const |    9 |   100.00 | Using index condition |</span><br><span class="line">+----+-------------+-------+------------+-------------+---------------+----------+---------+-------+------+----------+-----------------------+</span><br><span class="line">1 row in set, 1 warning (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="index-merge"><a href="#index-merge" class="headerlink" title="index_merge"></a>index_merge</h4><p>一般情况下对于某个表的查询只能使用到一个索引，但是某些场景下也可能使用索引合并，此时的<code>type</code>就是<code>index_merge</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key1 &#x3D; &#39;a&#39; OR key3 &#x3D; &#39;a&#39;;</span><br><span class="line">+----+-------------+-------+------------+-------------+-------------------+-------------------+---------+------+------+----------+---------------------------------------------+</span><br><span class="line">| id | select_type | table | partitions | type        | possible_keys     | key               | key_len | ref  | rows | filtered | Extra                                       |</span><br><span class="line">+----+-------------+-------+------------+-------------+-------------------+-------------------+---------+------+------+----------+---------------------------------------------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | index_merge | idx_key1,idx_key3 | idx_key1,idx_key3 | 303,303 | NULL |   14 |   100.00 | Using union(idx_key1,idx_key3); Using where |</span><br><span class="line">+----+-------------+-------+------------+-------------+-------------------+-------------------+---------+------+------+----------+---------------------------------------------+</span><br><span class="line">1 row in set, 1 warning (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<h5 id="索引合并"><a href="#索引合并" class="headerlink" title="索引合并"></a>索引合并</h5><p>一般情况下，执行一个查询最多只会用到一个索引。但是在特殊情况下也可能会使用多个二级索引，使用这种方式执行的查询称为<code>index_merge</code>。具体的索引合并算法有下边三种。</p>
+<ul>
+<li><p>Intersection合并<br><code>Intersection</code>翻译过来的意思是交集。这里是说某个查询可以使用多个二级索引，将从多个二级索引中查询到的结果取交集，比方说下边这个查询：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> key1 = <span class="string">'a'</span> <span class="keyword">AND</span> key3 = <span class="string">'b'</span>;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Union合并<br>我们在写查询语句时经常想把既符合某个搜索条件的记录取出来，也把符合另外的某个搜索条件的记录取出来，我们说这些不同的搜索条件之间是OR关系。比如：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> key1 = <span class="string">'a'</span> <span class="keyword">OR</span> key3 = <span class="string">'b'</span></span><br></pre></td></tr></table></figure>
+
+<p><code>Intersection</code>是交集的意思，这适用于使用不同索引的搜索条件之间使用<code>AND</code>连接起来的情况；<code>Union</code>是并集的意思，适用于使用不同索引的搜索条件之间使用<code>OR</code>连接起来的情况。</p>
+</li>
+<li><p>Sort-Union合并<br><code>Union</code>索引合并的使用条件太苛刻，必须保证各个二级索引列在进行等值匹配的条件下才可能被用到，比方说下边这个查询就无法使用到<code>Union</code>索引合并：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> key1 &lt; <span class="string">'a'</span> <span class="keyword">OR</span> key3 &gt; <span class="string">'z'</span></span><br></pre></td></tr></table></figure>
+
+<p>我们把上述这种先按照二级索引记录的主键值进行排序，之后按照<code>Union</code>索引合并方式执行的方式称之为<code>Sort-Union</code>索引合并，很显然，这种<code>Sort-Union</code>索引合并比单纯的<code>Union</code>索引合并多了一步对二级索引记录的主键值排序的过程。</p>
+</li>
+</ul>
+<h4 id="unique-subquery"><a href="#unique-subquery" class="headerlink" title="unique_subquery"></a>unique_subquery</h4><p>类似于两表连接中被驱动表的<code>eq_ref</code>访问方法，<code>unique_subquery</code>是针对在一些包含<code>IN</code>子查询的查询语句中，如果查询优化器决定将<code>IN</code>子查询转换为<code>EXISTS</code>子查询，而且子查询可以使用到主键进行等值匹配的话，那么该子查询执行计划的<code>type</code>列的值就是<code>unique_subquery</code>，比如下边的这个查询语句：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key2 IN (SELECT id FROM s2 where s1.key1 &#x3D; s2.key1) OR key3 &#x3D; &#39;a&#39;;</span><br><span class="line">+----+--------------------+-------+------------+-----------------+------------------+---------+---------+------+------+----------+-------------+</span><br><span class="line">| id | select_type        | table | partitions | type            | possible_keys    | key     | key_len | ref  | rows | filtered | Extra       |</span><br><span class="line">+----+--------------------+-------+------------+-----------------+------------------+---------+---------+------+------+----------+-------------+</span><br><span class="line">|  1 | PRIMARY            | s1    | NULL       | ALL             | idx_key3         | NULL    | NULL    | NULL | 9688 |   100.00 | Using where |</span><br><span class="line">|  2 | DEPENDENT SUBQUERY | s2    | NULL       | unique_subquery | PRIMARY,idx_key1 | PRIMARY | 4       | func |    1 |    10.00 | Using where |</span><br><span class="line">+----+--------------------+-------+------------+-----------------+------------------+---------+---------+------+------+----------+-------------+</span><br><span class="line">2 rows in set, 2 warnings (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="index-subquery"><a href="#index-subquery" class="headerlink" title="index_subquery"></a>index_subquery</h4><p><code>index_subquery</code>与<code>unique_subquery</code>类似，只不过访问子查询中的表时使用的是普通的索引，比如这样：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE common_field IN (SELECT key3 FROM s2 where s1.key1 &#x3D; s2.key1) OR key3 &#x3D; &#39;a&#39;;</span><br><span class="line">+----+--------------------+-------+------------+----------------+-------------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">| id | select_type        | table | partitions | type           | possible_keys     | key      | key_len | ref  | rows | filtered | Extra       |</span><br><span class="line">+----+--------------------+-------+------------+----------------+-------------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">|  1 | PRIMARY            | s1    | NULL       | ALL            | idx_key3          | NULL     | NULL    | NULL | 9688 |   100.00 | Using where |</span><br><span class="line">|  2 | DEPENDENT SUBQUERY | s2    | NULL       | index_subquery | idx_key1,idx_key3 | idx_key3 | 303     | func |    1 |    10.00 | Using where |</span><br><span class="line">+----+--------------------+-------+------------+----------------+-------------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">2 rows in set, 2 warnings (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="range"><a href="#range" class="headerlink" title="range"></a>range</h4><p>如果使用索引获取某些范围区间的记录，那么就可能使用到<code>range</code>访问方法，比如下边的这个查询：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key1 IN (&#39;a&#39;, &#39;b&#39;, &#39;c&#39;);</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-----------------------+</span><br><span class="line">| id | select_type | table | partitions | type  | possible_keys | key      | key_len | ref  | rows | filtered | Extra                 |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-----------------------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | range | idx_key1      | idx_key1 | 303     | NULL |   27 |   100.00 | Using index condition |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-----------------------+</span><br><span class="line">1 row in set, 1 warning (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="index"><a href="#index" class="headerlink" title="index"></a>index</h4><p>需要扫描全部的索引记录时，该表的访问方法就是<code>index</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT key_part2 FROM s1 WHERE key_part3 &#x3D; &#39;a&#39;;</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+--------------+---------+------+------+----------+--------------------------+</span><br><span class="line">| id | select_type | table | partitions | type  | possible_keys | key          | key_len | ref  | rows | filtered | Extra                    |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+--------------+---------+------+------+----------+--------------------------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | index | NULL          | idx_key_part | 909     | NULL | 9688 |    10.00 | Using where; Using index |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+--------------+---------+------+------+----------+--------------------------+</span><br><span class="line">1 row in set, 1 warning (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="ALL"><a href="#ALL" class="headerlink" title="ALL"></a>ALL</h4><p>全表扫描</p>
+<h3 id="possible-keys和key"><a href="#possible-keys和key" class="headerlink" title="possible_keys和key"></a>possible_keys和key</h3><p><code>possible_keys</code>列表示在某个查询语句中，对某个表执行单表查询时可能用到的索引有哪些，<code>key</code>列表示实际用到的索引有哪些，比方说下边这个查询：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key1 &gt; &#39;z&#39; AND key3 &#x3D; &#39;a&#39;;</span><br><span class="line">+----+-------------+-------+------------+------+-------------------+----------+---------+-------+------+----------+-------------+</span><br><span class="line">| id | select_type | table | partitions | type | possible_keys     | key      | key_len | ref   | rows | filtered | Extra       |</span><br><span class="line">+----+-------------+-------+------------+------+-------------------+----------+---------+-------+------+----------+-------------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ref  | idx_key1,idx_key3 | idx_key3 | 303     | const |    6 |     2.75 | Using where |</span><br><span class="line">+----+-------------+-------+------------+------+-------------------+----------+---------+-------+------+----------+-------------+</span><br><span class="line">1 row in set, 1 warning (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<h3 id="key-len"><a href="#key-len" class="headerlink" title="key_len"></a>key_len</h3><p><code>key_len</code>列表示当优化器决定使用某个索引执行查询时，该索引记录的最大长度，它是由这三个部分构成的：</p>
+<ul>
+<li>对于使用固定长度类型的索引列来说，它实际占用的存储空间的最大长度就是该固定值；对于指定字符集是变长类型的索引列来说，比如某个索引列的类型是<code>VARCHAR(100)</code>，使用的字符集是<code>utf8</code>，那么该列实际占用的最大存储空间就是<code>100 × 3 = 300</code>个字节。</li>
+<li>如果该索引列可以存储<code>NULL</code>值，则<code>key_len</code>比不可以存储<code>NULL</code>值时多1个字节。</li>
+<li>对于变长字段来说，都会有2个字节的空间来存储该变长列的实际长度。</li>
+</ul>
+<h3 id="ref-1"><a href="#ref-1" class="headerlink" title="ref"></a><code>ref</code></h3><p>当使用索引列等值匹配的条件去执行查询时，也就是在访问方法是<code>const</code>、<code>eq_ref</code>、<code>ref</code>、<code>ref_or_null</code>、<code>unique_subquery</code>、<code>index_subquery</code>其中之一时，<code>ref</code>列展示的就是与索引列作等值匹配的具体信息，比如只是一个常数或者是某个列。大家看下边这个查询：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key1 &#x3D; &#39;a&#39;;</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------+------+----------+-------+</span><br><span class="line">| id | select_type | table | partitions | type | possible_keys | key      | key_len | ref   | rows | filtered | Extra |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------+------+----------+-------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ref  | idx_key1      | idx_key1 | 303     | const |    8 |   100.00 | NULL  |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------+------+----------+-------+</span><br><span class="line">1 row in set, 1 warning (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<h3 id="rows"><a href="#rows" class="headerlink" title="rows"></a>rows</h3><p>如果查询优化器决定使用全表扫描的方式对某个表执行查询时，执行计划的<code>rows</code>列就代表预计需要扫描的行数，如果使用索引来执行查询时，执行计划的<code>rows</code>列就代表预计扫描的索引记录行数。比如下边这个查询：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key1 &gt; &#39;z&#39;;</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-----------------------+</span><br><span class="line">| id | select_type | table | partitions | type  | possible_keys | key      | key_len | ref  | rows | filtered | Extra                 |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-----------------------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | range | idx_key1      | idx_key1 | 303     | NULL |  266 |   100.00 | Using index condition |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-----------------------+</span><br><span class="line">1 row in set, 1 warning (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<h3 id="filtered"><a href="#filtered" class="headerlink" title="filtered"></a>filtered</h3><p>我们更关注在连接查询中驱动表对应的执行计划记录的<code>filtered</code>值，因为这直接影响了驱动表的扇出值。在<code>rows</code>样的情况下，<code>filtered</code>越大，扇出值越小，效率可能也越高。比如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 INNER JOIN s2 ON s1.key1 &#x3D; s2.key1 WHERE s1.common_field &#x3D; &#39;a&#39;;</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------------------+------+----------+-------------+</span><br><span class="line">| id | select_type | table | partitions | type | possible_keys | key      | key_len | ref               | rows | filtered | Extra       |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------------------+------+----------+-------------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ALL  | idx_key1      | NULL     | NULL    | NULL              | 9688 |    10.00 | Using where |</span><br><span class="line">|  1 | SIMPLE      | s2    | NULL       | ref  | idx_key1      | idx_key1 | 303     | xiaohaizi.s1.key1 |    1 |   100.00 | NULL        |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------------------+------+----------+-------------+</span><br><span class="line">2 rows in set, 1 warning (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<p>从执行计划中可以看出来，查询优化器打算把<code>s1</code>当作驱动表，<code>s2</code>当作被驱动表。我们可以看到驱动表<code>s1</code>表的执行计划的<code>rows</code>列为9688， <code>filtered</code>列为10.00，这意味着驱动表s1的扇出值就是<code>9688 × 10.00% = 968.8</code>，这说明还要对被驱动表执行大约<code>968</code>次查询。</p>
+<h3 id="Extra"><a href="#Extra" class="headerlink" title="Extra"></a>Extra</h3><p><code>Extra</code>是用来说明一些额信息的，从而帮助我们更加准确的理解查询。下面我们挑几个比较常见的进行介绍。</p>
+<h4 id="No-tables-used"><a href="#No-tables-used" class="headerlink" title="No tables used"></a>No tables used</h4><p>当查询语句中没有<code>from</code>字句时会出现<code>No tables used</code>。</p>
+<h4 id="Impossible-WHERE"><a href="#Impossible-WHERE" class="headerlink" title="Impossible WHERE"></a>Impossible WHERE</h4><p>当查询语句中的<code>where</code>字句永远为<code>false</code>时会出现<code>Impossible WHERE</code>。</p>
+<h4 id="No-matching-min-max-row"><a href="#No-matching-min-max-row" class="headerlink" title="No matching min/max row"></a>No matching min/max row</h4><p>当查询列表有<code>min()</code>或者<code>max()</code>聚集函数，但是没有匹配到对应的记录时会出现<code>No matching min/max row</code>。</p>
+<h4 id="Using-index"><a href="#Using-index" class="headerlink" title="Using index"></a>Using index</h4><p>当使用<code>索引覆盖</code>的时候，会出现<code>Using index</code>。</p>
+<h4 id="Using-index-condition"><a href="#Using-index-condition" class="headerlink" title="Using index condition"></a>Using index condition</h4><p>如果查询的执行过程中使用了<strong>索引条件下推(Index Condition Pushdown)</strong>，就会出现<code>Using index condition</code>。例如：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> s1 <span class="keyword">WHERE</span> key1 &gt; <span class="string">'z'</span> <span class="keyword">AND</span> key1 <span class="keyword">LIKE</span> <span class="string">'%a'</span>;</span><br></pre></td></tr></table></figure>
+
+<p>1、先根据<code>key1 &gt; &#39;z&#39;</code>这个条件，定位到二级索引<code>idx_key1</code>中对应的二级索引记录。<br>2、先不回表，而是检测是否满足<code>key1 LIKE &#39;%a&#39;</code>条件，最后再将满足条件的二级索引记录回表。</p>
+<h4 id="Using-where"><a href="#Using-where" class="headerlink" title="Using where"></a>Using where</h4><p>当使用全表扫描执行查询时，如果查询语句包含<code>where</code>条件，就会出现<code>Using where</code>。<br>当使用索引访问执行查询时，如果<code>where</code>字句包含非索引列字段，也会出现<code>Using where</code>。</p>
+<h4 id="Using-join-buffer-Block-Nested-Loop"><a href="#Using-join-buffer-Block-Nested-Loop" class="headerlink" title="Using join buffer (Block Nested Loop)"></a>Using join buffer (Block Nested Loop)</h4><p>在连接查询执行过程中，当被驱动表不能有效的利用索引加快访问速度，<code>MySQL</code>一般会为其分配一块名叫<code>join buffer</code>的内存块来加快查询速度，也就是我们所讲的<em>基于块的嵌套循环算法</em>，比如下边这个查询语句：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 INNER JOIN s2 ON s1.common_field &#x3D; s2.common_field;</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+</span><br><span class="line">| id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra                                              |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 9688 |   100.00 | NULL                                               |</span><br><span class="line">|  1 | SIMPLE      | s2    | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 9954 |    10.00 | Using where; Using join buffer (Block Nested Loop) |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+</span><br><span class="line">2 rows in set, 1 warning (0.03 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="Not-exists"><a href="#Not-exists" class="headerlink" title="Not exists"></a>Not exists</h4><p>当我们使用左（外）连接时，如果<code>WHERE</code>子句中包含要求被驱动表的某个列等于<code>NULL</code>值的搜索条件，而且那个列又是不允许存储<code>NULL</code>值的，那么在该表的执行计划的<code>Extra</code>列就会提示<code>Not exists</code>额外信息，比如这样：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 LEFT JOIN s2 ON s1.key1 &#x3D; s2.key1 WHERE s2.id IS NULL;</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------------------+------+----------+-------------------------+</span><br><span class="line">| id | select_type | table | partitions | type | possible_keys | key      | key_len | ref               | rows | filtered | Extra                   |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------------------+------+----------+-------------------------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ALL  | NULL          | NULL     | NULL    | NULL              | 9688 |   100.00 | NULL                    |</span><br><span class="line">|  1 | SIMPLE      | s2    | NULL       | ref  | idx_key1      | idx_key1 | 303     | xiaohaizi.s1.key1 |    1 |    10.00 | Using where; Not exists |</span><br><span class="line">+----+-------------+-------+------------+-</span><br></pre></td></tr></table></figure>
+
+<h4 id="Using-intersect-…-、Using-union-…-和Using-sort-union-…"><a href="#Using-intersect-…-、Using-union-…-和Using-sort-union-…" class="headerlink" title="Using intersect(…)、Using union(…)和Using sort_union(…)"></a>Using intersect(…)、Using union(…)和Using sort_union(…)</h4><p>如果使用了<em>索引合并</em>执行查询，则会出现<code>Using intersect(...)</code>或者<code>Using union(...)</code>或者<code>Using sort_union(...)</code>。<br>比如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key1 &#x3D; &#39;a&#39; AND key3 &#x3D; &#39;a&#39;;</span><br><span class="line">+----+-------------+-------+------------+-------------+-------------------+-------------------+---------+------+------+----------+-------------------------------------------------+</span><br><span class="line">| id | select_type | table | partitions | type        | possible_keys     | key               | key_len | ref  | rows | filtered | Extra                                           |</span><br><span class="line">+----+-------------+-------+------------+-------------+-------------------+-------------------+---------+------+------+----------+-------------------------------------------------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | index_merge | idx_key1,idx_key3 | idx_key3,idx_key1 | 303,303 | NULL |    1 |   100.00 | Using intersect(idx_key3,idx_key1); Using where |</span><br><span class="line">+----+-------------+-------+------------+-------------+-------------------+-------------------+---------+------+------+----------+-------------------------------------------------+</span><br><span class="line">1 row in set, 1 warning (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="Zero-limit"><a href="#Zero-limit" class="headerlink" title="Zero limit"></a>Zero limit</h4><p>当<code>limit</code>子句参数为0时，就会出现<code>Zero limit</code>。</p>
+<h4 id="Using-filesort"><a href="#Using-filesort" class="headerlink" title="Using filesort"></a>Using filesort</h4><p>有一些情况下对结果集中的记录进行排序是可以使用到索引的，比如下边这个查询：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 ORDER BY key1 LIMIT 10;</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-------+</span><br><span class="line">| id | select_type | table | partitions | type  | possible_keys | key      | key_len | ref  | rows | filtered | Extra |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | index | NULL          | idx_key1 | 303     | NULL |   10 |   100.00 | NULL  |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-------+</span><br><span class="line">1 row in set, 1 warning (0.03 sec)</span><br></pre></td></tr></table></figure>
+
+<p>但是更多情况下，排序操作无法使用到索引，而是只能使用文件排序(<code>filesort</code>)。如果排序使用了<code>filesort</code>，那么在<code>Extra</code>列就会出现<code>Using filesort</code>。</p>
+<h4 id="Using-temporary"><a href="#Using-temporary" class="headerlink" title="Using temporary"></a>Using temporary</h4><p>在许多查询的执行过程中，<code>MySQL</code>可能会借助临时表来完成一些功能，比如去重、排序之类的，比如我们在执行许多包含<code>DISTINCT</code>、<code>GROUP BY</code>、<code>UNION</code>等子句的查询过程中，如果不能有效利用索引来完成查询，<code>MySQL</code>很有可能寻求通过建立内部的临时表来执行查询。如果查询中使用到了内部的临时表，在执行计划的<code>Extra</code>列将会显示<code>Using temporary</code>提示，比方说这样：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT DISTINCT common_field FROM s1;</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-----------------+</span><br><span class="line">| id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra           |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-----------------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 9688 |   100.00 | Using temporary |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-----------------+</span><br><span class="line">1 row in set, 1 warning (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<p>执行计划中出现<code>Using temporary</code>并不是一个好的征兆，因为建立与维护临时表要付出很大成本的，所以我们最好能使用索引来替代掉使用临时表。</p>
+<h4 id="Start-temporary-End-temporary"><a href="#Start-temporary-End-temporary" class="headerlink" title="Start temporary, End temporary"></a>Start temporary, End temporary</h4><p>查询优化器会优先尝试将IN子查询转换成<code>semi-join</code>，而<code>semi-join</code>又有好多种执行策略，当执行策略为<code>DuplicateWeedout</code>时，也就是通过建立临时表来实现为外层查询中的记录进行去重操作时，驱动表查询执行计划的<code>Extra</code>列将显示<code>Start temporary</code>提示，被驱动表查询执行计划的<code>Extra</code>列将显示<code>End temporary</code>提示，就是这样：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key1 IN (SELECT key3 FROM s2 WHERE common_field &#x3D; &#39;a&#39;);</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------------------+------+----------+------------------------------+</span><br><span class="line">| id | select_type | table | partitions | type | possible_keys | key      | key_len | ref               | rows | filtered | Extra                        |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------------------+------+----------+------------------------------+</span><br><span class="line">|  1 | SIMPLE      | s2    | NULL       | ALL  | idx_key3      | NULL     | NULL    | NULL              | 9954 |    10.00 | Using where; Start temporary |</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ref  | idx_key1      | idx_key1 | 303     | xiaohaizi.s2.key3 |    1 |   100.00 | End temporary                |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+----------+---------+-------------------+------+----------+------------------------------+</span><br><span class="line">2 rows in set, 1 warning (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="LooseScan"><a href="#LooseScan" class="headerlink" title="LooseScan"></a>LooseScan</h4><p>在将In子查询转为<code>semi-join</code>时，如果采用的是<code>LooseScan</code>执行策略，则在驱动表执行计划的<code>Extra</code>列就是显示<code>LooseScan</code>提示，比如这样：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE key3 IN (SELECT key1 FROM s2 WHERE key1 &gt; &#39;z&#39;);</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+-------------------+------+----------+-------------------------------------+</span><br><span class="line">| id | select_type | table | partitions | type  | possible_keys | key      | key_len | ref               | rows | filtered | Extra                               |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+-------------------+------+----------+-------------------------------------+</span><br><span class="line">|  1 | SIMPLE      | s2    | NULL       | range | idx_key1      | idx_key1 | 303     | NULL              |  270 |   100.00 | Using where; Using index; LooseScan |</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ref   | idx_key3      | idx_key3 | 303     | xiaohaizi.s2.key1 |    1 |   100.00 | NULL                                |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+-------------------+------+----------+-------------------------------------+</span><br><span class="line">2 rows in set, 1 warning (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<h4 id="FirstMatch-tbl-name"><a href="#FirstMatch-tbl-name" class="headerlink" title="FirstMatch(tbl_name)"></a>FirstMatch(tbl_name)</h4><p>在将In子查询转为<code>semi-join</code>时，如果采用的是<code>FirstMatch</code>执行策略，则在被驱动表执行计划的<code>Extra</code>列就是显示<code>FirstMatch(tbl_name)</code>提示，比如这样：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM s1 WHERE common_field IN (SELECT key1 FROM s2 where s1.key3 &#x3D; s2.key3);</span><br><span class="line">+----+-------------+-------+------------+------+-------------------+----------+---------+-------------------+------+----------+-----------------------------+</span><br><span class="line">| id | select_type | table | partitions | type | possible_keys     | key      | key_len | ref               | rows | filtered | Extra                       |</span><br><span class="line">+----+-------------+-------+------------+------+-------------------+----------+---------+-------------------+------+----------+-----------------------------+</span><br><span class="line">|  1 | SIMPLE      | s1    | NULL       | ALL  | idx_key3          | NULL     | NULL    | NULL              | 9688 |   100.00 | Using where                 |</span><br><span class="line">|  1 | SIMPLE      | s2    | NULL       | ref  | idx_key1,idx_key3 | idx_key3 | 303     | xiaohaizi.s1.key3 |    1 |     4.87 | Using where; FirstMatch(s1) |</span><br><span class="line">+----+-------------+-------+------------+------+-------------------+----------+---------+-------------------+------+----------+-----------------------------+</span><br><span class="line">2 rows in set, 2 warnings (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>原创不易，觉得文章写得不错的小伙伴，点个赞👍 鼓励一下吧~</p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/mysql/" rel="tag"># mysql</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/2462378631/" rel="prev" title="你真的理解索引吗？从数据结构层面解析mysql索引原理">
+      <i class="fa fa-chevron-left"></i> 你真的理解索引吗？从数据结构层面解析mysql索引原理
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/2257172027/" rel="next" title="spring-boot项目整合Retrofit最佳实践，最优雅的HTTP客户端工具！">
+      spring-boot项目整合Retrofit最佳实践，最优雅的HTTP客户端工具！ <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前置相关知识点"><span class="nav-number">1.</span> <span class="nav-text">前置相关知识点</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#不相关子查询"><span class="nav-number">1.1.</span> <span class="nav-text">不相关子查询</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#相关子查询"><span class="nav-number">1.2.</span> <span class="nav-text">相关子查询</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#子查询物化"><span class="nav-number">1.3.</span> <span class="nav-text">子查询物化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#将子查询转换为semi-join"><span class="nav-number">1.4.</span> <span class="nav-text">将子查询转换为semi-join</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#semi-join实现机制"><span class="nav-number">1.4.1.</span> <span class="nav-text">semi-join实现机制</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Table-pullout-（子查询中的表上拉）"><span class="nav-number">1.4.1.1.</span> <span class="nav-text">Table pullout （子查询中的表上拉）</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#DuplicateWeedout-execution-strategy-（重复值消除）"><span class="nav-number">1.4.1.2.</span> <span class="nav-text">DuplicateWeedout execution strategy （重复值消除）</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#LooseScan-execution-strategy-（松散扫描）"><span class="nav-number">1.4.1.3.</span> <span class="nav-text">LooseScan execution strategy （松散扫描）</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#FirstMatch-execution-strategy-（首次匹配）"><span class="nav-number">1.4.1.4.</span> <span class="nav-text">FirstMatch execution strategy （首次匹配）</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#执行计划详解"><span class="nav-number">2.</span> <span class="nav-text">执行计划详解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#table"><span class="nav-number">2.1.</span> <span class="nav-text">table</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#id"><span class="nav-number">2.2.</span> <span class="nav-text">id</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#select-type"><span class="nav-number">2.3.</span> <span class="nav-text">select_type</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#SIMPLE"><span class="nav-number">2.3.1.</span> <span class="nav-text">SIMPLE</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#PRIMARY"><span class="nav-number">2.3.2.</span> <span class="nav-text">PRIMARY</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#UNION"><span class="nav-number">2.3.3.</span> <span class="nav-text">UNION</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#UNION-RESULT"><span class="nav-number">2.3.4.</span> <span class="nav-text">UNION RESULT</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#SUBQUERY"><span class="nav-number">2.3.5.</span> <span class="nav-text">SUBQUERY</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#DEPENDENT-SUBQUERY"><span class="nav-number">2.3.6.</span> <span class="nav-text">DEPENDENT SUBQUERY</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#DEPENDENT-UNION"><span class="nav-number">2.3.7.</span> <span class="nav-text">DEPENDENT UNION</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#DERIVED"><span class="nav-number">2.3.8.</span> <span class="nav-text">DERIVED</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#MATERIALIZED"><span class="nav-number">2.3.9.</span> <span class="nav-text">MATERIALIZED</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#type"><span class="nav-number">2.4.</span> <span class="nav-text">type</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#system"><span class="nav-number">2.4.1.</span> <span class="nav-text">system</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#const"><span class="nav-number">2.4.2.</span> <span class="nav-text">const</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#eq-ref"><span class="nav-number">2.4.3.</span> <span class="nav-text">eq_ref</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ref"><span class="nav-number">2.4.4.</span> <span class="nav-text">ref</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ref-or-null"><span class="nav-number">2.4.5.</span> <span class="nav-text">ref_or_null</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#index-merge"><span class="nav-number">2.4.6.</span> <span class="nav-text">index_merge</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#索引合并"><span class="nav-number">2.4.6.1.</span> <span class="nav-text">索引合并</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#unique-subquery"><span class="nav-number">2.4.7.</span> <span class="nav-text">unique_subquery</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#index-subquery"><span class="nav-number">2.4.8.</span> <span class="nav-text">index_subquery</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#range"><span class="nav-number">2.4.9.</span> <span class="nav-text">range</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#index"><span class="nav-number">2.4.10.</span> <span class="nav-text">index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ALL"><span class="nav-number">2.4.11.</span> <span class="nav-text">ALL</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#possible-keys和key"><span class="nav-number">2.5.</span> <span class="nav-text">possible_keys和key</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#key-len"><span class="nav-number">2.6.</span> <span class="nav-text">key_len</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ref-1"><span class="nav-number">2.7.</span> <span class="nav-text">ref</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#rows"><span class="nav-number">2.8.</span> <span class="nav-text">rows</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#filtered"><span class="nav-number">2.9.</span> <span class="nav-text">filtered</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Extra"><span class="nav-number">2.10.</span> <span class="nav-text">Extra</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#No-tables-used"><span class="nav-number">2.10.1.</span> <span class="nav-text">No tables used</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Impossible-WHERE"><span class="nav-number">2.10.2.</span> <span class="nav-text">Impossible WHERE</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#No-matching-min-max-row"><span class="nav-number">2.10.3.</span> <span class="nav-text">No matching min&#x2F;max row</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Using-index"><span class="nav-number">2.10.4.</span> <span class="nav-text">Using index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Using-index-condition"><span class="nav-number">2.10.5.</span> <span class="nav-text">Using index condition</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Using-where"><span class="nav-number">2.10.6.</span> <span class="nav-text">Using where</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Using-join-buffer-Block-Nested-Loop"><span class="nav-number">2.10.7.</span> <span class="nav-text">Using join buffer (Block Nested Loop)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Not-exists"><span class="nav-number">2.10.8.</span> <span class="nav-text">Not exists</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Using-intersect-…-、Using-union-…-和Using-sort-union-…"><span class="nav-number">2.10.9.</span> <span class="nav-text">Using intersect(…)、Using union(…)和Using sort_union(…)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Zero-limit"><span class="nav-number">2.10.10.</span> <span class="nav-text">Zero limit</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Using-filesort"><span class="nav-number">2.10.11.</span> <span class="nav-text">Using filesort</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Using-temporary"><span class="nav-number">2.10.12.</span> <span class="nav-text">Using temporary</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Start-temporary-End-temporary"><span class="nav-number">2.10.13.</span> <span class="nav-text">Start temporary, End temporary</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#LooseScan"><span class="nav-number">2.10.14.</span> <span class="nav-text">LooseScan</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#FirstMatch-tbl-name"><span class="nav-number">2.10.15.</span> <span class="nav-text">FirstMatch(tbl_name)</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="陈添明"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">陈添明</p>
+  <div class="site-description" itemprop="description">生命的意义在于成为你自己</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈添明</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">254k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">10:34</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+  <script src="//cdn.jsdelivr.net/npm/quicklink@1/dist/quicklink.umd.js"></script>
+  <script>
+      window.addEventListener('load', () => {
+      quicklink({
+        timeout : 3000,
+        priority: true,
+        ignores : [uri => uri.includes('#'),uri => uri === 'https://chentianming11.github.io/posts/2001481941/',]
+      });
+      });
+  </script>
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : 'SoPxUkme2aynTULaNuIc5TIq-gzGzoHsz',
+      appKey     : '4TDP7SMCbgDKTOGGUtpIeA0H',
+      placeholder: "留下点足迹吧~",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+    </div>
+</body>
+</html>
