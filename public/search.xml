@@ -4541,7 +4541,7 @@
       </tags>
   </entry>
   <entry>
-    <title>【转载】为何springMVC可获取到方法参数名，而MyBatis却不行？</title>
+    <title>为何springMVC可获取到方法参数名，而MyBatis却不行？</title>
     <url>/posts/2790402318/</url>
     <content><![CDATA[<blockquote>
 <p>原文链接：<a href="https://cloud.tencent.com/developer/article/1497751" target="_blank" rel="noopener">为何springMVC可获取到方法参数名，而MyBatis却不行？</a></p>
@@ -4561,7 +4561,45 @@
 <p>打印内容为：</p>
 <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">方法参数总数：2</span><br><span class="line">class java.lang.String----arg0</span><br><span class="line">class java.lang.Integer----arg1</span><br></pre></td></tr></table></figure>
 
+<p>但是在使用<code>SpringMVC</code>的时候，<code>Controller</code>的方法不用注解一样可以完成参数自动映射，例如：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@GetMapping</span>(<span class="string">"/test"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">test</span><span class="params">(String name, Integer age)</span> </span>&#123;</span><br><span class="line">    String value = name + <span class="string">"---"</span> + age;</span><br><span class="line">    System.out.println(value);</span><br><span class="line">    <span class="keyword">return</span> value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
+<h2 id="ParameterNameDiscoverer"><a href="#ParameterNameDiscoverer" class="headerlink" title="ParameterNameDiscoverer"></a>ParameterNameDiscoverer</h2><p>实际上，<code>Spring</code>底层是通过<code>ParameterNameDiscoverer</code>来实现参数名称获取的，它主要包含3个实现。</p>
+<ul>
+<li><code>StandardReflectionParameterNameDiscoverer</code>：基于<code>JDK</code>实现的参数名称发现器，必须在<code>JDK8</code>以上版本实现，并且只有在指定<code>-parameters</code>才能生效。</li>
+<li><code>LocalVariableTableParameterNameDiscoverer</code>：基于<code>ASM</code>实现的参数名称发现器，通过<code>ASM</code>提供的通过字节码获取方法的参数名称，支持任何JDK版本。</li>
+<li><code>PrioritizedParameterNameDiscoverer</code>：优先级参数名称发现器，可以认为是具体各个参数名称发现器的聚合管理，按优先级顺序取到一个可用的参数名称解析器进行使用。默认实现为<code>DefaultParameterNameDiscoverer</code>。</li>
+</ul>
+<h3 id="StandardReflectionParameterNameDiscoverer"><a href="#StandardReflectionParameterNameDiscoverer" class="headerlink" title="StandardReflectionParameterNameDiscoverer"></a>StandardReflectionParameterNameDiscoverer</h3><p><code>StandardReflectionParameterNameDiscoverer</code>实现非常简单，底层直接调用了<code>JDK</code>获取参数名称的方法。具体源码如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">StandardReflectionParameterNameDiscoverer</span> <span class="keyword">implements</span> <span class="title">ParameterNameDiscoverer</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="meta">@Nullable</span></span><br><span class="line">	<span class="keyword">public</span> String[] getParameterNames(Method method) &#123;</span><br><span class="line">		<span class="keyword">return</span> getParameterNames(method.getParameters());</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="meta">@Nullable</span></span><br><span class="line">	<span class="keyword">public</span> String[] getParameterNames(Constructor&lt;?&gt; ctor) &#123;</span><br><span class="line">		<span class="keyword">return</span> getParameterNames(ctor.getParameters());</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 因为Parameter这个类是JDK8以上才提供的</span></span><br><span class="line">	<span class="meta">@Nullable</span></span><br><span class="line">	<span class="keyword">private</span> String[] getParameterNames(Parameter[] parameters) &#123;</span><br><span class="line">		String[] parameterNames = <span class="keyword">new</span> String[parameters.length];</span><br><span class="line">		<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; parameters.length; i++) &#123;</span><br><span class="line">			Parameter param = parameters[i];</span><br><span class="line">			<span class="keyword">if</span> (!param.isNamePresent()) &#123;</span><br><span class="line">				<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			parameterNames[i] = param.getName();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> parameterNames;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>需要特别注意的是，<code>StandardReflectionParameterNameDiscoverer</code>的使用条件有两个：</p>
+<ul>
+<li>必须是<code>JDK8</code>以上版本。</li>
+<li>必须编译的时候有带上参数：<code>javac -parameters</code>。</li>
+</ul>
+<h3 id="LocalVariableTableParameterNameDiscoverer"><a href="#LocalVariableTableParameterNameDiscoverer" class="headerlink" title="LocalVariableTableParameterNameDiscoverer"></a>LocalVariableTableParameterNameDiscoverer</h3><p><code>LocalVariableTableParameterNameDiscoverer</code>是基于<code>ASM</code>实现的参数名称发现器，通过<code>ASM</code>提供的通过字节码获取方法的参数名称，支持任何JDK版本。</p>
+<h4 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Main</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> ParameterNameDiscoverer parameterNameDiscoverer = <span class="keyword">new</span> LocalVariableTableParameterNameDiscoverer();</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testArguments</span><span class="params">(String test, Integer myInteger, <span class="keyword">boolean</span> booleanTest)</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        Method[] methods = Main<span class="class">.<span class="keyword">class</span>.<span class="title">getDeclaredMethods</span>()</span>;</span><br><span class="line">        <span class="keyword">for</span> (Method method : methods) &#123;</span><br><span class="line">            <span class="comment">// 通过ParameterNameDiscoverer拿到参数名称列表</span></span><br><span class="line">            String[] parameterNames = parameterNameDiscoverer.getParameterNames(method);</span><br><span class="line">            System.out.println(<span class="string">"方法："</span> + method.getName() + <span class="string">" 参数为："</span> + Arrays.asList(parameterNames));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>输出结果如下：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">方法：main 参数为：[args]</span><br><span class="line">方法：test 参数为：[]</span><br><span class="line">方法：testArguments 参数为：[test, myInteger, booleanTest]</span><br></pre></td></tr></table></figure>
+
+<h4 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h4><p>为了便于理解，先简单说说字节码中的两个概念：<code>LocalVariableTable</code>和<code>LineNumberTable</code>。</p>
+<h5 id="LineNumberTable"><a href="#LineNumberTable" class="headerlink" title="LineNumberTable"></a>LineNumberTable</h5><p>你是否曾经疑问过：<code>线上程序抛出异常时显示的行号，为啥就恰好就是你源码的那一行呢</code>？因为JVM执行的是<code>.class</code>文件，而该文件的行和<code>.java</code>源文件的行肯定是对应不上的，为何行号却能在<code>.java</code>文件里对应上？<br>其实底层就是<code>LineNumberTable</code>的作用：<strong><code>LineNumberTable</code>属性存在于代码（字节码）属性中，它建立了字节码偏移量到源代码行号之间的联系</strong>。</p>
+<h5 id="LocalVariableTable"><a href="#LocalVariableTable" class="headerlink" title="LocalVariableTable"></a>LocalVariableTable</h5><p><strong><code>LocalVariableTable</code>属性建立了方法中的局部变量与源代码中的局部变量之间的对应关系。这个属性也是存在于代码（字节码）中</strong>。<br>从名字可以看出来：它是局部变量的一个集合，<strong>描述了局部变量和描述符以及和源代码的对应关系</strong>。</p>
+<p>下面我使用<code>javac</code>和<code>javap</code>命令来演示一下这个情况：<br><code>.java</code>源码如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> com.fsx.maintest;</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MainTest2</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">testArgName</span><span class="params">(String name,Integer age)</span></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用<code>javac MainTest2.java</code>编译成<code>.class</code>字节码，然后使用<code>javap -verbose MainTest2.class</code>查看该字节码信息如下：<br><img data-src="https://chentianming11.github.io/images/spring/LineNumberTable.png" alt="LineNumberTable"></p>
+<p>从图中可看到，我红色标注出的行号和源码处完全一样，这就解答了我们上面的行号对应的疑问了：<code>LineNumberTable</code>它记录着在源代码处的行号。</p>
+<blockquote>
+<p>Tips：此处并没有，并没有，并没有<code>LocalVariableTable</code>。</p>
+</blockquote>
+<p>源码不变，我使用<code>javac -g MainTest2.java</code>来编译，再看看对应的字节码信息如下（注意和上面的区别）：<br><img data-src="https://chentianming11.github.io/images/spring/LocalVariableTable.png" alt="LocalVariableTable"></p>
+<p>这里多了一个<code>LocalVariableTable</code>，即局部变量表，就记录着我们方法入参的形参名字。既然记录着了，这样我们就可以通过分析字节码信息来得到这个名称了。</p>
+<blockquote>
+<p>javac的调试选项主要包含了三个子选项：<code>lines</code>，<code>source</code>，<code>vars</code>。<br>如果不使用<code>-g</code>来编译,只保留源文件和行号信息；如果使用<code>-g</code>来编译那就都有了。</p>
+</blockquote>
 ]]></content>
       <categories>
         <category>spring</category>
@@ -4716,6 +4754,31 @@
       </categories>
       <tags>
         <tag>idea</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>git回滚merge</title>
+    <url>/posts/226800025/</url>
+    <content><![CDATA[<h2 id="命令"><a href="#命令" class="headerlink" title="命令"></a>命令</h2><ol>
+<li><code>git reflog</code>：查看merge操作的上一个提交记录的版本号</li>
+<li><code>git reset --hard 版本号</code> ：这样可以回滚到merge之前的状态</li>
+</ol>
+<h2 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h2><p>误将<code>dev</code>合并到了<code>master</code>分支，现要回滚<code>merge</code>操作</p>
+<ol>
+<li><p>首先<code>git reflog</code></p>
+ <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">ee0ee93 HEAD@&#123;0&#125;: merge dev: Merge made by the ‘recursive’ strategy.</span><br><span class="line">7335548 HEAD@&#123;1&#125;: checkout: moving from dev to master</span><br></pre></td></tr></table></figure>
+<p> 可以看到需要回滚到 7335548 这个提交记录上。</p>
+</li>
+<li><p>执行<code>git reset --hard 7335548</code><br> 再次查看提交记录：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">7335548 HEAD@&#123;0&#125;: reset: moving to 7335548</span><br><span class="line">ee0ee93 HEAD@&#123;1&#125;: merge dev: Merge made by the ‘recursive’ strategy.</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+]]></content>
+      <categories>
+        <category>tool</category>
+      </categories>
+      <tags>
+        <tag>tool</tag>
       </tags>
   </entry>
 </search>
