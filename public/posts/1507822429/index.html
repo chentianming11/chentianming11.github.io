@@ -24,7 +24,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="如何使用Redis实现页面UV统计-HyperLogLog实现详解">
 <meta property="og:url" content="https://chentianming11.github.io/posts/1507822429/index.html">
-<meta property="og:site_name" content="伍六七">
+<meta property="og:site_name" content="陈添明">
 <meta property="og:description" content="如果要我们设计一个基于Redis统计页面UV的实现方案，可能的实现方案有什么？大家可能很容易想到的一个方案就是使用Set对象保存每一个访问页面的用户id，因为Set结构天然就支持去重功能，因此使用scard取出的Set集合大小即为页面UV。但是，如果页面UV非常巨大时，使用Set结构存储就会非常浪费空间。Redis提供了HyperLogLog数据结构来解决这类统计问题，既节省内存占用，又能保证统计">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://chentianming11.github.io/images/redis/loglog.webp">
@@ -51,7 +51,7 @@
   };
 </script>
 
-  <title>如何使用Redis实现页面UV统计-HyperLogLog实现详解 | 伍六七</title>
+  <title>如何使用Redis实现页面UV统计-HyperLogLog实现详解 | 陈添明</title>
   
 
 
@@ -102,10 +102,10 @@
 
     <a href="/" class="brand" rel="start">
       <span class="logo-line-before"><i></i></span>
-      <h1 class="site-title">伍六七</h1>
+      <h1 class="site-title">陈添明</h1>
       <span class="logo-line-after"><i></i></span>
     </a>
-      <p class="site-subtitle" itemprop="description">一起学Java</p>
+      <p class="site-subtitle" itemprop="description">心安即是归处</p>
   </div>
 
   <div class="site-nav-right">
@@ -206,7 +206,7 @@
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="伍六七">
+      <meta itemprop="name" content="陈添明">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
