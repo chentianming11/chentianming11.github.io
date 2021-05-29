@@ -1,10 +1,14 @@
 ---
 title: git回滚merge
-tags: tool
+tags: git
 categories: tool
 abbrlink: 226800025
 date: 2021-05-19 21:15:49
 ---
+
+在日常工作中，经常出现分支合并错误的时候，这个时候需要将此次`merge`操作回滚。本篇文章介绍了回滚`merge`的方法。
+
+<!--more-->
 
 ## 命令
 

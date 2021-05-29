@@ -6,7 +6,7 @@ abbrlink: 81062828
 date: 2021-05-14 19:48:22
 ---
 
-IDEA快捷键（mac）
+自用的`mac`版本IDEA快捷键。
 
 <!--more-->
 
