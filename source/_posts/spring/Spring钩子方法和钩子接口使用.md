@@ -1,5 +1,5 @@
 ---
-title: Spring钩子方法和钩子接口使用
+title: 熟悉Spring钩子方法和钩子接口使用，简化你的开发
 tags: spring
 categories: spring
 abbrlink: 1422921172
