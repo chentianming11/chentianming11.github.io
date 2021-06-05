@@ -12,9 +12,7 @@ date: 2021-06-05 13:12:44
 
 ## 下载源码
 
-`spring-framework-5.0.2.RELEASE-中文注释版`链接: [https://pan.baidu.com/s/1lsmuCuZ7znTdjAXOrhm2kg](https://pan.baidu.com/s/1lsmuCuZ7znTdjAXOrhm2kg) 
-
-提取码: c7vw 
+`spring-framework-5.0.2.RELEASE-中文注释版`链接: [https://pan.baidu.com/s/1lsmuCuZ7znTdjAXOrhm2kg](https://pan.baidu.com/s/1lsmuCuZ7znTdjAXOrhm2kg)，提取码: c7vw 
 
 ## 下载对应gradle版本
 
@@ -27,7 +25,7 @@ distributionBase=GRADLE_USER_HOME
 distributionPath=wrapper/dists
 zipStoreBase=GRADLE_USER_HOME
 zipStorePath=wrapper/dists
-distributionUrl=https\://services.gradle.org/distributions/gradle-4.3.1-bin.zip
+distributionUrl=https://services.gradle.org/distributions/gradle-4.3.1-bin.zip
 ```
 
 可以看到，我们使用的`gradle`版本是`4.3.1`。
@@ -92,7 +90,7 @@ allprojects{
 ### 镜像改为阿里云
 
 编译前，将项目的`build.gradle`指定的镜像源改为阿里云，确保依赖可以顺利下载。
-![gradle-build](https://chentianming11.github.io/images/spring/gradle-build.png)
+![gradle-build](https://chentianming11.github.io/images/spring/build-gradle.png)
 
 ### 执行预编译
 
