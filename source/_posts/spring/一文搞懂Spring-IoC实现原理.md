@@ -66,6 +66,7 @@ public interface BeanFactory {
 
 而要知道工厂是如何产生对象的，我们需要看具体的IoC容器实现，Spring提供了许多IoC容器的实现。比如`WebApplicationContext`、`ClassPathXmlApplicationContext`、`AnnotationConfigApplicationContext`等等，它们都实现了`ApplicationContext`接口。`ApplicationContext`可以看作是Spring提供的一个高级的IoC容器，它除了能够提供IoC容器的基本功能外，还为用户提供了各种附加服务，比如访问资源(`ResourcePatternResolver`)、支持应用事件(`ApplicationEventPublisher`)等等。
 
+### BeanDefinition
 
 
 
