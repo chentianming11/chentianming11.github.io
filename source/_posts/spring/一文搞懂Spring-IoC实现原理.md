@@ -64,9 +64,24 @@ public interface BeanFactory {
 
 在`BeanFactory`里只对IoC容器的基本行为作了定义，根本不关心你的`Bean`是如何定义怎样加载的。 正如我们只关心工厂里得到什么的产品对象，至于工厂是怎么生产这些对象的，这个基本的接口不关心。
 
+
 而要知道工厂是如何产生对象的，我们需要看具体的IoC容器实现，Spring提供了许多IoC容器的实现。比如`WebApplicationContext`、`ClassPathXmlApplicationContext`、`AnnotationConfigApplicationContext`等等，它们都实现了`ApplicationContext`接口。`ApplicationContext`可以看作是Spring提供的一个高级的IoC容器，它除了能够提供IoC容器的基本功能外，还为用户提供了各种附加服务，比如访问资源(`ResourcePatternResolver`)、支持应用事件(`ApplicationEventPublisher`)等等。
 
 ### BeanDefinition
+
+Spring IOC容器管理了定义的各种`Bean`对象及其相互的关系，`Bean`对象在Spring实现中是以`BeanDefinition`来描述的。类图如下：
+
+![BeanDefinition](https://chentianming11.github.io/images/spring/BeanDefinition.png)
+
+### BeanDefinitionReader
+
+`Bean`的解析过程非常复杂，功能被分的很细，因为这里需要被扩展的地方很多，必须保证有足够的灵活性，以应对可能的变化。`Bean`的解析主要就是对Spring配置文件的解析。解析过程主要通过`BeanDefinitionReader` 来完成，类图如下：
+
+![BeanDefinitionReader](https://chentianming11.github.io/images/spring/BeanDefinitionReader.png)
+
+## Web IOC容器初始化
+
+
 
 
 
