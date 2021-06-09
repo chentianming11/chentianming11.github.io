@@ -71,17 +71,27 @@ public interface BeanFactory {
 
 Spring IOC容器管理了定义的各种`Bean`对象及其相互的关系，`Bean`对象在Spring实现中是以`BeanDefinition`来描述的。类图如下：
 
-![BeanDefinition](https://chentianming11.github.io/images/spring/BeanDefinition.png)
+![BeanDefinition](https://chentianming11.github.io/images/spring/ioc/BeanDefinition.png)
 
 ### BeanDefinitionReader
 
 `Bean`的解析过程非常复杂，功能被分的很细，因为这里需要被扩展的地方很多，必须保证有足够的灵活性，以应对可能的变化。`Bean`的解析主要就是对Spring配置文件的解析。解析过程主要通过`BeanDefinitionReader` 来完成，类图如下：
 
-![BeanDefinitionReader](https://chentianming11.github.io/images/spring/BeanDefinitionReader.png)
+![BeanDefinitionReader](https://chentianming11.github.io/images/spring/ioc/BeanDefinitionReader.png)
 
 ## Web IOC容器初始化
 
+对于Spring-MVC来说，最核心的类是`DispatcherServlet`，它负责将请求转发给各个`Controller`进行处理。类图如下：
+![DispatcherServlet](https://chentianming11.github.io/images/spring/ioc/DispatcherServlet.png)
 
+通过类图可以发现，`DispatcherServlet`实际上最终继承了`HttpServlet`，而`HttpServlet`是web容器启动的核心类，它有一个`init()`方法来做一些初始化操作。在`HttpServletBean`重写了`init()`，具体代码如下：
+![HttpServletBean-init](https://chentianming11.github.io/images/spring/ioc/HttpServletBean-init.png)
+
+可以看到，在`init()`方法中，真正完成初始化容器动作的逻辑其实在`initServletBean()`方法中，而该方法的具体实现在其子类`FrameworkServlet`中。
+![FrameworkServlet-initServletBean](https://chentianming11.github.io/images/spring/ioc/FrameworkServlet-initServletBean.png)
+
+从上面的代码可以明显看出，真正初始化web IoC容器是在`initWebApplicationContext()`方法中实现的。具体代码如下：
+![FrameworkServlet-initWebApplicationContext](https://chentianming11.github.io/images/spring/ioc/FrameworkServlet-initWebApplicationContext.png)
 
 
 
