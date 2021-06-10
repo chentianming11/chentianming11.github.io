@@ -6,7 +6,7 @@ abbrlink: 800005253
 date: 2021-06-07 08:17:52
 ---
 
-Spring是日常工作中最常用的框架，IoC又是Spring的核心实现之一。**IoC(Inversion of Control)的意思是控制反转，就是把原先我们代码里面需要实现的对象创建、依赖的代码，反转给容器来帮忙实现**。在Spring中，主要包括**web IoC容器**、**xml IoC容器**和**Annotation IoC容器**等， 本文详细介绍了这些IoC容器的初始化过程。
+Spring是日常工作中最常用的框架，IoC又是Spring的核心实现之一。**IoC(Inversion of Control)的意思是控制反转，就是把原先我们代码里面需要实现的对象创建、依赖的代码，反转给容器来帮忙实现**。在Spring中，常见的包括**web IoC容器**、**xml IoC容器**和**Annotation IoC容器**等， 本文详细介绍了这些IoC容器的初始化过程。
 
 <!--more-->
 
@@ -101,7 +101,7 @@ Spring IOC容器管理了定义的各种`Bean`对象及其相互的关系，`Bea
 
 > 子容器（Servlet WebApplicationContext）：对三层架构中的web层进行配置，如控制器(controller)、视图解析器(view resolvers)等相关的bean。通过spring mvc中提供的DispatchServlet来加载配置，通常情况下，配置文件的名称为spring-servlet.xml。
 
-> 更多父子容器可参考[spring和springmvc父子容器概念介绍](https://www.cnblogs.com/grasp/p/11042580.html)。
+> 更多父子容器介绍可参考[spring和springmvc父子容器概念介绍](https://www.cnblogs.com/grasp/p/11042580.html)。
 
 
 ![AbstractApplicationContext-refresh](https://chentianming11.github.io/images/spring/ioc/AbstractApplicationContext-refresh.png)
@@ -112,11 +112,46 @@ Spring IOC容器管理了定义的各种`Bean`对象及其相互的关系，`Bea
 ![DispatcherServlet-onRefresh](https://chentianming11.github.io/images/spring/ioc/DispatcherServlet-onRefresh.png)
 
 
+## 基于Xml的IoC容器的初始化
 
+IoC容器的初始化过程主要包括`BeanDefinition`的定位、加载和注册三部分。在Spring中，容器最后是以`ApplicationContext`实例存在的。根据具体资源的不同，分为各类`ApplicationContext`，比如`ClasspathXmlApplicationContext`，`AnnotationConfigApplicationContext`等等。类图如下：
+![ApplicationContext](https://chentianming11.github.io/images/spring/ioc/ApplicationContext.png)
 
+`ApplicationContext`允许上下文嵌套，对于一个`Bean`的查找，优先从当前上下文查找，如果没找到，则从父上下文查找，逐级向上。
 
+### 寻找入口
 
+对于xml配置的Spring应用，在`main()`方法中实例化`ClasspathXmlApplicationContext`即可创建一个IoC容器。我们可以从这个构造方法开始，探究一下整个IoC容器的初始化过程。
 
+> 注意：IoC初始化部分，我们只关注`BeanDefinition`的定位、加载和注册三部分，关于`Bean`的实例化以及依赖注入(DI)会在下一章节详细讲解。
+
+```java
+ApplicationContext app = new ClassPathXmlApplicationContext("application.xml");
+```
+
+实际调用的构造方法如下：
+![ClassPathXmlApplicationContext-constructor](https://chentianming11.github.io/images/spring/ioc/ClassPathXmlApplicationContext-constructor.png)
+
+### 设置资源解析器和配置路径
+
+在创建`ClassPathXmlApplicationContext`容器时，构造方法做以下两项重要工作:
+
+1. 调用父类容器的构造方法`super(parent)`方法为容器设置好`Bean`资源加载器。
+2. 调用父类`AbstractRefreshableConfigApplicationContext`的`setConfigLocations(configLocations)`方法设置`Bean`配置路径。
+
+通过追踪`ClassPathXmlApplicationContext`的继承体系，发现其父类的父类`AbstractApplicationContext`中初始化IoC容器所做的主要操作如下:
+![AbstractApplicationContext-constructor](https://chentianming11.github.io/images/spring/ioc/AbstractApplicationContext-constructor.png)
+
+从上面的代码可以看出，默认将会使用路径匹配资源解析器`PathMatchingResourcePatternResolver`进行配置资源解析。继续跟踪构造方法源码：
+![PathMatchingResourcePatternResolver-constructor](https://chentianming11.github.io/images/spring/ioc/PathMatchingResourcePatternResolver-constructor.png)
+
+在设置完容器的资源解析器之后，接下来`ClassPathXmlApplicationContext`调用其父类 `AbstractRefreshableConfigApplicationContext`的`setConfigLocations()`方法设置配置定位路径，该方法的源码如下:
+
+![AbstractRefreshableConfigApplicationContext-setConfigLocations](https://chentianming11.github.io/images/spring/ioc/AbstractRefreshableConfigApplicationContext-setConfigLocations.png)
+
+**至此，Spring IoC容器已经设置到配置资源解析器，并加载好了配置定位路径，接下来就要正式启动容器了**。
+
+### 开始启动
 
 
 
