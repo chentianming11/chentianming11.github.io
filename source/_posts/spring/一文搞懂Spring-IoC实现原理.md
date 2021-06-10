@@ -103,14 +103,12 @@ Spring IOC容器管理了定义的各种`Bean`对象及其相互的关系，`Bea
 
 > 更多父子容器介绍可参考[spring和springmvc父子容器概念介绍](https://www.cnblogs.com/grasp/p/11042580.html)。
 
-
 ![AbstractApplicationContext-refresh](https://chentianming11.github.io/images/spring/ioc/AbstractApplicationContext-refresh.png)
 
 ![AbstractApplicationContext-refresh2](https://chentianming11.github.io/images/spring/ioc/AbstractApplicationContext-refresh2.png)
 
 `refresh()`是真正启动IoC容器的入口，后续会详细介绍。IoC容器初始化以后，最后调用了 `DispatcherServlet`的`onRefresh()`方法，在`onRefresh()`方法中又是直接调用 `initStrategies()`方法初始化 SpringMVC 的九大组件。
 ![DispatcherServlet-onRefresh](https://chentianming11.github.io/images/spring/ioc/DispatcherServlet-onRefresh.png)
-
 
 ## 基于Xml的IoC容器的初始化
 

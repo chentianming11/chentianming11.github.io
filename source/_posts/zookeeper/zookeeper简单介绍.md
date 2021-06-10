@@ -182,3 +182,4 @@ Zookeeper API共包含五个包，分别为：
 其中`org.apache.zookeeper`，包含`Zookeeper`类，他是我们编程时最常用的类文件。这个类是Zookeeper客户端的主要类文件。如果要使用Zookeeper服务，应用程序首先必须创建一个Zookeeper实例， 这时就需要使用此类。一旦客户端和Zookeeper服务建立起了连接，Zookeeper系统将会给次连接会话分配一个ID值，并且客户端将会周期性的 向服务器端发送心跳来维持会话连接。只要连接有效，客户端就可以使用`Zookeeper API`来做相应处理了。
 ![](https://chentianming11.github.io/images/zookeeper/api.png)
 
+> 欢迎关注我的开源项目：[一款适用于SpringBoot的轻量级HTTP调用框架](https://github.com/LianjiaTech/retrofit-spring-boot-starter)

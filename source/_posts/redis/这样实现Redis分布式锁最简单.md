@@ -216,6 +216,9 @@ public void testRLock(Long id, Person person) {
 
 > 原创不易，觉得文章写得不错的小伙伴，点个赞👍 鼓励一下吧~
 
+> 欢迎关注我的开源项目：[一款适用于SpringBoot的轻量级HTTP调用框架](https://github.com/LianjiaTech/retrofit-spring-boot-starter)
+
+
 
 
 

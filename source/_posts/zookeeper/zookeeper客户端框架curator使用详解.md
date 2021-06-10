@@ -962,3 +962,6 @@ public class DistributedDoubleBarrierDemo {
 
 }
 ```
+
+> 欢迎关注我的开源项目：[一款适用于SpringBoot的轻量级HTTP调用框架](https://github.com/LianjiaTech/retrofit-spring-boot-starter)
+

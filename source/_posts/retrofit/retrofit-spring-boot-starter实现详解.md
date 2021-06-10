@@ -207,3 +207,6 @@ categories:
 总的来说，在spring-boot项目中基于Retrofit实现自己的轻量级http调用工具的核心只有两点：第一是注册`HttpService`接口的`BeanDefinition`，第二就是构建`Retrofit`来创建`HttpService`的代理对象。如需了解更多细节，建议直接查看[retrofit-spring-boot-starter源码](https://github.com/LianjiaTech/retrofit-spring-boot-starter)。
 
 > 原创不易，觉得文章写得不错的小伙伴，点个赞👍 鼓励一下吧~
+
+> 欢迎关注我的开源项目：[一款适用于SpringBoot的轻量级HTTP调用框架](https://github.com/LianjiaTech/retrofit-spring-boot-starter)
+

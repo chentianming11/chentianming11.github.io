@@ -406,3 +406,6 @@ public class SourceInterceptor extends BaseGlobalInterceptor {
 至此，spring-boot项目下最优雅的http客户端工具介绍就结束了，更多详细信息可以参考官方文档：[retrofit](http://square.github.io/retrofit/)以及[retrofit-spring-boot-starter](https://github.com/LianjiaTech/retrofit-spring-boot-starter)。
 
 > 原创不易，觉得文章写得不错的小伙伴，点个赞👍 鼓励一下吧~
+
+> 欢迎关注我的开源项目：[一款适用于SpringBoot的轻量级HTTP调用框架](https://github.com/LianjiaTech/retrofit-spring-boot-starter)
+
