@@ -183,7 +183,96 @@ Spring IoC 容器对`Bean`配置资源的载入是从`refresh()`方法开始的�
 
 ## 基于Annotation的配置资源加载和注册
 
+目前更常见的的是通过注解来配置`Bean`，比如在类上加`@Controller`、`@Service`、`@Component`等。下面我们就来分析基于Annotation的配置资源加载和注册过程。
 
+### 寻找入口
+
+基于Annotation的Spring IoC容器实例是`AnnotationConfigApplicationContext`，我们可以通过它的构造方法进行分析。最关键的两个构造方法如下：
+
+```java
+// 创建一个新的 AnnotationConfigApplicationContext，从给定的带注解的加载bean定义并自动刷新上下文。
+public AnnotationConfigApplicationContext(Class<?>... annotatedClasses) {
+    this();
+    register(annotatedClasses);
+    refresh();
+}
+
+// 创建一个新的 AnnotationConfigApplicationContext，扫描给定包中的 bean 定义并自动刷新上下文。
+public AnnotationConfigApplicationContext(String... basePackages) {
+        this();
+        scan(basePackages);
+        refresh();
+        }
+```
+
+注解驱动的Spring容器有两种创建方式：
+
+1. 直接传入带有相关注解的类。
+2. 指定要扫描的基础包，将包下面所有带相关注解的Bean全部加载进去。
+
+接下来，分别介绍这两种容器创建方式。
+
+### 直接传入带有相关注解的类
+
+显然，`BeanDefinition`注册的关键代码在`register(annotatedClasses)`中，我们直接看相关源码：
+![AnnotationConfigApplicationContext-register](https://chentianming11.github.io/images/spring/ioc/AnnotationConfigApplicationContext-register.png)
+
+这里调用了`AnnotatedBeanDefinitionReader`的`register()`方法，继续跟进去：
+![AnnotatedBeanDefinitionReader-register](https://chentianming11.github.io/images/spring/ioc/AnnotatedBeanDefinitionReader-register.png)
+
+![AnnotatedBeanDefinitionReader-doRegisterBean](https://chentianming11.github.io/images/spring/ioc/AnnotatedBeanDefinitionReader-doRegisterBean.png)
+
+从上面的源码我们可以看出，注册注解`Bean`定义类的基本步骤如下：
+
+1. 使用注解元数据解析器解析注解`Bean`中关于作用域的配置。
+2. 使用`AnnotationConfigUtils`的`processCommonDefinitionAnnotations()`方法处理注解`Bean`定义类中通用的注解。
+3. 使用`AnnotationConfigUtils`的`applyScopedProxyMode()`方法创建对于作用域的代理对象。
+4. 通过`BeanDefinitionReaderUtils`向容器注册`Beandefinition`。
+
+下面，我们详细分析这4个步骤：
+
+#### 使用注解元数据解析器解析注解`Bean`中关于作用域的配置
+
+通过调用`AnnotationScopeMetadataResolver`类的`resolveScopeMetadata()`方法解析注解`Bean`定义类的作用域元信息。
+![AnnotationScopeMetadataResolver-resolveScopeMetadata](https://chentianming11.github.io/images/spring/ioc/AnnotationScopeMetadataResolver-resolveScopeMetadata.png)
+
+#### 使用`AnnotationConfigUtils`的`processCommonDefinitionAnnotations()`方法处理注解`Bean`定义类中通用的注解
+
+![AnnotationConfigUtils-processCommonDefinitionAnnotations](https://chentianming11.github.io/images/spring/ioc/AnnotationConfigUtils-processCommonDefinitionAnnotations.png)
+
+显然，这里在解析`@Lazy`、`@Primary`、`@DependsOn`等注解值，然后给`BeanDefinition`对应的字段赋值。
+
+#### 使用`AnnotationConfigUtils`的`applyScopedProxyMode()`方法创建对于作用域的代理对象
+
+![AnnotationConfigUtils-applyScopedProxyMode](https://chentianming11.github.io/images/spring/ioc/AnnotationConfigUtils-applyScopedProxyMode.png)
+
+该方法根据作用域`@Scope`注解的值，为`Bean`定义应用相应的代理模式，主要是在Spring面向切面编程(AOP)中使用。
+
+#### 通过`BeanDefinitionReaderUtils`向容器注册`Beandefinition`
+
+该方法就是将`Beandefinition`注册到容器中，前面详细介绍过，不再赘述。
+
+### 指定要扫描的基础包
+
+当创建注解处理容器时，如果传入的初始参数是注解`Bean`定义类所在的包时，注解容器将扫描给定的包及其子包，将扫描到的注解`Bean`定义载入并注册。
+
+#### ClassPathBeanDefinitionScanner 扫描给定的包及其子包
+
+`AnnotationConfigApplicationContext`的`scan()`方法实际调用了`ClassPathBeanDefinitionScanner`的`scan()`方法，源码如下：
+
+![ClassPathBeanDefinitionScanner-scan](https://chentianming11.github.io/images/spring/ioc/ClassPathBeanDefinitionScanner-scan.png)
+
+![ClassPathBeanDefinitionScanner-doScan](https://chentianming11.github.io/images/spring/ioc/ClassPathBeanDefinitionScanner-doScan.png)
+
+从源码可以看到，在`doScan()`方法里面，扫描了基础包下所有包含`Bean`定义注解的类，并且给`BeanDefinition`设置了对应的属性值。
+
+#### 向容器注册
+
+在`doScan()`方法最后，调用了`registerBeanDefinition(definitionHolder, this.registry)`向容器注册。这个在前面介绍过，不再赘述。
+
+## 小结
+
+不管是基于`xml`还是注解方式，都是将配置信息解析到`BeanDefinition`中，然后再注册到容器中。至此，在容器中就能获取所有`Bean`定义信息，接下来就是`Bean`实例的创建和依赖注入(DI)，下一章节再见！
 
 > 原创不易，觉得文章写得不错的小伙伴，点个赞👍 鼓励一下吧~
 
