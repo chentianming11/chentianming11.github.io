@@ -1,8 +1,9 @@
 ---
 title: 【Spring源码阅读】AOP实现原理
-date: 2021-06-19 14:18:01
 tags: spring
 categories: spring
+abbrlink: 656110749
+date: 2021-06-19 14:18:01
 ---
 
 AOP是Aspect Oriented Programming的缩写，意思是面向切面编程。可以通过预编译方式或者运行时动态代理实现在不修改源代码的情况下给程序动态统一添加功能的一种技术。本文会从源码的角度详细阐述Spring中AOP的实现原理。
@@ -108,7 +109,7 @@ AOP是Aspect Oriented Programming的缩写，意思是面向切面编程。可�
 ### 触发通知
 
 我们前面讲过，拦截器链式通过`DefaultAdvisorChainFactory`的`getInterceptorsAndDynamicInterceptionAdvice()`方法生成的。在该方法中，有一个适配器和注册过程，通过配置Spring预先设计好拦截器，Spring加入了它对AOP实现的处理。
-![DefaultAdvisorChainFactory-getInterceptorsAndDynamicInterceptionAdvice2](https://chentianming11.github.io/images/spring/aop/DefaultAdvisorChainFactory-getInterceptorsAndDynamicInterceptionAdvice2.png)
+![AdvisedSupport-getInterceptorsAndDynamicInterceptionAdvice2](https://chentianming11.github.io/images/spring/aop/AdvisedSupport-getInterceptorsAndDynamicInterceptionAdvice2.png)
 
 所有的拦截器都是调用了`DefaultAdvisorAdapterRegistry`的`getInterceptors()`获得的。在`DefaultAdvisorAdapterRegistry`的构造方法中，提前注册好了各种通知适配器。正是这些适配器的实现，为 Spring AOP提供了编织能力。下面以`MethodBeforeAdviceAdapter`为例，看具体的实现:
 ![DefaultAdvisorAdapterRegistry](https://chentianming11.github.io/images/spring/aop/DefaultAdvisorAdapterRegistry.png)
