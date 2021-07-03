@@ -1,8 +1,9 @@
 ---
 title: Spring源码阅读-MVC实现原理
-date: 2021-07-03 11:03:52
 tags: spring
 categories: spring
+abbrlink: 3374948667
+date: 2021-07-03 11:03:52
 ---
 
 Spring MVC是当前web应用使用最为广泛的框架，本文将会从源码角度详细分析Spring MVC实现原理。
