@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"chentianming11.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":{"enable":true,"onlypost":false,"loadingImg":"/uploads/loading.gif"},"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="模板模式定义模板模式通常又叫模板方法模式(Template Method Pattern)是指定义一个算法的骨 架，并允许子类为一个或者多个步骤提供实现。模板方法使得子类可以在不改变算法结 构的情况下，重新定义算法的某些步骤，属于行为性设计模式。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="十四、模板模式和适配器模式">
+<meta property="og:url" content="https://chentianming11.github.io/posts/2184398774/index.html">
+<meta property="og:site_name" content="陈添明">
+<meta property="og:description" content="模板模式定义模板模式通常又叫模板方法模式(Template Method Pattern)是指定义一个算法的骨 架，并允许子类为一个或者多个步骤提供实现。模板方法使得子类可以在不改变算法结 构的情况下，重新定义算法的某些步骤，属于行为性设计模式。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://chentianming11.github.io/images/design/template-adapter/76568891.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/design/template-adapter/78988674.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/design/template-adapter/59584429.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/design/template-adapter/69005337.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/design/template-adapter/62911191.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/design/template-adapter/62951178.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/design/template-adapter/63011975.png">
+<meta property="article:published_time" content="2019-04-13T13:59:22.000Z">
+<meta property="article:modified_time" content="2021-01-03T14:16:49.000Z">
+<meta property="article:author" content="陈添明">
+<meta property="article:tag" content="设计模式">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://chentianming11.github.io/images/design/template-adapter/76568891.png">
+
+<link rel="canonical" href="https://chentianming11.github.io/posts/2184398774/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>十四、模板模式和适配器模式 | 陈添明</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">陈添明</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">心安即是归处</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">46</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/chentianming11" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://chentianming11.github.io/posts/2184398774/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="陈添明">
+      <meta itemprop="description" content="生命的意义在于成为你自己">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="陈添明">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          十四、模板模式和适配器模式
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-04-13 21:59:22" itemprop="dateCreated datePublished" datetime="2019-04-13T21:59:22+08:00">2019-04-13</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/posts/2184398774/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/2184398774/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>10k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>26 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="模板模式"><a href="#模板模式" class="headerlink" title="模板模式"></a>模板模式</h2><h3 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h3><p><strong>模板模式通常又叫模板方法模式(Template Method Pattern)是指定义一个算法的骨 架，并允许子类为一个或者多个步骤提供实现。</strong>模板方法使得子类可以在不改变算法结 构的情况下，重新定义算法的某些步骤，属于行为性设计模式。</p>
+<a id="more"></a>
+<p>模板方法适用于以下应用场景:</p>
+<ol>
+<li>一次性实现一个算法的不变的部分，并将可变的行为留给子类来实现。</li>
+<li>各子类中公共的行为被提取出来并集中到一个公共的父类中，从而避免代码重复。</li>
+</ol>
+<p>我们还是以课程创建流程为例:发布预习资料–&gt;制作课件 PPT–&gt;在线直播 –&gt;提交课堂笔记–&gt;提交源码–&gt;布置作业–&gt;检查作业。</p>
+<ul>
+<li><p>首先我们来创建<code>NetworkCourse</code>抽象类:</p>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">NetworkCourse</span> </span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * 创建课程 -- 定义算法骨架</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">createCourse</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="comment">//1、发布预习资料</span></span><br><span class="line">        <span class="keyword">this</span>.postPreResource();</span><br><span class="line">        <span class="comment">//2、制作 PPT 课件</span></span><br><span class="line">        <span class="keyword">this</span>.createPPT();</span><br><span class="line">        <span class="comment">//3、在线直播</span></span><br><span class="line">        <span class="keyword">this</span>.liveVideo();</span><br><span class="line">        <span class="comment">//4、提交课件、课堂笔记</span></span><br><span class="line">        <span class="keyword">this</span>.postNote();</span><br><span class="line">        <span class="comment">//5、提交源码</span></span><br><span class="line">        <span class="keyword">this</span>.postSource();</span><br><span class="line">        <span class="comment">//6、布置作业，有些课是没有作业，有些课是有作业的</span></span><br><span class="line">        <span class="comment">// 如果有作业的话，检查作业，如果没作业，完成了</span></span><br><span class="line">        <span class="keyword">if</span> (needHomework()) &#123;</span><br><span class="line">            checkHomework();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 7. 收集课后反馈</span></span><br><span class="line">        <span class="keyword">this</span>.feedback();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">postPreResource</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"发布预习资料"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">createPPT</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"制作 PPT 课件"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">liveVideo</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"在线直播"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">postNote</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"提交课件、课堂笔记"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">postSource</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"提交源码"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * 钩子方法:实现流程的微调</span></span><br><span class="line"><span class="comment">    * 是否有作业</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">boolean</span> <span class="title">needHomework</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * 默认空实现</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">checkHomework</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title">feedback</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>  <strong>设计钩子方法的主要目的是用来干预执行流程，使得我们控制行为流程更加灵活，更符合实际业 务的需求。钩子方法的返回值一般为适合条件分支语句的返回值(如 boolean、int 等)。</strong></p>
+</li>
+<li><p>具体的course类</p>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">JavaCourse</span> <span class="keyword">extends</span> <span class="title">NetworkCourse</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">boolean</span> needHomeworkFlag;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">JavaCourse</span><span class="params">(<span class="keyword">boolean</span> needHomeworkFlag)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.needHomeworkFlag = needHomeworkFlag;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">boolean</span> <span class="title">needHomework</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> needHomeworkFlag;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">checkHomework</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"检查Java作业"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">feedback</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"Java反馈收集"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">PythonCourse</span> <span class="keyword">extends</span> <span class="title">NetworkCourse</span> </span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * python没有课后作业</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">feedback</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"python反馈收集"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<p><img data-src="https://chentianming11.github.io/images/design/template-adapter/76568891.png" alt="76568891"></p>
+<h3 id="利用模板模式重构-JDBC-操作业务场景"><a href="#利用模板模式重构-JDBC-操作业务场景" class="headerlink" title="利用模板模式重构 JDBC 操作业务场景"></a>利用模板模式重构 JDBC 操作业务场景</h3><p>创建一个模板类<code>JdbcTemplate</code>，封装所有的<code>JDBC</code>操作。以查询为例，每次查询的表不 同，返回的数据结构也就不一样。我们针对不同的数据，都要封装成不同的实体对象。 而每个实体封装的逻辑都是不一样的，但封装前和封装后的处理流程是不变的，因此， 我们可以使用模板方法模式来设计这样的业务场景。</p>
+<ul>
+<li><p>先创建约束 ORM 逻辑的接口 RowMapper:</p>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">RowMapper</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * 行映射处理</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@param</span> rs</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@param</span> rowNum</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">    * <span class="doctag">@throws</span> Exception</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    <span class="function">T <span class="title">mapRow</span><span class="params">(ResultSet rs, <span class="keyword">int</span> rowNum)</span> <span class="keyword">throws</span> Exception</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>再创建封装了所有处理流程的抽象类 JdbcTemplate:</p>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">JdbcTemplate</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> DataSource dataSource;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">JdbcTemplate</span><span class="params">(DataSource dataSource)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.dataSource = dataSource;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> &lt;T&gt; <span class="function">List&lt;T&gt; <span class="title">executeQuery</span><span class="params">(String sql, RowMapper&lt;T&gt; rowMapper, Object[] params)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">//1、获取连接</span></span><br><span class="line">            Connection conn = <span class="keyword">this</span>.getConnection();</span><br><span class="line">            <span class="comment">//2、创建语句集</span></span><br><span class="line">            PreparedStatement pstm = <span class="keyword">this</span>.createPrepareStatement(conn, sql);</span><br><span class="line">            <span class="comment">//3、执行语句集</span></span><br><span class="line">            ResultSet rs = <span class="keyword">this</span>.executeQuery(pstm, params);</span><br><span class="line">            <span class="comment">//4、处理结果集</span></span><br><span class="line">            List&lt;T&gt; result = <span class="keyword">this</span>.paresResultSet(rs, rowMapper);</span><br><span class="line">            <span class="comment">//5、关闭结果集</span></span><br><span class="line">            <span class="keyword">this</span>.closeResultSet(rs);</span><br><span class="line">            <span class="comment">//6、关闭语句集</span></span><br><span class="line">            <span class="keyword">this</span>.closeStatement(pstm);</span><br><span class="line">            <span class="comment">//7、关闭连接</span></span><br><span class="line">            <span class="keyword">this</span>.closeConnection(conn);</span><br><span class="line">            <span class="keyword">return</span> result;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">closeConnection</span><span class="params">(Connection conn)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">        conn.close();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">closeStatement</span><span class="params">(PreparedStatement pstm)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">        pstm.close();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">closeResultSet</span><span class="params">(ResultSet rs)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">        rs.close();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">protected</span> &lt;T&gt; <span class="function">List&lt;T&gt; <span class="title">paresResultSet</span><span class="params">(ResultSet rs, RowMapper&lt;T&gt; rowMapper)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        List&lt;T&gt; result = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        <span class="keyword">int</span> rowNum = <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">while</span> (rs.next()) &#123;</span><br><span class="line">            result.add(rowMapper.mapRow(rs, rowNum++));</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">final</span> ResultSet <span class="title">executeQuery</span><span class="params">(PreparedStatement pstm, Object[] params)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; params.length; i++) &#123;</span><br><span class="line">            pstm.setObject(i, params[i]);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> pstm.executeQuery();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">final</span> PreparedStatement <span class="title">createPrepareStatement</span><span class="params">(Connection conn, String sql)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> conn.prepareStatement(sql);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">final</span> Connection <span class="title">getConnection</span><span class="params">()</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.dataSource.getConnection();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>创建实体对象 Member 类:</p>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="meta">@Accessors</span>(chain = <span class="keyword">true</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Member</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> String username;</span><br><span class="line">    <span class="keyword">private</span> String password;</span><br><span class="line">    <span class="keyword">private</span> String nickName;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> age;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>创建数据库操作类 MemberDao:</p>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MemberDao</span> <span class="keyword">extends</span> <span class="title">JdbcTemplate</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">MemberDao</span><span class="params">(DataSource dataSource)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>(dataSource);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> List&lt;Member&gt; <span class="title">selectAll</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        String sql = <span class="string">"select * from t_member"</span>;</span><br><span class="line">        List&lt;Member&gt; members = executeQuery(sql, (rs, rowNum) -&gt; &#123;</span><br><span class="line">            Member member = <span class="keyword">new</span> Member()</span><br><span class="line">                    .setUsername(rs.getString(<span class="string">"username"</span>))</span><br><span class="line">                    .setAge(rs.getInt(<span class="string">"age"</span>))</span><br><span class="line">                    .setNickName(rs.getString(<span class="string">"nick_name"</span>))</span><br><span class="line">                    .setPassword(rs.getString(<span class="string">"password"</span>));</span><br><span class="line">            <span class="keyword">return</span> member;</span><br><span class="line">        &#125;, <span class="keyword">null</span>);</span><br><span class="line">        <span class="keyword">return</span> members;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<h3 id="模板模式在源码中的体现"><a href="#模板模式在源码中的体现" class="headerlink" title="模板模式在源码中的体现"></a>模板模式在源码中的体现</h3><p>有一个每天都在用的<code>HttpServlet</code>，有三个方法<code>service()</code>和<code>doGet()</code>、<code>doPost()</code>方法，都是模板方法的抽象实现。<br>在<code>MyBatis</code>框架也有一些经典的应用，我们来一下<code>BaseExecutor</code>类，它是一个基础的<code>SQL</code>执行类，实现了大部分的<code>SQL</code>执行逻辑，然后把几个方法交给子类定制化完成，源码如下:<br><img data-src="https://chentianming11.github.io/images/design/template-adapter/78988674.png" alt="78988674"></p>
+<h3 id="模板模式的优缺点"><a href="#模板模式的优缺点" class="headerlink" title="模板模式的优缺点"></a>模板模式的优缺点</h3><p>优点:</p>
+<ol>
+<li>利用模板方法将相同处理逻辑的代码放到抽象父类中，可以提高代码的复用性。</li>
+<li>将不同的代码不同的子类中，通过对子类的扩展增加新的行为，提高代码的扩展性。</li>
+<li>把不变的行为写在父类上，去除子类的重复代码，提供了一个很好的代码复用平台， 符合开闭原则。</li>
+</ol>
+<p>缺点:</p>
+<ol>
+<li>类数目的增加，每一个抽象类都需要一个子类来实现，这样导致类的个数增加。</li>
+<li>类数量的增加，间接地增加了系统实现的复杂度。</li>
+<li>继承关系自身缺点，如果父类添加新的抽象方法，所有子类都要改一遍。</li>
+</ol>
+<p>模板方法模式比较简单，只要勤加练习， 多结合业务场景思考问题，就能够把模板方法模式运用好。</p>
+<h2 id="适配器模式"><a href="#适配器模式" class="headerlink" title="适配器模式"></a>适配器模式</h2><h3 id="适配器模式的应用场景"><a href="#适配器模式的应用场景" class="headerlink" title="适配器模式的应用场景"></a>适配器模式的应用场景</h3><p>适配器模式(Adapter Pattern)是指将一个类的接口转换成客户期望的另一个接口，使 原本的接口不兼容的类可以一起工作，属于结构型设计模式。<br>适配器适用于以下几种业务场景:</p>
+<ol>
+<li>已经存在的类，它的方法和需求不匹配(方法结果相同或相似)的情况。</li>
+<li>适配器模式不是软件设计阶段考虑的设计模式，是随着软件维护，由于不同产品、不 同厂家造成功能类似而接口不相同情况下的解决方案。有点亡羊补牢的感觉。</li>
+</ol>
+<p>在中国民用电都是 220V 交流电，但我们手机使用的锂电池使用的 5V 直流电。因此，我 们给手机充电时就需要使用电源适配器来进行转换。下面我们有代码来还原这个生活场 景，创建 AC220 类，表示 220V 交流电:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 现有支持AC220的接口</span></span><br><span class="line"><span class="comment"> * 被适配接口</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 陈添明</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2019/4/14</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">IAC220</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">int</span> <span class="title">outputAC220V</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">AC220</span> <span class="keyword">implements</span> <span class="title">IAC220</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">outputAC220V</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="keyword">int</span> output = <span class="number">220</span>;</span><br><span class="line">        System.out.println(<span class="string">"输出交流电"</span> + output + <span class="string">"V"</span>);</span><br><span class="line">        <span class="keyword">return</span> output;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 目标接口</span></span><br><span class="line"><span class="comment"> * 新需求要求支持DC5V的接口</span></span><br><span class="line"><span class="comment"> * 但是DC5V可以通过AC220V转换得到</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 陈添明</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2019/4/14</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">IDC5</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">int</span> <span class="title">outputDC5V</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 适配器实现目标接口，同时持有被适配对象</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 陈添明</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2019/4/14</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DC5VAdapter</span> <span class="keyword">implements</span> <span class="title">IDC5</span> </span>&#123;</span><br><span class="line">    IAC220 iac220;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">DC5VAdapter</span><span class="params">(IAC220 iac220)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.iac220 = iac220;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">outputDC5V</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> i = iac220.outputAC220V();</span><br><span class="line">        <span class="keyword">int</span> r = i / <span class="number">44</span>;</span><br><span class="line">        System.out.println(<span class="string">"输出直流"</span> + r + <span class="string">"V"</span>);</span><br><span class="line">        <span class="keyword">return</span> r;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img data-src="https://chentianming11.github.io/images/design/template-adapter/59584429.png" alt="59584429"></p>
+<h3 id="重构第三登录自由适配的业务场景"><a href="#重构第三登录自由适配的业务场景" class="headerlink" title="重构第三登录自由适配的业务场景"></a>重构第三登录自由适配的业务场景</h3><p>下面我们来一个实际的业务场景，利用适配模式来解决实际问题。年纪稍微大一点的小 伙伴一定经历过这样一个过程。我们很早以前开发的老系统应该都有登录接口，但是随 着业务的发展和社会的进步，单纯地依赖用户名密码登录显然不能满足用户需求了。现 在，我们大部分系统都已经支持多种登录方式，如 QQ 登录、微信登录、手机登录、微 博登录等等，同时保留用户名密码的登录方式。虽然登录形式丰富了，但是登录后的处理逻辑可以不必改，同样是将登录状态保存到 session，遵循开闭原则。<em>其他新增的登录方式，可以复用之前登录的逻辑</em></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SiginService</span> </span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 注册方法</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> username * <span class="doctag">@param</span> password * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> ResultMsg <span class="title">regist</span><span class="params">(String username, String password)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> ResultMsg(<span class="number">200</span>, <span class="string">"注册成功"</span>, <span class="keyword">new</span> Member());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 登录的方法</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> username * <span class="doctag">@param</span> password * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> ResultMsg <span class="title">login</span><span class="params">(String username, String password)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>为了遵循开闭原则，老系统的代码我们不会去修改。</strong></p>
+<ul>
+<li><p>现在需要支持第三方登录 – 新的目标接口</p>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* 第三方登录接口 -- 目标接口</span></span><br><span class="line"><span class="comment">*</span></span><br><span class="line"><span class="comment">* <span class="doctag">@author</span> 陈添明</span></span><br><span class="line"><span class="comment">* <span class="doctag">@date</span> 2019/4/14</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">IPassportForThird</span> </span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * QQ登录</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@param</span> id</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    <span class="function">ResultMsg <span class="title">loginForQQ</span><span class="params">(String id)</span></span>;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * 微信登录</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    <span class="function">ResultMsg <span class="title">loginForWechat</span><span class="params">(String id)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>第三方登录适配器 - 实现兼容 PassportForThirdAdapter</p>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* 第三方登录适配器</span></span><br><span class="line"><span class="comment">* 实现目标接口，持有被适配对象的引用</span></span><br><span class="line"><span class="comment">*</span></span><br><span class="line"><span class="comment">* <span class="doctag">@author</span> 陈添明</span></span><br><span class="line"><span class="comment">* <span class="doctag">@date</span> 2019/4/14</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">PassportForThirdAdapter</span> <span class="keyword">implements</span> <span class="title">IPassportForThird</span> </span>&#123;</span><br><span class="line">    SiginService siginService;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">PassportForThirdAdapter</span><span class="params">(SiginService siginService)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.siginService = siginService;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * QQ登录</span></span><br><span class="line"><span class="comment">    *</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@param</span> id</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> ResultMsg <span class="title">loginForQQ</span><span class="params">(String id)</span> </span>&#123;</span><br><span class="line">        <span class="comment">//1、openId 是全局唯一，我们可以把它当做是一个用户名(加长)</span></span><br><span class="line">        <span class="comment">// 2、密码默认为 QQ_EMPTY</span></span><br><span class="line">        <span class="comment">// 3、注册(在原有系统里面创建一个用户)</span></span><br><span class="line">        <span class="comment">//4、调用原来的登录方法</span></span><br><span class="line">        ResultMsg resultMsg = siginService.login(<span class="string">"12345"</span>, <span class="string">"1111"</span>);</span><br><span class="line">        <span class="keyword">return</span> resultMsg;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * 微信登录</span></span><br><span class="line"><span class="comment">    *</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@param</span> id</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> ResultMsg <span class="title">loginForWechat</span><span class="params">(String id)</span> </span>&#123;</span><br><span class="line">        <span class="comment">/**</span></span><br><span class="line"><span class="comment">        * 一堆微信登录的逻辑</span></span><br><span class="line"><span class="comment">        */</span></span><br><span class="line">        ResultMsg resultMsg = siginService.login(<span class="string">"12345"</span>, <span class="string">"1111"</span>);</span><br><span class="line">        <span class="keyword">return</span> resultMsg;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>  每种登录方式都有各自的逻辑，考虑单一性原则。将不同的适配逻辑分离，同时使用策略模式选择不同的适配器执行处理。</p>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">LoginAdapter</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> SiginService siginService;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">LoginAdapter</span><span class="params">(SiginService siginService)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.siginService = siginService;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * 兼容校验</span></span><br><span class="line"><span class="comment">    *</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@param</span> adapter</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">boolean</span> <span class="title">support</span><span class="params">(Object adapter)</span></span>;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * 登录接口</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@param</span> params</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> ResultMsg <span class="title">login</span><span class="params">(Object... params)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LoginForQQAdapter</span> <span class="keyword">extends</span> <span class="title">LoginAdapter</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">LoginForQQAdapter</span><span class="params">(SiginService siginService)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>(siginService);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * 兼容校验</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@param</span> adapter</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">support</span><span class="params">(Object adapter)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> adapter <span class="keyword">instanceof</span> LoginForQQAdapter;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * 登录接口</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@param</span> params</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> ResultMsg <span class="title">login</span><span class="params">(Object... params)</span> </span>&#123;</span><br><span class="line">        <span class="comment">//1、openId 是全局唯一，我们可以把它当做是一个用户名(加长)</span></span><br><span class="line">        <span class="comment">// 2、密码默认为 QQ_EMPTY</span></span><br><span class="line">        <span class="comment">// 3、注册(在原有系统里面创建一个用户)</span></span><br><span class="line">        <span class="comment">//4、调用原来的登录方法</span></span><br><span class="line">        ResultMsg resultMsg = siginService.login(<span class="string">"12345"</span>, <span class="string">"1111"</span>);</span><br><span class="line">        <span class="keyword">return</span> resultMsg;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">PassportForThirdService</span> <span class="keyword">implements</span> <span class="title">IPassportForThird</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> SiginService siginService;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">PassportForThirdService</span><span class="params">(SiginService siginService)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.siginService = siginService;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * QQ登录</span></span><br><span class="line"><span class="comment">    *</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@param</span> id</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> ResultMsg <span class="title">loginForQQ</span><span class="params">(String id)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> processLogin(LoginForQQAdapter<span class="class">.<span class="keyword">class</span>, <span class="title">id</span>)</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * 微信登录</span></span><br><span class="line"><span class="comment">    *</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@param</span> id</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> ResultMsg <span class="title">loginForWechat</span><span class="params">(String id)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> processLogin(LoginForWechatAdapter<span class="class">.<span class="keyword">class</span>, <span class="title">id</span>)</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@SneakyThrows</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> ResultMsg <span class="title">processLogin</span><span class="params">(Class&lt;? extends LoginAdapter&gt; clz, Object... params)</span> </span>&#123;</span><br><span class="line">        Constructor&lt;? extends LoginAdapter&gt; constructor = clz.getConstructor(SiginService<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">        LoginAdapter loginAdapter = constructor.newInstance(siginService);</span><br><span class="line">        <span class="keyword">if</span> (loginAdapter.support(loginAdapter)) &#123;</span><br><span class="line">            <span class="keyword">return</span> loginAdapter.login(params);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<p><img data-src="https://chentianming11.github.io/images/design/template-adapter/69005337.png" alt="69005337"></p>
+<h3 id="适配器模式在源码中的体现"><a href="#适配器模式在源码中的体现" class="headerlink" title="适配器模式在源码中的体现"></a>适配器模式在源码中的体现</h3><p><code>Spring</code>中适配器模式也应用得非常广泛，例如:<code>SpringAOP</code>中的<code>AdvisorAdapter</code>类， 它有三个实现类 <code>MethodBeforeAdviceAdapter</code>、<code>AfterReturningAdviceAdapter</code> 和 <code>ThrowsAdviceAdapter</code>，先来看顶层接口<code>AdvisorAdapter</code>的源代码:<br><img data-src="https://chentianming11.github.io/images/design/template-adapter/62911191.png" alt="62911191"></p>
+<p>再看<code>MethodBeforeAdviceAdapter</code>类:<br><img data-src="https://chentianming11.github.io/images/design/template-adapter/62951178.png" alt="62951178"></p>
+<p>Spring 会根据不同的<code>AOP</code>配置来确定使用对应的<code>Advice</code>，跟策略模式不同的一个方法可以同时拥有多个<code>Advice</code>。</p>
+<p>下面再来看一个 <code>SpringMVC</code>中的<code>HandlerAdapter</code>类，它也有多个子类，类图如下:<br><img data-src="https://chentianming11.github.io/images/design/template-adapter/63011975.png" alt="63011975"></p>
+<h3 id="适配器模式的优缺点"><a href="#适配器模式的优缺点" class="headerlink" title="适配器模式的优缺点"></a>适配器模式的优缺点</h3><p>优点:</p>
+<ol>
+<li>能提高类的透明性和复用，现有的类复用但不需要改变。</li>
+<li>目标类和适配器类解耦，提高程序的扩展性。</li>
+<li>在很多业务场景中符合开闭原则。</li>
+</ol>
+<p>缺点:</p>
+<ol>
+<li>适配器编写过程需要全面考虑，可能会增加系统的复杂性。</li>
+<li>增加代码阅读难度，降低代码可读性，过多使用适配器会使系统代码变得凌乱。</li>
+</ol>
+<p>源码：<a href="https://github.com/chentianming11/design-pattern" target="_blank" rel="noopener">https://github.com/chentianming11/design-pattern</a><br>template和adapter包!</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" rel="tag"># 设计模式</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/1670445475/" rel="prev" title="十三、委派模式和策略模式">
+      <i class="fa fa-chevron-left"></i> 十三、委派模式和策略模式
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/2363983740/" rel="next" title="数据量大了一定要分表，分库分表组件Sharding-JDBC入门与项目实战">
+      数据量大了一定要分表，分库分表组件Sharding-JDBC入门与项目实战 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#模板模式"><span class="nav-number">1.</span> <span class="nav-text">模板模式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#定义"><span class="nav-number">1.1.</span> <span class="nav-text">定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#利用模板模式重构-JDBC-操作业务场景"><span class="nav-number">1.2.</span> <span class="nav-text">利用模板模式重构 JDBC 操作业务场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#模板模式在源码中的体现"><span class="nav-number">1.3.</span> <span class="nav-text">模板模式在源码中的体现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#模板模式的优缺点"><span class="nav-number">1.4.</span> <span class="nav-text">模板模式的优缺点</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#适配器模式"><span class="nav-number">2.</span> <span class="nav-text">适配器模式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#适配器模式的应用场景"><span class="nav-number">2.1.</span> <span class="nav-text">适配器模式的应用场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#重构第三登录自由适配的业务场景"><span class="nav-number">2.2.</span> <span class="nav-text">重构第三登录自由适配的业务场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#适配器模式在源码中的体现"><span class="nav-number">2.3.</span> <span class="nav-text">适配器模式在源码中的体现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#适配器模式的优缺点"><span class="nav-number">2.4.</span> <span class="nav-text">适配器模式的优缺点</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="陈添明"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">陈添明</p>
+  <div class="site-description" itemprop="description">生命的意义在于成为你自己</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">46</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈添明</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">296k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">12:20</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+  <script src="//cdn.jsdelivr.net/npm/quicklink@1/dist/quicklink.umd.js"></script>
+  <script>
+      window.addEventListener('load', () => {
+      quicklink({
+        timeout : 3000,
+        priority: true,
+        ignores : [uri => uri.includes('#'),uri => uri === 'https://chentianming11.github.io/posts/2184398774/',]
+      });
+      });
+  </script>
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : 'SoPxUkme2aynTULaNuIc5TIq-gzGzoHsz',
+      appKey     : '4TDP7SMCbgDKTOGGUtpIeA0H',
+      placeholder: "留下点足迹吧~",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+    </div>
+</body>
+</html>

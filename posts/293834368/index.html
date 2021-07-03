@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"chentianming11.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":{"enable":true,"onlypost":false,"loadingImg":"/uploads/loading.gif"},"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="众所周知，事务和锁是mysql中非常重要功能，同时也是面试的重点和难点。本文会详细介绍事务和锁的相关概念及其实现原理，相信大家看完之后，一定会对事务和锁有更加深入的理解。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="面试中的老大难-mysql事务和锁，一次性讲清楚！">
+<meta property="og:url" content="https://chentianming11.github.io/posts/293834368/index.html">
+<meta property="og:site_name" content="陈添明">
+<meta property="og:description" content="众所周知，事务和锁是mysql中非常重要功能，同时也是面试的重点和难点。本文会详细介绍事务和锁的相关概念及其实现原理，相信大家看完之后，一定会对事务和锁有更加深入的理解。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://chentianming11.github.io/images/mysql/transaction-status.webp">
+<meta property="og:image" content="https://chentianming11.github.io/images/mysql/dirty-write.webp">
+<meta property="og:image" content="https://chentianming11.github.io/images/mysql/dirty-read.webp">
+<meta property="og:image" content="https://chentianming11.github.io/images/mysql/no-repeat.webp">
+<meta property="og:image" content="https://chentianming11.github.io/images/mysql/phantom.webp">
+<meta property="og:image" content="https://chentianming11.github.io/images/mysql/mvcc1.webp">
+<meta property="og:image" content="https://chentianming11.github.io/images/mysql/mvcc2.webp">
+<meta property="og:image" content="https://chentianming11.github.io/images/mysql/mvcc3.webp">
+<meta property="og:image" content="https://chentianming11.github.io/images/mysql/record.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/mysql/gap.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/mysql/next-key.png">
+<meta property="article:published_time" content="2020-07-26T05:25:25.000Z">
+<meta property="article:modified_time" content="2021-06-10T15:17:55.558Z">
+<meta property="article:author" content="陈添明">
+<meta property="article:tag" content="mysql">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://chentianming11.github.io/images/mysql/transaction-status.webp">
+
+<link rel="canonical" href="https://chentianming11.github.io/posts/293834368/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>面试中的老大难-mysql事务和锁，一次性讲清楚！ | 陈添明</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">陈添明</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">心安即是归处</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">46</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/chentianming11" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://chentianming11.github.io/posts/293834368/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="陈添明">
+      <meta itemprop="description" content="生命的意义在于成为你自己">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="陈添明">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          面试中的老大难-mysql事务和锁，一次性讲清楚！
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-07-26 13:25:25" itemprop="dateCreated datePublished" datetime="2020-07-26T13:25:25+08:00">2020-07-26</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/" itemprop="url" rel="index"><span itemprop="name">数据库</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/posts/293834368/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/293834368/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>7.2k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>18 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>众所周知，<code>事务和锁</code>是mysql中非常重要功能，同时也是面试的重点和难点。本文会详细介绍<code>事务和锁</code>的相关概念及其实现原理，相信大家看完之后，一定会对<code>事务和锁</code>有更加深入的理解。</p>
+<a id="more"></a>
+
+<blockquote>
+<p>本文主要内容是根据掘金小册《从根儿上理解 MySQL》整理而来。如想详细了解，建议购买掘金小册阅读。</p>
+</blockquote>
+<h2 id="什么是事务"><a href="#什么是事务" class="headerlink" title="什么是事务"></a>什么是事务</h2><p>在维基百科中，对事务的定义是：<strong>事务是数据库管理系统(DBMS)执行过程中的一个逻辑单位，由一个有限的数据库操作序列构成</strong>。</p>
+<h3 id="事务的四大特性"><a href="#事务的四大特性" class="headerlink" title="事务的四大特性"></a>事务的四大特性</h3><p>事务包含四大特性，即<strong>原子性（Atomicity）</strong>、<strong>一致性（Consistency）</strong>、<strong>隔离性（Isolation）</strong>和<strong>持久性（Durability）</strong>(ACID)。</p>
+<ol>
+<li>原子性（Atomicity）<br> <strong>原子性是指对数据库的一系列操作，要么全部成功，要么全部失败，不可能出现部分成功的情况</strong>。以转账场景为例，一个账户的余额减少，另一个账户的余额增加，这两个操作一定是同时成功或者同时失败的。</li>
+<li>一致性（Consistency）<br> <strong>一致性是指数据库的完整性约束没有被破坏，在事务执行前后都是合法的数据状态</strong>。这里的一致可以表示数据库自身的约束没有被破坏，比如某些字段的唯一性约束、字段长度约束等等；还可以表示各种实际场景下的业务约束，比如上面转账操作，一个账户减少的金额和另一个账户增加的金额一定是一样的。</li>
+<li>隔离性（Isolation）<br> <strong>隔离性指的是多个事务彼此之间是完全隔离、互不干扰的</strong>。隔离性的最终目的也是为了保证一致性。</li>
+<li>持久性（Durability）<br> <strong>持久性是指只要事务提交成功，那么对数据库做的修改就被永久保存下来了，不可能因为任何原因再回到原来的状态</strong>。</li>
+</ol>
+<h3 id="事务的状态"><a href="#事务的状态" class="headerlink" title="事务的状态"></a>事务的状态</h3><p>根据事务所处的不同阶段，事务大致可以分为以下5个状态：</p>
+<ol>
+<li>活动的（active）<br>当事务对应的数据库操作正在执行过程中，则该事务处于<code>活动</code>状态。</li>
+<li>部分提交的（partially committed）<br>当事务中的最后一个操作执行完成，但还未将变更刷新到磁盘时，则该事务处于<code>部分提交</code>状态。</li>
+<li>失败的（failed）<br>当事务处于<code>活动</code>或者<code>部分提交</code>状态时，由于某些错误导致事务无法继续执行，则事务处于<code>失败</code>状态。</li>
+<li>中止的（aborted）<br>当事务处于<code>失败</code>状态，且回滚操作执行完毕，数据恢复到事务执行之前的状态时，则该事务处于<code>中止</code>状态。</li>
+<li>提交的（committed）<br>当事务处于<code>部分提交</code>状态，并且将修改过的数据都同步到磁盘之后，此时该事务处于<code>提交</code>状态。</li>
+</ol>
+<p><img data-src="https://chentianming11.github.io/images/mysql/transaction-status.webp" alt="事务状态"></p>
+<h3 id="事务隔离级别"><a href="#事务隔离级别" class="headerlink" title="事务隔离级别"></a>事务隔离级别</h3><p>前面提到过，事务必须具有隔离性。实现隔离性最简单的方式就是不允许事务并发，每个事务都排队执行，但是这种方式性能实在太差了。为了兼顾事务的隔离性和性能，事务支持不同的隔离级别。</p>
+<p>为了方便表述后续的内容，我们先建一张示例表<code>hero</code>。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> hero (</span><br><span class="line">    <span class="built_in">number</span> <span class="built_in">INT</span>,</span><br><span class="line">    <span class="keyword">name</span> <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    country <span class="built_in">varchar</span>(<span class="number">100</span>),</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="built_in">number</span>)</span><br><span class="line">) <span class="keyword">Engine</span>=<span class="keyword">InnoDB</span> <span class="keyword">CHARSET</span>=utf8;</span><br></pre></td></tr></table></figure>
+
+<h4 id="事务并发执行遇到的问题"><a href="#事务并发执行遇到的问题" class="headerlink" title="事务并发执行遇到的问题"></a>事务并发执行遇到的问题</h4><p>在事务并发执行时，如果不进行任何控制，可能会出现以下4类问题：</p>
+<ul>
+<li>脏写（Dirty Write）<br> <strong>脏写是指一个事务修改了其它事务未提交的数据</strong>。<br> <img data-src="https://chentianming11.github.io/images/mysql/dirty-write.webp" alt="脏写"><br> 如上图，<code>Session A</code>和<code>Session B</code>各开启了一个事务，<code>Session B</code>中的事务先将<code>number</code>列为1的记录的<code>name</code>列更新为’关羽’，然后<code>Session A</code>中的事务接着又把这条<code>number</code>列为1的记录的<code>name</code>列更新为张飞。如果之后<code>Session B</code>中的事务进行了回滚，那么<code>Session A</code>中的更新也将不复存在，这种现象就称之为<strong>脏写</strong>。</li>
+<li>脏读（Dirty Read）<br><strong>脏读是指一个事务读到了其它事务未提交的数据</strong>。<br><img data-src="https://chentianming11.github.io/images/mysql/dirty-read.webp" alt="脏读"><br>如上图，<code>Session A</code>和<code>Session B</code>各开启了一个事务，<code>Session B</code>中的事务先将<code>number</code>列为1的记录的<code>name</code>列更新为<code>&#39;关羽&#39;</code>，然后<code>Session A</code>中的事务再去查询这条<code>number</code>为1的记录，如果读到列<code>name</code>的值为<code>&#39;关羽&#39;</code>，而<code>Session B</code>中的事务稍后进行了回滚，那么<code>Session A</code>中的事务相当于读到了一个不存在的数据，这种现象就称之为<strong>脏读</strong>。  </li>
+<li>不可重复读（Non-Repeatable Read）<br><strong>不可重复读指的是在一个事务执行过程中，读取到其它事务已提交的数据，导致两次读取的结果不一致</strong>。<br><img data-src="https://chentianming11.github.io/images/mysql/no-repeat.webp" alt="不可重复读"><br>如上图，我们在<code>Session B</code>中提交了几个隐式事务(mysql会自动为增删改语句加事务)，这些事务都修改了<code>number</code>列为1的记录的列<code>name</code>的值，每次事务提交之后，如果<code>Session A中</code>的事务都可以查看到最新的值，这种现象也被称之为<strong>不可重复读</strong>。</li>
+<li>幻读（Phantom）<br><strong>幻读是指的是在一个事务执行过程中，读取到了其他事务新插入数据，导致两次读取的结果不一致</strong>。<br><img data-src="https://chentianming11.github.io/images/mysql/phantom.webp" alt="幻读"><br>如上图，<code>Session A</code>中的事务先根据条件<code>number &gt; 0</code>这个条件查询表<code>hero</code>，得到了<code>name</code>列值为<code>&#39;刘备&#39;</code>的记录；之后<code>Session B</code>中提交了一个隐式事务，该事务向表<code>hero</code>中插入了一条新记录；之后<code>Session A</code>中的事务再根据相同的条件<code>number &gt; 0</code>查询表<code>hero</code>，得到的结果集中包含<code>Session B</code>中的事务新插入的那条记录，这种现象也被称之为<strong>幻读</strong>。</li>
+</ul>
+<blockquote>
+<p>不可重复读和幻读的区别在于<strong>不可重复读是读到的是其他事务修改或者删除的数据，而幻读读到的是其它事务新插入的数据</strong>。</p>
+</blockquote>
+<p>脏写的问题太严重了，任何隔离级别都必须避免。其它无论是脏读，不可重复读，还是幻读，它们都属于数据库的读一致性的问题，都是在一个事务里面前后两次读取出现了不一致的情况。</p>
+<h4 id="四种隔离级别"><a href="#四种隔离级别" class="headerlink" title="四种隔离级别"></a>四种隔离级别</h4><p>在<code>SQL</code>标准中设立了4种隔离级别，用来解决上面的读一致性问题。不同的隔离级别可以解决不同的读一致性问题。</p>
+<ul>
+<li><p><code>READ UNCOMMITTED</code>：未提交读。</p>
+</li>
+<li><p><code>READ COMMITTED</code>：已提交读。</p>
+</li>
+<li><p><code>REPEATABLE READ</code>：可重复读。</p>
+</li>
+<li><p><code>SERIALIZABLE</code>：串行化。</p>
+</li>
+</ul>
+<p>各个隔离级别下可能出现的读一致性问题如下：</p>
+<table>
+<thead>
+<tr>
+<th>隔离级别</th>
+<th>脏读</th>
+<th>不可重复读</th>
+<th>幻读</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>未提交读（READ UNCOMMITTED）</td>
+<td>可能</td>
+<td>可能</td>
+<td>可能</td>
+</tr>
+<tr>
+<td>已提交读（READ COMMITTED）</td>
+<td>不可能</td>
+<td>可能</td>
+<td>可能</td>
+</tr>
+<tr>
+<td>可重复读（REPEATABLE READ）</td>
+<td>不可能</td>
+<td>不可能</td>
+<td>可能（对InnoDB不可能）</td>
+</tr>
+<tr>
+<td>串行化（SERIALIZABLE）</td>
+<td>不可能</td>
+<td>不可能</td>
+<td>不可能</td>
+</tr>
+</tbody></table>
+<p><code>InnoDB</code>支持四个隔离级别（和<code>SQL</code>标准定义的基本一致）。隔离级别越高，事务的并发度就越低。唯一的区别就在于，<strong><code>InnoDB</code> 在<code>可重复读（REPEATABLE READ）</code>的级别就解决了幻读的问题</strong>。这也是<code>InnoDB</code>使用<code>可重复读</code> 作为事务默认隔离级别的原因。</p>
+<h2 id="MVCC"><a href="#MVCC" class="headerlink" title="MVCC"></a>MVCC</h2><p>MVCC(Multi Version Concurrency Control)，中文名是多版本并发控制，简单来说就是通过维护数据历史版本，从而解决并发访问情况下的读一致性问题。</p>
+<h3 id="版本链"><a href="#版本链" class="headerlink" title="版本链"></a>版本链</h3><p>在<code>InnoDB</code>中，每行记录实际上都包含了两个隐藏字段：事务id(<code>trx_id</code>)和回滚指针(<code>roll_pointer</code>)。</p>
+<ol>
+<li><code>trx_id</code>：事务id。每次修改某行记录时，都会把该事务的事务id赋值给<code>trx_id</code>隐藏列。</li>
+<li><code>roll_pointer</code>：回滚指针。每次修改某行记录时，都会把<code>undo</code>日志地址赋值给<code>roll_pointer</code>隐藏列。</li>
+</ol>
+<p>假设<code>hero</code>表中只有一行记录，当时插入的事务id为80。此时，该条记录的示例图如下：<br><img data-src="https://chentianming11.github.io/images/mysql/mvcc1.webp" alt="mvcc1"><br>假设之后两个事务<code>id</code>分别为<code>100</code>、<code>200</code>的事务对这条记录进行<code>UPDATE</code>操作，操作流程如下：<br><img data-src="https://chentianming11.github.io/images/mysql/mvcc2.webp" alt="mvcc2"><br>由于每次变动都会先把<code>undo</code>日志记录下来，并用<code>roll_pointer</code>指向<code>undo</code>日志地址。因此可以认为，<strong>对该条记录的修改日志串联起来就形成了一个<code>版本链</code>，版本链的头节点就是当前记录最新的值</strong>。如下：<br><img data-src="https://chentianming11.github.io/images/mysql/mvcc3.webp" alt="mvcc3"></p>
+<h3 id="ReadView"><a href="#ReadView" class="headerlink" title="ReadView"></a>ReadView</h3><p>如果数据库隔离级别是<code>未提交读（READ UNCOMMITTED）</code>，那么读取版本链中最新版本的记录即可。如果是是<code>串行化（SERIALIZABLE）</code>，事务之间是加锁执行的，不存在读不一致的问题。<strong>但是如果是<code>已提交读（READ COMMITTED）</code>或者<code>可重复读（REPEATABLE READ）</code>，就需要遍历版本链中的每一条记录，判断该条记录是否对当前事务可见，直到找到为止(遍历完还没找到就说明记录不存在)</strong>。<code>InnoDB</code>通过<code>ReadView</code>实现了这个功能。<code>ReadView</code>中主要包含以下4个内容：</p>
+<ul>
+<li><code>m_ids</code>：表示在生成<code>ReadView</code>时当前系统中活跃的读写事务的事务id列表。</li>
+<li><code>min_trx_id</code>：表示在生成<code>ReadView</code>时当前系统中活跃的读写事务中最小的事务id，也就是<code>m_ids</code>中的最小值。</li>
+<li><code>max_trx_id</code>：表示生成<code>ReadView</code>时系统中应该分配给<strong>下一个事务的id值</strong>。</li>
+<li><code>creator_trx_id</code>：表示生成该<code>ReadView</code>事务的事务id。</li>
+</ul>
+<p>有了<code>ReadView</code>之后，我们可以基于以下步骤判断某个版本的记录是否对当前事务可见。</p>
+<ol>
+<li>如果被访问版本的<code>trx_id</code>属性值与<code>ReadView</code>中的<code>creator_trx_id</code>值相同，意味着当前事务在访问它自己修改过的记录，所以该版本可以被当前事务访问。</li>
+<li>如果被访问版本的<code>trx_id</code>属性值小于<code>ReadView</code>中的<code>min_trx_id</code>值，表明生成该版本的事务在当前事务生成<code>ReadView</code>前已经提交，所以该版本可以被当前事务访问。</li>
+<li>如果被访问版本的<code>trx_id</code>属性值大于或等于<code>ReadView</code>中的<code>max_trx_id</code>值，表明生成该版本的事务在当前事务生成<code>ReadView</code>后才开启，所以该版本不可以被当前事务访问。</li>
+<li>如果被访问版本的<code>trx_id</code>属性值在<code>ReadView</code>的<code>min_trx_id</code>和<code>max_trx_id</code>之间，那就需要判断一下<code>trx_id</code>属性值是不是在<code>m_ids</code>列表中，如果在，说明创建<code>ReadView</code>时生成该版本的事务还是活跃的，该版本不可以被访问；如果不在，说明创建<code>ReadView</code>时生成该版本的事务已经被提交，该版本可以被访问。</li>
+</ol>
+<p>在<code>MySQL</code>中，<code>READ COMMITTED</code>和<code>REPEATABLE READ</code>隔离级别的的一个非常大的区别就是它们生成<code>ReadView</code>的时机不同。<strong><code>READ COMMITTED</code>在每次读取数据前都会生成一个<code>ReadView</code></strong>，这样就能保证每次都能读到其它事务已提交的数据。<strong><code>REPEATABLE READ</code> 只在第一次读取数据时生成一个<code>ReadView</code></strong>，这样就能保证后续读取的结果完全一致。</p>
+<h2 id="锁"><a href="#锁" class="headerlink" title="锁"></a>锁</h2><p>事务并发访问同一数据资源的情况主要就分为<code>读-读</code>、<code>写-写</code>和<code>读-写</code>三种。</p>
+<ol>
+<li><code>读-读</code><br> 即并发事务同时访问同一行数据记录。由于两个事务都进行只读操作，不会对记录造成任何影响，因此并发读完全允许。</li>
+<li><code>写-写</code><br> 即并发事务同时修改同一行数据记录。这种情况下可能导致<code>脏写</code>问题，这是任何情况下都不允许发生的，因此只能通过<code>加锁</code>实现，也就是当一个事务需要对某行记录进行修改时，首先会先给这条记录加锁，如果加锁成功则继续执行，否则就排队等待，事务执行完成或回滚会自动释放锁。</li>
+<li><code>读-写</code><br> 即一个事务进行读取操作，另一个进行写入操作。这种情况下可能会产生<code>脏读</code>、<code>不可重复读</code>、<code>幻读</code>。最好的方案是<strong>读操作利用多版本并发控制（<code>MVCC</code>），写操作进行加锁</strong>。</li>
+</ol>
+<h3 id="锁的粒度"><a href="#锁的粒度" class="headerlink" title="锁的粒度"></a>锁的粒度</h3><p>按锁作用的数据范围进行分类的话，锁可以分为<code>行级锁</code>和<code>表级锁</code>。</p>
+<ol>
+<li><code>行级锁</code>：作用在数据行上，锁的粒度比较小。</li>
+<li><code>表级锁</code>：作用在整张数据表上，锁的粒度比较大。</li>
+</ol>
+<h3 id="锁的分类"><a href="#锁的分类" class="headerlink" title="锁的分类"></a>锁的分类</h3><p>为了实现<code>读-读</code>之间不受影响，并且<code>写-写</code>、<code>读-写</code>之间能够相互阻塞，<code>Mysql</code>使用了<code>读写锁</code>的思路进行实现，具体来说就是分为了<code>共享锁</code>和<code>排它锁</code>：</p>
+<ol>
+<li><code>共享锁(Shared Locks)</code>：简称<code>S锁</code>，在事务要读取一条记录时，需要先获取该记录的<code>S锁</code>。<code>S锁</code>可以在同一时刻被多个事务同时持有。我们可以用<code>select ...... lock in share mode;</code>的方式手工加上一把<code>S锁</code>。</li>
+<li><code>排他锁(Exclusive Locks)</code>：简称<code>X锁</code>，在事务要改动一条记录时，需要先获取该记录的<code>X锁</code>。<code>X锁</code>在同一时刻最多只能被一个事务持有。<code>X锁</code>的加锁方式有两种，第一种是自动加锁，在对数据进行增删改的时候，都会默认加上一个<code>X锁</code>。还有一种是手工加锁，我们用一个<code>FOR UPDATE</code>给一行数据加上一个<code>X锁</code>。</li>
+</ol>
+<p>还需要注意的一点是，如果一个事务已经持有了某行记录的<code>S锁</code>，另一个事务是无法为这行记录加上<code>X锁</code>的，反之亦然。</p>
+<p>除了<code>共享锁(Shared Locks)</code>和<code>排他锁(Exclusive Locks)</code>，<code>Mysql</code>还有<code>意向锁(Intention Locks)</code>。意向锁是由数据库自己维护的，一般来说，当我们给一行数据加上共享锁之前，数据库会自动在这张表上面加一个<code>意向共享锁(IS锁)</code>；当我们给一行数据加上排他锁之前，数据库会自动在这张表上面加一个<code>意向排他锁(IX锁)</code>。<strong><code>意向锁</code>可以认为是<code>S锁</code>和<code>X锁</code>在数据表上的标识，通过意向锁可以快速判断表中是否有记录被上锁，从而避免通过遍历的方式来查看表中有没有记录被上锁，提升加锁效率</strong>。例如，我们要加表级别的<code>X锁</code>，这时候数据表里面如果存在行级别的<code>X锁</code>或者<code>S锁</code>的，加锁就会失败，此时直接根据<code>意向锁</code>就能知道这张表是否有行级别的<code>X锁</code>或者<code>S锁</code>。</p>
+<h3 id="InnoDB中的表级锁"><a href="#InnoDB中的表级锁" class="headerlink" title="InnoDB中的表级锁"></a>InnoDB中的表级锁</h3><p><code>InnoDB</code>中的表级锁主要包括表级别的<code>意向共享锁(IS锁)</code>和<code>意向排他锁(IX锁)</code>以及<code>自增锁(AUTO-INC锁)</code>。其中<code>IS锁</code>和<code>IX锁</code>在前面已经介绍过了，这里不再赘述，我们接下来重点了解一下<code>AUTO-INC锁</code>。</p>
+<p>大家都知道，如果我们给某列字段加了<code>AUTO_INCREMENT</code>自增属性，插入的时候不需要为该字段指定值，系统会自动保证递增。系统实现这种自动给<code>AUTO_INCREMENT</code>修饰的列递增赋值的原理主要是两个：</p>
+<ol>
+<li><code>AUTO-INC锁</code>：在执行插入语句的时先加上表级别的<code>AUTO-INC锁</code>，插入执行完成后立即释放锁。<strong>如果我们的插入语句在执行前无法确定具体要插入多少条记录，比如<code>INSERT ... SELECT</code>这种插入语句，一般采用<code>AUTO-INC锁</code>的方式</strong>。</li>
+<li><code>轻量级锁</code>：在插入语句生成<code>AUTO_INCREMENT</code>值时先才获取这个<code>轻量级锁</code>，然后在<code>AUTO_INCREMENT</code>值生成之后就释放<code>轻量级锁</code>。<strong>如果我们的插入语句在执行前就可以确定具体要插入多少条记录，那么一般采用轻量级锁的方式对AUTO_INCREMENT修饰的列进行赋值</strong>。这种方式可以避免锁定表，可以提升插入性能。</li>
+</ol>
+<blockquote>
+<p>mysql默认根据实际场景自动选择加锁方式，当然也可以通过<code>innodb_autoinc_lock_mode</code>强制指定只使用其中一种。</p>
+</blockquote>
+<h3 id="InnoDB中的行级锁"><a href="#InnoDB中的行级锁" class="headerlink" title="InnoDB中的行级锁"></a>InnoDB中的行级锁</h3><p>前面说过，通过<code>MVCC</code>可以解决<code>脏读</code>、<code>不可重复读</code>、<code>幻读</code>这些读一致性问题，但实际上这只是解决了普通<code>select</code>语句的数据读取问题。事务利用<code>MVCC</code>进行的读取操作称之为<code>快照读</code>，所有普通的<code>SELECT</code>语句在<code>READ COMMITTED</code>、<code>REPEATABLE READ</code>隔离级别下都算是<code>快照读</code>。除了<code>快照读</code>之外，还有一种是<code>锁定读</code>，即在读取的时候给记录加锁，在<code>锁定读</code>的情况下依然要解决<code>脏读</code>、<code>不可重复读</code>、<code>幻读</code>的问题。由于都是在记录上加锁，这些锁都属于<code>行级锁</code>。</p>
+<p><strong><code>InnoDB</code>的行锁，是通过锁住索引来实现的，如果加锁查询的时候没有使用过索引，会将整个聚簇索引都锁住，相当于锁表了</strong>。根据锁定范围的不同，行锁可以使用<code>记录锁(Record Locks)</code>、<code>间隙锁(Gap Locks)</code>和<code>临键锁(Next-Key Locks)</code>的方式实现。假设现在有一张表<code>t</code>，主键是<code>id</code>。我们插入了4行数据，主键值分别是 1、4、7、10。接下来我们就以聚簇索引为例，具体介绍三种形式的行锁。</p>
+<ul>
+<li><p>记录锁(Record Locks)<br>所谓记录，就是指聚簇索引中真实存放的数据，比如上面的1、4、7、10都是记录。<br><img data-src="https://chentianming11.github.io/images/mysql/record.png" alt="Record"><br>显然，记录锁就是直接锁定某行记录。当我们使用唯一性的索引(包括唯一索引和聚簇索引)进行等值查询且精准匹配到一条记录时，此时就会直接将这条记录锁定。例如<code>select * from t where id =4 for update;</code>就会将<code>id=4</code>的记录锁定。</p>
+</li>
+<li><p>间隙锁(Gap Locks)<br>间隙指的是两个记录之间逻辑上尚未填入数据的部分，比如上述的(1,4)、(4,7)等。<br><img data-src="https://chentianming11.github.io/images/mysql/gap.png" alt="Gap"><br>同理，间隙锁就是锁定某些间隙区间的。当我们使用用等值查询或者范围查询，并且没有命中任何一个<code>record</code>，此时就会将对应的间隙区间锁定。例如<code>select * from t where id =3 for update;</code>或者<code>select * from t where id &gt; 1 and id &lt; 4 for update;</code>就会将(1,4)区间锁定。</p>
+</li>
+<li><p>临键锁(Next-Key Locks)<br>临键指的是间隙加上它右边的记录组成的左开右闭区间。比如上述的(1,4]、(4,7]等。<br><img data-src="https://chentianming11.github.io/images/mysql/next-key.png" alt="Next-Key"><br>临键锁就是记录锁(Record Locks)和间隙锁(Gap Locks)的结合，即除了锁住记录本身，还要再锁住索引之间的间隙。当我们使用范围查询，并且命中了部分<code>record</code>记录，此时锁住的就是临键区间。注意，临键锁锁住的区间会包含最后一个record的右边的临键区间。例如<code>select * from t where id &gt; 5 and id &lt;= 7 for update;</code>会锁住(4,7]、(7,+∞)。mysql默认行锁类型就是<code>临键锁(Next-Key Locks)</code>。当使用唯一性索引，等值查询匹配到一条记录的时候，临键锁(Next-Key Locks)会退化成记录锁；没有匹配到任何记录的时候，退化成间隙锁。</p>
+</li>
+</ul>
+<p><code>间隙锁(Gap Locks)</code>和<code>临键锁(Next-Key Locks)</code>都是用来解决幻读问题的，在<code>已提交读（READ COMMITTED）</code>隔离级别下，<code>间隙锁(Gap Locks)</code>和<code>临键锁(Next-Key Locks)</code>都会失效！</p>
+<blockquote>
+<p>原创不易，觉得文章写得不错的小伙伴，点个赞👍 鼓励一下吧~</p>
+</blockquote>
+<blockquote>
+<p>欢迎关注我的开源项目：<a href="https://github.com/LianjiaTech/retrofit-spring-boot-starter" target="_blank" rel="noopener">一款适用于SpringBoot的轻量级HTTP调用框架</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/mysql/" rel="tag"># mysql</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/1979374763/" rel="prev" title="手把手教你基于Retrofit实现自己的轻量级http调用工具">
+      <i class="fa fa-chevron-left"></i> 手把手教你基于Retrofit实现自己的轻量级http调用工具
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/3181057117/" rel="next" title="Spring Validation最佳实践及其实现原理，参数校验没那么简单！">
+      Spring Validation最佳实践及其实现原理，参数校验没那么简单！ <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#什么是事务"><span class="nav-number">1.</span> <span class="nav-text">什么是事务</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#事务的四大特性"><span class="nav-number">1.1.</span> <span class="nav-text">事务的四大特性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#事务的状态"><span class="nav-number">1.2.</span> <span class="nav-text">事务的状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#事务隔离级别"><span class="nav-number">1.3.</span> <span class="nav-text">事务隔离级别</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#事务并发执行遇到的问题"><span class="nav-number">1.3.1.</span> <span class="nav-text">事务并发执行遇到的问题</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#四种隔离级别"><span class="nav-number">1.3.2.</span> <span class="nav-text">四种隔离级别</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MVCC"><span class="nav-number">2.</span> <span class="nav-text">MVCC</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#版本链"><span class="nav-number">2.1.</span> <span class="nav-text">版本链</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ReadView"><span class="nav-number">2.2.</span> <span class="nav-text">ReadView</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#锁"><span class="nav-number">3.</span> <span class="nav-text">锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#锁的粒度"><span class="nav-number">3.1.</span> <span class="nav-text">锁的粒度</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#锁的分类"><span class="nav-number">3.2.</span> <span class="nav-text">锁的分类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#InnoDB中的表级锁"><span class="nav-number">3.3.</span> <span class="nav-text">InnoDB中的表级锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#InnoDB中的行级锁"><span class="nav-number">3.4.</span> <span class="nav-text">InnoDB中的行级锁</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="陈添明"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">陈添明</p>
+  <div class="site-description" itemprop="description">生命的意义在于成为你自己</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">46</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈添明</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">296k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">12:20</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+  <script src="//cdn.jsdelivr.net/npm/quicklink@1/dist/quicklink.umd.js"></script>
+  <script>
+      window.addEventListener('load', () => {
+      quicklink({
+        timeout : 3000,
+        priority: true,
+        ignores : [uri => uri.includes('#'),uri => uri === 'https://chentianming11.github.io/posts/293834368/',]
+      });
+      });
+  </script>
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : 'SoPxUkme2aynTULaNuIc5TIq-gzGzoHsz',
+      appKey     : '4TDP7SMCbgDKTOGGUtpIeA0H',
+      placeholder: "留下点足迹吧~",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"chentianming11.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":{"enable":true,"onlypost":false,"loadingImg":"/uploads/loading.gif"},"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Spring是日常工作中最常用的框架，而IoC是其最核心的思想之一。IoC(Inversion of Control)的意思是控制反转，就是把原先我们代码里面需要实现的对象创建、依赖的代码，反转给容器来帮忙实现。整个容器的启动过程主要包含两大部分，第一部分是配置资源加载和注册，第二部分是Bean实例的创建和依赖注入(DI)。本文会根据源码详细介绍配置资源加载和注册的实现原理。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Spring源码阅读】Spring容器启动原理(上)-配置资源加载和注册">
+<meta property="og:url" content="https://chentianming11.github.io/posts/468538983/index.html">
+<meta property="og:site_name" content="陈添明">
+<meta property="og:description" content="Spring是日常工作中最常用的框架，而IoC是其最核心的思想之一。IoC(Inversion of Control)的意思是控制反转，就是把原先我们代码里面需要实现的对象创建、依赖的代码，反转给容器来帮忙实现。整个容器的启动过程主要包含两大部分，第一部分是配置资源加载和注册，第二部分是Bean实例的创建和依赖注入(DI)。本文会根据源码详细介绍配置资源加载和注册的实现原理。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/BeanDefinition-method.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/ApplicationContext.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/ClassPathXmlApplicationContext-constructor.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AbstractApplicationContext-constructor.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/PathMatchingResourcePatternResolver-constructor.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AbstractRefreshableConfigApplicationContext-setConfigLocations.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AbstractApplicationContext-refresh.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AbstractApplicationContext-obtainFreshBeanFactory.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AbstractRefreshableApplicationContext-refreshBeanFactory.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AbstractXmlApplicationContext-loadBeanDefinitions1.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AbstractXmlApplicationContext-loadBeanDefinitions2.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AbstractXmlApplicationContext-loadBeanDefinitions.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/DefaultResourceLoader-getResource.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AbstractXmlApplicationContext-loadBeanDefinitions2.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/XmlBeanDefinitionReader-loadBeanDefinitions.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/XmlBeanDefinitionReader-registerBeanDefinitions.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/DefaultBeanDefinitionDocumentReader-registerBeanDefinitions.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/DefaultBeanDefinitionDocumentReader-parseBeanDefinitions.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/DefaultBeanDefinitionDocumentReader-processBeanDefinition.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/BeanDefinitionReaderUtils-registerBeanDefinition.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/DefaultListableBeanFactory-registerBeanDefinition.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AnnotationConfigApplicationContext-register.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AnnotatedBeanDefinitionReader-register.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AnnotatedBeanDefinitionReader-doRegisterBean.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AnnotationScopeMetadataResolver-resolveScopeMetadata.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AnnotationConfigUtils-processCommonDefinitionAnnotations.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AnnotationConfigUtils-applyScopedProxyMode.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/ClassPathBeanDefinitionScanner-scan.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/ClassPathBeanDefinitionScanner-doScan.png">
+<meta property="article:published_time" content="2021-06-13T02:24:45.000Z">
+<meta property="article:modified_time" content="2021-06-13T14:40:47.830Z">
+<meta property="article:author" content="陈添明">
+<meta property="article:tag" content="spring">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://chentianming11.github.io/images/spring/ioc/BeanDefinition-method.png">
+
+<link rel="canonical" href="https://chentianming11.github.io/posts/468538983/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>【Spring源码阅读】Spring容器启动原理(上)-配置资源加载和注册 | 陈添明</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">陈添明</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">心安即是归处</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">46</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/chentianming11" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://chentianming11.github.io/posts/468538983/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="陈添明">
+      <meta itemprop="description" content="生命的意义在于成为你自己">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="陈添明">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Spring源码阅读】Spring容器启动原理(上)-配置资源加载和注册
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-06-13 10:24:45" itemprop="dateCreated datePublished" datetime="2021-06-13T10:24:45+08:00">2021-06-13</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/" itemprop="url" rel="index"><span itemprop="name">spring</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/posts/468538983/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/468538983/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>7.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>18 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Spring是日常工作中最常用的框架，而<code>IoC</code>是其最核心的思想之一。<strong>IoC(Inversion of Control)的意思是控制反转，就是把原先我们代码里面需要实现的对象创建、依赖的代码，反转给容器来帮忙实现</strong>。整个容器的启动过程主要包含两大部分，第一部分是配置资源加载和注册，第二部分是<code>Bean</code>实例的创建和依赖注入(DI)。本文会根据源码详细介绍配置资源加载和注册的实现原理。</p>
+<a id="more"></a>
+
+<h2 id="Spring核心容器类"><a href="#Spring核心容器类" class="headerlink" title="Spring核心容器类"></a>Spring核心容器类</h2><p>为了方便后续介绍，我们先得了解两个Spring核心容器类，分别是<code>BeanFactory</code>、<code>BeanDefinition</code>。</p>
+<h3 id="BeanFactory"><a href="#BeanFactory" class="headerlink" title="BeanFactory"></a>BeanFactory</h3><p><strong><code>BeanFactory</code>意思是管理<code>Bean</code>的工厂，它定义了<code>getBean()</code>、<code>containsBean()</code>等管理Bean的通用方法，我们熟悉的<code>ApplicationContext</code><br>接口就继承了<code>BeanFactory</code>接口。 可以简单认为，<code>BeanFactory</code>实例就是Spring底层容器，它是容器中所有<code>Bean</code>的管理者</strong>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">BeanFactory</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//对FactoryBean的转义定义，因为如果使用bean的名字检索FactoryBean得到的对象是工厂生成的对象，</span></span><br><span class="line">	<span class="comment">//如果需要得到工厂本身，需要转义</span></span><br><span class="line">	String FACTORY_BEAN_PREFIX = <span class="string">"&amp;"</span>;</span><br><span class="line"></span><br><span class="line">	</span><br><span class="line">	<span class="comment">//根据bean的名字，获取在IOC容器中得到bean实例</span></span><br><span class="line">	<span class="function">Object <span class="title">getBean</span><span class="params">(String name)</span> <span class="keyword">throws</span> BeansException</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//根据bean的名字和Class类型来得到bean实例，增加了类型安全验证机制。</span></span><br><span class="line">	&lt;T&gt; <span class="function">T <span class="title">getBean</span><span class="params">(String name, @Nullable Class&lt;T&gt; requiredType)</span> <span class="keyword">throws</span> BeansException</span>;</span><br><span class="line"></span><br><span class="line">	<span class="function">Object <span class="title">getBean</span><span class="params">(String name, Object... args)</span> <span class="keyword">throws</span> BeansException</span>;</span><br><span class="line"></span><br><span class="line">	&lt;T&gt; <span class="function">T <span class="title">getBean</span><span class="params">(Class&lt;T&gt; requiredType)</span> <span class="keyword">throws</span> BeansException</span>;</span><br><span class="line"></span><br><span class="line">	&lt;T&gt; <span class="function">T <span class="title">getBean</span><span class="params">(Class&lt;T&gt; requiredType, Object... args)</span> <span class="keyword">throws</span> BeansException</span>;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	<span class="comment">//提供对bean的检索，看看是否在IOC容器有这个名字的bean</span></span><br><span class="line">	<span class="function"><span class="keyword">boolean</span> <span class="title">containsBean</span><span class="params">(String name)</span></span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 是否是单例bean</span></span><br><span class="line">	<span class="function"><span class="keyword">boolean</span> <span class="title">isSingleton</span><span class="params">(String name)</span> <span class="keyword">throws</span> NoSuchBeanDefinitionException</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 是否是原型Bean</span></span><br><span class="line">	<span class="function"><span class="keyword">boolean</span> <span class="title">isPrototype</span><span class="params">(String name)</span> <span class="keyword">throws</span> NoSuchBeanDefinitionException</span>;</span><br><span class="line">	</span><br><span class="line">	<span class="function"><span class="keyword">boolean</span> <span class="title">isTypeMatch</span><span class="params">(String name, ResolvableType typeToMatch)</span> <span class="keyword">throws</span> NoSuchBeanDefinitionException</span>;</span><br><span class="line">	</span><br><span class="line">	<span class="function"><span class="keyword">boolean</span> <span class="title">isTypeMatch</span><span class="params">(String name, @Nullable Class&lt;?&gt; typeToMatch)</span> <span class="keyword">throws</span> NoSuchBeanDefinitionException</span>;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">//得到bean实例的Class类型</span></span><br><span class="line">	<span class="meta">@Nullable</span></span><br><span class="line">	Class&lt;?&gt; getType(String name) <span class="keyword">throws</span> NoSuchBeanDefinitionException;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">//得到bean的别名，如果根据别名检索，那么其原名也会被检索出来</span></span><br><span class="line">	String[] getAliases(String name);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="BeanDefinition"><a href="#BeanDefinition" class="headerlink" title="BeanDefinition"></a>BeanDefinition</h3><p><strong><code>BeanDefinition</code>意思是<code>Bean</code>定义，它描述了<code>Bean</code>的各种基础属性信息，比如<code>beanClassName</code>、<code>singleton</code>、<code>lazyInit</code>、<code>scope</code>等等。可以认为，<code>BeanDefinition</code>是完整创建<code>Bean</code>实例的基础，而本文真正介绍的就是<code>BeanDefinition</code>的加载和注册原理</strong>。</p>
+<p><img data-src="https://chentianming11.github.io/images/spring/ioc/BeanDefinition-method.png" alt="BeanDefinition-method"></p>
+<h2 id="基于Xml的配置资源加载和注册"><a href="#基于Xml的配置资源加载和注册" class="headerlink" title="基于Xml的配置资源加载和注册"></a>基于Xml的配置资源加载和注册</h2><p>配置资源加载和注册具体来说就是<code>BeanDefinition</code>的定位、加载和注册三部分。在Spring中，容器最后是以<code>ApplicationContext</code>实例存在的。根据具体资源的不同，分为各类<code>ApplicationContext</code>，比如<code>ClasspathXmlApplicationContext</code>，<code>AnnotationConfigApplicationContext</code>等等。类图如下：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/ApplicationContext.png" alt="ApplicationContext"></p>
+<p><code>ApplicationContext</code>允许上下文嵌套，对于一个<code>Bean</code>的查找，优先从当前上下文查找，如果没找到，则从父上下文查找，逐级向上。</p>
+<h3 id="寻找入口"><a href="#寻找入口" class="headerlink" title="寻找入口"></a>寻找入口</h3><p>对于xml配置的Spring应用，在<code>main()</code>方法中实例化<code>ClasspathXmlApplicationContext</code>即可创建一个IoC容器。我们可以从这个构造方法开始，探究一下IoC容器的初始化过程。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ApplicationContext app = <span class="keyword">new</span> ClassPathXmlApplicationContext(<span class="string">"application.xml"</span>);</span><br></pre></td></tr></table></figure>
+
+<p>实际调用的构造方法如下：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/ClassPathXmlApplicationContext-constructor.png" alt="ClassPathXmlApplicationContext-constructor"></p>
+<h3 id="设置资源解析器和配置路径"><a href="#设置资源解析器和配置路径" class="headerlink" title="设置资源解析器和配置路径"></a>设置资源解析器和配置路径</h3><p>在创建<code>ClassPathXmlApplicationContext</code>容器时，构造方法做以下两项重要工作:</p>
+<ol>
+<li>调用父类容器的构造方法<code>super(parent)</code>方法为容器设置好<code>Bean</code>资源加载器。</li>
+<li>调用父类<code>AbstractRefreshableConfigApplicationContext</code>的<code>setConfigLocations(configLocations)</code>方法设置<code>Bean</code>配置路径。</li>
+</ol>
+<p>通过追踪<code>ClassPathXmlApplicationContext</code>的继承体系，发现其父类的父类<code>AbstractApplicationContext</code>中初始化IoC容器所做的主要操作如下:<br><img data-src="https://chentianming11.github.io/images/spring/ioc/AbstractApplicationContext-constructor.png" alt="AbstractApplicationContext-constructor"></p>
+<p>从上面的代码可以看出，默认将会使用路径匹配资源解析器<code>PathMatchingResourcePatternResolver</code>进行配置资源解析。继续跟踪构造方法源码：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/PathMatchingResourcePatternResolver-constructor.png" alt="PathMatchingResourcePatternResolver-constructor"></p>
+<p>在设置完容器的资源解析器之后，接下来<code>ClassPathXmlApplicationContext</code>调用其父类 <code>AbstractRefreshableConfigApplicationContext</code>的<code>setConfigLocations()</code>方法设置配置定位路径，该方法的源码如下:</p>
+<p><img data-src="https://chentianming11.github.io/images/spring/ioc/AbstractRefreshableConfigApplicationContext-setConfigLocations.png" alt="AbstractRefreshableConfigApplicationContext-setConfigLocations"></p>
+<p><strong>至此，Spring IoC容器已经设置到配置资源解析器，并加载好了配置定位路径，接下来就要正式启动容器了</strong>。</p>
+<h3 id="开始启动"><a href="#开始启动" class="headerlink" title="开始启动"></a>开始启动</h3><p>Spring IoC 容器对<code>Bean</code>配置资源的载入是从<code>refresh()</code>方法开始的，<code>refresh()</code>是一个模板方法，规定了IoC 容器的启动流程，具体逻辑要交给其子类去实现。<code>refresh()</code>方法源码如下：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/AbstractApplicationContext-refresh.png" alt="AbstractApplicationContext-refresh"></p>
+<p><code>refresh()</code>方法主要为 IoC 容器<code>Bean</code>的生命周期管理提供条件，载入配置信息是在第二步<code>ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();</code>进行的。</p>
+<h3 id="创建容器"><a href="#创建容器" class="headerlink" title="创建容器"></a>创建容器</h3><p><code>obtainFreshBeanFactory()</code>方法调用子类容器的<code>refreshBeanFactory()</code>方法，启动容器载入<code>Bean</code>配置信息，代码如下:<br><img data-src="https://chentianming11.github.io/images/spring/ioc/AbstractApplicationContext-obtainFreshBeanFactory.png" alt="AbstractApplicationContext-obtainFreshBeanFactory"></p>
+<p>容器真正调用的是其子类<code>AbstractRefreshableApplicationContext</code>实现的<code>refreshBeanFactory()</code>方法，方法的源码如下:<br><img data-src="https://chentianming11.github.io/images/spring/ioc/AbstractRefreshableApplicationContext-refreshBeanFactory.png" alt="AbstractRefreshableApplicationContext-refreshBeanFactory"></p>
+<p>该方法中最重要的是调用了<code>loadBeanDefinitions(beanFactory)</code>方法，从方法名就能推断出，该方法完成了<code>BeanDefinition</code>的加载和注册！</p>
+<h3 id="载入配置路径"><a href="#载入配置路径" class="headerlink" title="载入配置路径"></a>载入配置路径</h3><p><code>loadBeanDefinitions(beanFactory)</code>真正调用的是其子类<code>AbstractXmlApplicationContext</code>的实现，源码如下：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/AbstractXmlApplicationContext-loadBeanDefinitions1.png" alt="AbstractXmlApplicationContext-loadBeanDefinitions1"></p>
+<p><img data-src="https://chentianming11.github.io/images/spring/ioc/AbstractXmlApplicationContext-loadBeanDefinitions2.png" alt="AbstractXmlApplicationContext-loadBeanDefinitions2"></p>
+<p>由于我们使用<code>ClassPathXmlApplicationContext</code>作为例子分析，因此<code>getConfigResources</code>的返回值为<code>null</code>，因此程序执行<code>reader.loadBeanDefinitions(configLocations)</code>。</p>
+<p>在<code>XmlBeanDefinitionReader</code>的抽象父类<code>AbstractBeanDefinitionReader</code>中定义了载入过程。源码如下：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/AbstractXmlApplicationContext-loadBeanDefinitions.png" alt="AbstractXmlApplicationContext-loadBeanDefinitions"></p>
+<p><code>AbstractRefreshableConfigApplicationContext</code>的<code>loadBeanDefinitions(String... locations)</code>方法实际上是调用 <code>AbstractBeanDefinitionReader</code>的<code>loadBeanDefinitions()</code>方法。</p>
+<p>从对<code>AbstractBeanDefinitionReader</code>的<code>loadBeanDefinitions()</code>方法源码分析可以看出该方法就做了两件事:</p>
+<ol>
+<li>调用资源加载器的获取资源方法<code>resourceLoader.getResource(location)</code>，获取到要加载的资源。</li>
+<li>真正执行加载功能是其子类<code>XmlBeanDefinitionReader</code>的<code>loadBeanDefinitions()</code>方法。</li>
+</ol>
+<h3 id="获取配置资源"><a href="#获取配置资源" class="headerlink" title="获取配置资源"></a>获取配置资源</h3><p><code>resourceLoader.getResource(location)</code>真正调用的是<code>DefaultResourceLoader</code>实现的方法，源码如下：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/DefaultResourceLoader-getResource.png" alt="DefaultResourceLoader-getResource"></p>
+<p><code>getResource()</code>支持了多种途径加载资源，在本例中，最终执行的是从容器自身类路径中资源中获取。即执行<code>getResourceByPath(location)</code>方法，最终返回的是<code>ClassPathContextResource</code>实例。至此，完成了配置资源的获取。</p>
+<h3 id="加载配置"><a href="#加载配置" class="headerlink" title="加载配置"></a>加载配置</h3><p>在获取配置资源之后，接下来执行<code>AbstractBeanDefinitionReader</code>的<code>loadBeanDefinitions(resource)</code>方法。源码如下：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/AbstractXmlApplicationContext-loadBeanDefinitions2.png" alt="AbstractXmlApplicationContext-loadBeanDefinitions2"></p>
+<p><code>loadBeanDefinitions(resource)</code>真正调用的是子类<code>XmlBeanDefinitionReader</code>的方法。<br><img data-src="https://chentianming11.github.io/images/spring/ioc/XmlBeanDefinitionReader-loadBeanDefinitions.png" alt="XmlBeanDefinitionReader-loadBeanDefinitions"></p>
+<p>在上面的实现中，先将xml配置资源解析成了一个<code>Document</code>对象，然后根据该对象执行注册<code>BeanDefinition</code>。注册<code>BeanDefinition</code>源码如下：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/XmlBeanDefinitionReader-registerBeanDefinitions.png" alt="XmlBeanDefinitionReader-registerBeanDefinitions"></p>
+<p>这里进一步调用了<code>DefaultBeanDefinitionDocumentReader</code>的<code>registerBeanDefinitions()</code>方法。<br><img data-src="https://chentianming11.github.io/images/spring/ioc/DefaultBeanDefinitionDocumentReader-registerBeanDefinitions.png" alt="DefaultBeanDefinitionDocumentReader-registerBeanDefinitions"></p>
+<p><img data-src="https://chentianming11.github.io/images/spring/ioc/DefaultBeanDefinitionDocumentReader-parseBeanDefinitions.png" alt="DefaultBeanDefinitionDocumentReader-parseBeanDefinitions"></p>
+<p>从源码可以看出，加载xml配置时，如果碰到<code>&lt;import&gt;</code>，会先导入该标签引用的资源；如果碰到<code>&lt;alias&gt;</code>，会将定义的别名注册到容器中；如果是<code>&lt;Bean&gt;</code>，则会解析并注册<code>BeanDefinition</code>，这也是我们关注的重点。<br><img data-src="https://chentianming11.github.io/images/spring/ioc/DefaultBeanDefinitionDocumentReader-processBeanDefinition.png" alt="DefaultBeanDefinitionDocumentReader-processBeanDefinition"></p>
+<p>在<code>delegate.parseBeanDefinitionElement(ele)</code>方法中完成了<code>BeanDefinition</code>的解析处理，具体解析逻辑不是本文的重点，这里只需要知道，此时<code>BeanDefinitionHolder</code>中包含了xml配置文件中的各种信息。解析完成之后，通过<code>BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry())</code>进行注册。</p>
+<h3 id="向容器注册"><a href="#向容器注册" class="headerlink" title="向容器注册"></a>向容器注册</h3><p><code>BeanDefinitionReaderUtils</code>的<code>registerBeanDefinition()</code>方法源码如下：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/BeanDefinitionReaderUtils-registerBeanDefinition.png" alt="BeanDefinitionReaderUtils-registerBeanDefinition"></p>
+<p>实际的注册逻辑调用了<code>BeanDefinitionRegistry</code>类的<code>registerBeanDefinition()</code>方法。而<code>BeanDefinitionRegistry</code>的实现类为<code>DefaultListableBeanFactory</code>，继续跟踪源码：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/DefaultListableBeanFactory-registerBeanDefinition.png" alt="DefaultListableBeanFactory-registerBeanDefinition"></p>
+<p>从这里可以发现，<code>BeanDefinition</code>信息实际注册到了<code>DefaultListableBeanFactory</code>的<code>beanDefinitionMap</code>属性中。这里请注意，<code>DefaultListableBeanFactory</code>是一个<code>BeanFactory</code>。通过源码分析发现，不管是<code>ClassPathXmlApplicationContext</code>还是<code>AnnotationConfigApplicationContext</code>都持有<code>DefaultListableBeanFactory</code>实例。也就是说，<code>BeanDefinition</code>已经注册到容器中了，通过容器，可以获取所有的<code>BeanDefinition</code>注册信息，为后续的<code>Bean</code>的创建和依赖注入提供了基础！</p>
+<h2 id="基于Annotation的配置资源加载和注册"><a href="#基于Annotation的配置资源加载和注册" class="headerlink" title="基于Annotation的配置资源加载和注册"></a>基于Annotation的配置资源加载和注册</h2><p>目前更常见的的是通过注解来配置<code>Bean</code>，比如在类上加<code>@Controller</code>、<code>@Service</code>、<code>@Component</code>等。下面我们就来分析基于Annotation的配置资源加载和注册过程。</p>
+<h3 id="寻找入口-1"><a href="#寻找入口-1" class="headerlink" title="寻找入口"></a>寻找入口</h3><p>基于Annotation的Spring IoC容器实例是<code>AnnotationConfigApplicationContext</code>，我们可以通过它的构造方法进行分析。最关键的两个构造方法如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建一个新的 AnnotationConfigApplicationContext，从给定的带注解的加载bean定义并自动刷新上下文。</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">AnnotationConfigApplicationContext</span><span class="params">(Class&lt;?&gt;... annotatedClasses)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>();</span><br><span class="line">    register(annotatedClasses);</span><br><span class="line">    refresh();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 创建一个新的 AnnotationConfigApplicationContext，扫描给定包中的 bean 定义并自动刷新上下文。</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">AnnotationConfigApplicationContext</span><span class="params">(String... basePackages)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>();</span><br><span class="line">        scan(basePackages);</span><br><span class="line">        refresh();</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<p>注解驱动的Spring容器有两种创建方式：</p>
+<ol>
+<li>直接传入带有相关注解的类。</li>
+<li>指定要扫描的基础包，将包下面所有带相关注解的Bean全部加载进去。</li>
+</ol>
+<p>接下来，分别介绍这两种容器创建方式。</p>
+<h3 id="直接传入带有相关注解的类"><a href="#直接传入带有相关注解的类" class="headerlink" title="直接传入带有相关注解的类"></a>直接传入带有相关注解的类</h3><p>显然，<code>BeanDefinition</code>注册的关键代码在<code>register(annotatedClasses)</code>中，我们直接看相关源码：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/AnnotationConfigApplicationContext-register.png" alt="AnnotationConfigApplicationContext-register"></p>
+<p>这里调用了<code>AnnotatedBeanDefinitionReader</code>的<code>register()</code>方法，继续跟进去：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/AnnotatedBeanDefinitionReader-register.png" alt="AnnotatedBeanDefinitionReader-register"></p>
+<p><img data-src="https://chentianming11.github.io/images/spring/ioc/AnnotatedBeanDefinitionReader-doRegisterBean.png" alt="AnnotatedBeanDefinitionReader-doRegisterBean"></p>
+<p>从上面的源码我们可以看出，注册注解<code>Bean</code>定义类的基本步骤如下：</p>
+<ol>
+<li>使用注解元数据解析器解析注解<code>Bean</code>中关于作用域的配置。</li>
+<li>使用<code>AnnotationConfigUtils</code>的<code>processCommonDefinitionAnnotations()</code>方法处理注解<code>Bean</code>定义类中通用的注解。</li>
+<li>使用<code>AnnotationConfigUtils</code>的<code>applyScopedProxyMode()</code>方法创建对于作用域的代理对象。</li>
+<li>通过<code>BeanDefinitionReaderUtils</code>向容器注册<code>Beandefinition</code>。</li>
+</ol>
+<p>下面，我们详细分析这4个步骤：</p>
+<h4 id="使用注解元数据解析器解析注解Bean中关于作用域的配置"><a href="#使用注解元数据解析器解析注解Bean中关于作用域的配置" class="headerlink" title="使用注解元数据解析器解析注解Bean中关于作用域的配置"></a>使用注解元数据解析器解析注解<code>Bean</code>中关于作用域的配置</h4><p>通过调用<code>AnnotationScopeMetadataResolver</code>类的<code>resolveScopeMetadata()</code>方法解析注解<code>Bean</code>定义类的作用域元信息。<br><img data-src="https://chentianming11.github.io/images/spring/ioc/AnnotationScopeMetadataResolver-resolveScopeMetadata.png" alt="AnnotationScopeMetadataResolver-resolveScopeMetadata"></p>
+<h4 id="使用AnnotationConfigUtils的processCommonDefinitionAnnotations-方法处理注解Bean定义类中通用的注解"><a href="#使用AnnotationConfigUtils的processCommonDefinitionAnnotations-方法处理注解Bean定义类中通用的注解" class="headerlink" title="使用AnnotationConfigUtils的processCommonDefinitionAnnotations()方法处理注解Bean定义类中通用的注解"></a>使用<code>AnnotationConfigUtils</code>的<code>processCommonDefinitionAnnotations()</code>方法处理注解<code>Bean</code>定义类中通用的注解</h4><p><img data-src="https://chentianming11.github.io/images/spring/ioc/AnnotationConfigUtils-processCommonDefinitionAnnotations.png" alt="AnnotationConfigUtils-processCommonDefinitionAnnotations"></p>
+<p>显然，这里在解析<code>@Lazy</code>、<code>@Primary</code>、<code>@DependsOn</code>等注解值，然后给<code>BeanDefinition</code>对应的字段赋值。</p>
+<h4 id="使用AnnotationConfigUtils的applyScopedProxyMode-方法创建对于作用域的代理对象"><a href="#使用AnnotationConfigUtils的applyScopedProxyMode-方法创建对于作用域的代理对象" class="headerlink" title="使用AnnotationConfigUtils的applyScopedProxyMode()方法创建对于作用域的代理对象"></a>使用<code>AnnotationConfigUtils</code>的<code>applyScopedProxyMode()</code>方法创建对于作用域的代理对象</h4><p><img data-src="https://chentianming11.github.io/images/spring/ioc/AnnotationConfigUtils-applyScopedProxyMode.png" alt="AnnotationConfigUtils-applyScopedProxyMode"></p>
+<p>该方法根据作用域<code>@Scope</code>注解的值，为<code>Bean</code>定义应用相应的代理模式，主要是在Spring面向切面编程(AOP)中使用。</p>
+<h4 id="通过BeanDefinitionReaderUtils向容器注册Beandefinition"><a href="#通过BeanDefinitionReaderUtils向容器注册Beandefinition" class="headerlink" title="通过BeanDefinitionReaderUtils向容器注册Beandefinition"></a>通过<code>BeanDefinitionReaderUtils</code>向容器注册<code>Beandefinition</code></h4><p>该方法就是将<code>Beandefinition</code>注册到容器中，前面详细介绍过，不再赘述。</p>
+<h3 id="指定要扫描的基础包"><a href="#指定要扫描的基础包" class="headerlink" title="指定要扫描的基础包"></a>指定要扫描的基础包</h3><p>当创建注解处理容器时，如果传入的初始参数是注解<code>Bean</code>定义类所在的包时，注解容器将扫描给定的包及其子包，将扫描到的注解<code>Bean</code>定义载入并注册。</p>
+<h4 id="ClassPathBeanDefinitionScanner-扫描给定的包及其子包"><a href="#ClassPathBeanDefinitionScanner-扫描给定的包及其子包" class="headerlink" title="ClassPathBeanDefinitionScanner 扫描给定的包及其子包"></a>ClassPathBeanDefinitionScanner 扫描给定的包及其子包</h4><p><code>AnnotationConfigApplicationContext</code>的<code>scan()</code>方法实际调用了<code>ClassPathBeanDefinitionScanner</code>的<code>scan()</code>方法，源码如下：</p>
+<p><img data-src="https://chentianming11.github.io/images/spring/ioc/ClassPathBeanDefinitionScanner-scan.png" alt="ClassPathBeanDefinitionScanner-scan"></p>
+<p><img data-src="https://chentianming11.github.io/images/spring/ioc/ClassPathBeanDefinitionScanner-doScan.png" alt="ClassPathBeanDefinitionScanner-doScan"></p>
+<p>从源码可以看到，在<code>doScan()</code>方法里面，扫描了基础包下所有包含<code>Bean</code>定义注解的类，并且给<code>BeanDefinition</code>设置了对应的属性值。</p>
+<h4 id="向容器注册-1"><a href="#向容器注册-1" class="headerlink" title="向容器注册"></a>向容器注册</h4><p>在<code>doScan()</code>方法最后，调用了<code>registerBeanDefinition(definitionHolder, this.registry)</code>向容器注册。这个在前面介绍过，不再赘述。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>不管是基于<code>xml</code>还是注解方式，都是将配置信息解析到<code>BeanDefinition</code>中，然后再注册到容器中。至此，在容器中就能获取所有<code>Bean</code>定义信息，接下来就是<code>Bean</code>实例的创建和依赖注入(DI)，下一章节再见！</p>
+<blockquote>
+<p>原创不易，觉得文章写得不错的小伙伴，点个赞👍 鼓励一下吧~</p>
+</blockquote>
+<blockquote>
+<p>欢迎关注我的开源项目：<a href="https://github.com/LianjiaTech/retrofit-spring-boot-starter" target="_blank" rel="noopener">一款适用于SpringBoot的轻量级HTTP调用框架</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/spring/" rel="tag"># spring</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/3719910845/" rel="prev" title="gradle构建spring源码环境">
+      <i class="fa fa-chevron-left"></i> gradle构建spring源码环境
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/204759613/" rel="next" title="【Spring源码阅读】Spring容器启动原理(下)-Bean实例的创建和依赖注入">
+      【Spring源码阅读】Spring容器启动原理(下)-Bean实例的创建和依赖注入 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Spring核心容器类"><span class="nav-number">1.</span> <span class="nav-text">Spring核心容器类</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#BeanFactory"><span class="nav-number">1.1.</span> <span class="nav-text">BeanFactory</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#BeanDefinition"><span class="nav-number">1.2.</span> <span class="nav-text">BeanDefinition</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#基于Xml的配置资源加载和注册"><span class="nav-number">2.</span> <span class="nav-text">基于Xml的配置资源加载和注册</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#寻找入口"><span class="nav-number">2.1.</span> <span class="nav-text">寻找入口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#设置资源解析器和配置路径"><span class="nav-number">2.2.</span> <span class="nav-text">设置资源解析器和配置路径</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#开始启动"><span class="nav-number">2.3.</span> <span class="nav-text">开始启动</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#创建容器"><span class="nav-number">2.4.</span> <span class="nav-text">创建容器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#载入配置路径"><span class="nav-number">2.5.</span> <span class="nav-text">载入配置路径</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#获取配置资源"><span class="nav-number">2.6.</span> <span class="nav-text">获取配置资源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#加载配置"><span class="nav-number">2.7.</span> <span class="nav-text">加载配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#向容器注册"><span class="nav-number">2.8.</span> <span class="nav-text">向容器注册</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#基于Annotation的配置资源加载和注册"><span class="nav-number">3.</span> <span class="nav-text">基于Annotation的配置资源加载和注册</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#寻找入口-1"><span class="nav-number">3.1.</span> <span class="nav-text">寻找入口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#直接传入带有相关注解的类"><span class="nav-number">3.2.</span> <span class="nav-text">直接传入带有相关注解的类</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#使用注解元数据解析器解析注解Bean中关于作用域的配置"><span class="nav-number">3.2.1.</span> <span class="nav-text">使用注解元数据解析器解析注解Bean中关于作用域的配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#使用AnnotationConfigUtils的processCommonDefinitionAnnotations-方法处理注解Bean定义类中通用的注解"><span class="nav-number">3.2.2.</span> <span class="nav-text">使用AnnotationConfigUtils的processCommonDefinitionAnnotations()方法处理注解Bean定义类中通用的注解</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#使用AnnotationConfigUtils的applyScopedProxyMode-方法创建对于作用域的代理对象"><span class="nav-number">3.2.3.</span> <span class="nav-text">使用AnnotationConfigUtils的applyScopedProxyMode()方法创建对于作用域的代理对象</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#通过BeanDefinitionReaderUtils向容器注册Beandefinition"><span class="nav-number">3.2.4.</span> <span class="nav-text">通过BeanDefinitionReaderUtils向容器注册Beandefinition</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#指定要扫描的基础包"><span class="nav-number">3.3.</span> <span class="nav-text">指定要扫描的基础包</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#ClassPathBeanDefinitionScanner-扫描给定的包及其子包"><span class="nav-number">3.3.1.</span> <span class="nav-text">ClassPathBeanDefinitionScanner 扫描给定的包及其子包</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#向容器注册-1"><span class="nav-number">3.3.2.</span> <span class="nav-text">向容器注册</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#小结"><span class="nav-number">4.</span> <span class="nav-text">小结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="陈添明"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">陈添明</p>
+  <div class="site-description" itemprop="description">生命的意义在于成为你自己</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">46</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈添明</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">296k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">12:20</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+  <script src="//cdn.jsdelivr.net/npm/quicklink@1/dist/quicklink.umd.js"></script>
+  <script>
+      window.addEventListener('load', () => {
+      quicklink({
+        timeout : 3000,
+        priority: true,
+        ignores : [uri => uri.includes('#'),uri => uri === 'https://chentianming11.github.io/posts/468538983/',]
+      });
+      });
+  </script>
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : 'SoPxUkme2aynTULaNuIc5TIq-gzGzoHsz',
+      appKey     : '4TDP7SMCbgDKTOGGUtpIeA0H',
+      placeholder: "留下点足迹吧~",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+    </div>
+</body>
+</html>

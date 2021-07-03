@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"chentianming11.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":{"enable":true,"onlypost":false,"loadingImg":"/uploads/loading.gif"},"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="2020年，在技术上最大的一件事情就是写了一个HTTP客户端工具并推动开源，目前该项目在github上差不多收获了400个star。也许对于各位技术大佬来说，四百star完全微不足道，但对于还是“铁憨憨”的我来说，真的很不容易。在整个过程中，我经历了啃源码时的枯燥、编码设计时的纠结以及开源完成时的喜悦。下面，我们就来详细聊聊这件事。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="2020，我写了个开源项目 | 掘金年度征文">
+<meta property="og:url" content="https://chentianming11.github.io/posts/2971920835/index.html">
+<meta property="og:site_name" content="陈添明">
+<meta property="og:description" content="2020年，在技术上最大的一件事情就是写了一个HTTP客户端工具并推动开源，目前该项目在github上差不多收获了400个star。也许对于各位技术大佬来说，四百star完全微不足道，但对于还是“铁憨憨”的我来说，真的很不容易。在整个过程中，我经历了啃源码时的枯燥、编码设计时的纠结以及开源完成时的喜悦。下面，我们就来详细聊聊这件事。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://chentianming11.github.io/images/retrofit/retrofit-2020.12.12.png">
+<meta property="article:published_time" content="2020-12-12T09:09:23.000Z">
+<meta property="article:modified_time" content="2021-06-10T15:17:55.606Z">
+<meta property="article:author" content="陈添明">
+<meta property="article:tag" content="随笔">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://chentianming11.github.io/images/retrofit/retrofit-2020.12.12.png">
+
+<link rel="canonical" href="https://chentianming11.github.io/posts/2971920835/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>2020，我写了个开源项目 | 掘金年度征文 | 陈添明</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">陈添明</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">心安即是归处</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">46</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/chentianming11" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://chentianming11.github.io/posts/2971920835/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="陈添明">
+      <meta itemprop="description" content="生命的意义在于成为你自己">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="陈添明">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          2020，我写了个开源项目 | 掘金年度征文
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-12-12 17:09:23" itemprop="dateCreated datePublished" datetime="2020-12-12T17:09:23+08:00">2020-12-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E9%9A%8F%E7%AC%94/" itemprop="url" rel="index"><span itemprop="name">随笔</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/posts/2971920835/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/2971920835/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>7 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><strong>2020年，在技术上最大的一件事情就是写了一个<code>HTTP</code>客户端工具并推动开源，目前该项目在<code>github</code>上差不多收获了<code>400</code>个star</strong>。也许对于各位技术大佬来说，四百<code>star</code>完全微不足道，但对于还是“铁憨憨”的我来说，真的很不容易。在整个过程中，我经历了啃源码时的枯燥、编码设计时的纠结以及开源完成时的喜悦。下面，我们就来详细聊聊这件事。</p>
+<a id="more"></a>
+
+<p><img data-src="https://chentianming11.github.io/images/retrofit/retrofit-2020.12.12.png" alt="retrofit-2020.12.12.png"></p>
+<p>项目地址：<a href="https://github.com/LianjiaTech/retrofit-spring-boot-starter" target="_blank" rel="noopener">https://github.com/LianjiaTech/retrofit-spring-boot-starter</a></p>
+<h2 id="缘起"><a href="#缘起" class="headerlink" title="缘起"></a>缘起</h2><p>相信很多小伙伴跟我一样，对代码都有一定的“强迫症”。碰到实现上不够好或者使用上不够方便的代码，总想好好封装一下。<strong>这样不仅能锻炼自己的抽象设计能力，更能显著地提升研发效率，一举两得</strong>。时间回到2019年4月份，当时我们系统是一个<code>spring-boot</code>框架项目，项目中存在大量的<code>http</code>接口调用，但是调用的方式都是<strong>直接在业务方法里面使用类似<code>HttpUtil</code>发起的</strong>。这种实现方式，<strong>不仅丧失了框架层面灵活扩展的可能性，更是完全背离了面向对象的设计原则</strong>。作为一向有代码强迫症的我来说，忍不住就想对它下手了。</p>
+<p>当然，光有想法是不够的，更重要的是如何实践。我当时做的第一件事情就是<strong>想清楚自己最终想达成的目标，正所谓“以终为始”，先想清楚目标，再去努力实现</strong>。这里，我联想到了<code>mybatis</code>框架可以直接通过接口执行<code>sql</code>。实际上，不管是执行<code>sql</code>还是发起<code>http</code>请求，本质上都是一种数据交互形式，<strong>因此我最终定的目标就是支持<code>spring-boot</code>项目通过接口发起<code>http</code>请求</strong>。接下来第二件事就是代码实现了，我没有上来直接撸代码，而是先去调研了一下相关的开源实现，毕竟站在巨人的肩膀上才能看得更远。经过一番调研之后，最终有2个项目在我的考虑范围之内，第一个是<code>Feign</code>，另一个是<code>Retrofit</code>，它们都支持通过接口发起<code>http</code>请求。考虑到<code>Feign</code>是<code>spring cloud</code>中消费端的调用框架，而我们的项目当时并不是<code>spring cloud</code>项目，由于不想引入<code>spring cloud</code>相关依赖，因此放弃了<code>Feign</code>。<strong>而<code>Retrofit</code>是基于<code>okhttp</code>封装的<code>http</code>客户端工具，使用同样非常广泛，因此最终选用了<code>Retrofit</code></strong>。</p>
+<p>然而，理想很丰满，现实很骨感。<code>retrofit</code>官方并没有提供与<code>spring-boot</code>项目快速整合的<code>starter</code>，这使得我不得不自己将其与<code>spring-boot</code>项目进行整合。实际上，我做的最初版就是做了一个整合，并且也达到过基本可用的状态。如果故事止步于此，<strong>这件事我也就做到了勉强60分甚至是不及格的水准</strong>。<strong>对代码不将就，追求极致才是我们该有的态度</strong>，因此我萌生了一个更加大胆的想法，<strong>做一个开源项目，剥离业务代码，实现更加完整更加优雅的封装</strong>。</p>
+<h2 id="开源"><a href="#开源" class="headerlink" title="开源"></a>开源</h2><p><strong>在每一个程序猿心中，自己写一个开源项目是一件很酷的事</strong>，我当时想的就是把这件事做成。但是真正要动手去做的时候才发现，事情比想象中要复杂的多。因为开源项目最终是要给其他人用的，所以我<strong>对自己的代码设计和质量都有更加严格的要求</strong>。而当时不得不承认的一个事实是，我对相关框架源码的理解远远不够，换句话说就是我还不具备写一个开源项目的能力。这个时候，我要做的事情就是先死磕相关源码。经过3个多月的时间，我终于把<code>retrofit</code>、<code>spring</code>和<code>mybatis</code>框架的核心源码全部理解了一遍。看过源码的同学应该都知道，<strong>看源码的过程多少带有一些“煎熬”，但是认真啃完之后收获也会很大</strong>。</p>
+<p>准备工作完成之后，就开始正式进入代码设计和实现了。此时，之前啃源码的效果就明显体现出来了，<strong>我在写代码的时候会自然而然地联想到开源框架的优秀实现，然后借鉴过来</strong>。这是一种很抽象的感觉，相信啃过源码的同学都有所体会。就这样，编码大概又花了2个月的时间，整个过程我都处在一个很兴奋的状态，记得那会睡觉的时候都在想怎么撸代码。由于这些工作都是业余时间进行的，因此这大半年时间里面，<strong>我的业余生活明显变得非常充实，现在回想起来，确实很累但很有收获</strong>。</p>
+<p>当一切准备就绪，接下来就是接受实际考验的时候了，我们当时替换了线上2个<code>Java</code>项目的<code>http</code>调用，并且通过自测就直接上线了，上线之后效果也很好，没有出现任何异常。后来正式申请项目开源，整个过程比较漫长，大概花了4个月的时间，终于在2020年4月份审核通过。我记得当时刚好是清明节，<strong>我在<code>github</code>上正式发布了自己首个开源项目</strong>。不知不觉完成了目标，甚是欣慰。</p>
+<h2 id="百星"><a href="#百星" class="headerlink" title="百星"></a>百星</h2><p>在接下来的2个月里面，我主要是做了一些功能上的迭代优化，<code>github</code>上的<code>star</code>数量依然少的可怜。在6月份的时候，我准备写<code>2.0</code>版本了。之所以要这么快写<code>2.0</code>版本，不是因为我们<code>1.0</code>写的有多烂，而是因为这段时间，我思想上出现了一些转变。<strong>之前写<code>1.0</code>的时候，我完全站在自己的视角去想项目应该支持哪些功能，兼容哪些框架，这诚然是我应该考虑的问题，但是好像偏离了方向，偏离了实际</strong>。我把实现做的复杂，仅仅是为了支持可能并不存在的需求。因此，<strong>在<code>2.0</code>的设计上，我做了大量简化，仅保留最重要最核心的功能，我觉得只有用户一下就能看懂你的设计，他们才会更有兴趣和更有安全感</strong>。最后，我还花了整整<code>2</code>天时间为<code>2.0</code>编写文档，这简直是一件不可思议的事情。</p>
+<p>由于我这个时候已经开始写技术文章了，因此就在掘金上发了一篇<strong>介绍开源项目使用</strong>的文章。为了吸引眼球，我还特意取了一个很唬人的标题《spring-boot项目下最优雅的http客户端工具，用它就够了！》。没想到一下子就火了，马上就上了当天的热门推荐，还给我带来了<code>30</code>多个<code>star</code>。这对于平时都是“小透明”的我来说，真的是出乎意料。后来，有很多技术公众号也转载了我的开源项目，比如<code>程序员DD</code>、<code>HelloGithub</code>、<code>Java知音</code>、<code>SpringForAll社区</code>等等。截止到12月12日为止，整个项目在<code>github</code>上已经收获了差不多<code>400</code>个<code>star</code>。</p>
+<h2 id="收获"><a href="#收获" class="headerlink" title="收获"></a>收获</h2><p><strong>对我而言，做完整个开源项目，除了在技术上有更多的成长以外，更重要的是收获了自信</strong>。在日常工作中，我不会畏惧更复杂的业务，同时也更想在技术上做出更多的成绩。最近重听了罗胖“2019跨年演讲”，对里面有两个词语印象深刻，一个是“我辈中人”，另一个是“做事的人“。“我辈中人”是一种自信与自豪，“做事的人“是一种脚踏实地的态度。2020即将过去，2021马上到来，继续加油！</p>
+<p><a href="https://juejin.cn/post/6901125532729999374" target="_blank" rel="noopener">掘金年度征文 | 2020 与我的技术之路 征文活动正在进行中……</a></p>
+<blockquote>
+<p>欢迎关注我的开源项目：<a href="https://github.com/LianjiaTech/retrofit-spring-boot-starter" target="_blank" rel="noopener">一款适用于SpringBoot的轻量级HTTP调用框架</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E9%9A%8F%E7%AC%94/" rel="tag"># 随笔</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/1541374189/" rel="prev" title="SpringBoot项目整合Swagger自动生成接口文档之最佳实践指南">
+      <i class="fa fa-chevron-left"></i> SpringBoot项目整合Swagger自动生成接口文档之最佳实践指南
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/4128331822/" rel="next" title="zookeeper基本介绍及使用">
+      zookeeper基本介绍及使用 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#缘起"><span class="nav-number">1.</span> <span class="nav-text">缘起</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#开源"><span class="nav-number">2.</span> <span class="nav-text">开源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#百星"><span class="nav-number">3.</span> <span class="nav-text">百星</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#收获"><span class="nav-number">4.</span> <span class="nav-text">收获</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="陈添明"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">陈添明</p>
+  <div class="site-description" itemprop="description">生命的意义在于成为你自己</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">46</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈添明</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">296k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">12:20</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+  <script src="//cdn.jsdelivr.net/npm/quicklink@1/dist/quicklink.umd.js"></script>
+  <script>
+      window.addEventListener('load', () => {
+      quicklink({
+        timeout : 3000,
+        priority: true,
+        ignores : [uri => uri.includes('#'),uri => uri === 'https://chentianming11.github.io/posts/2971920835/',]
+      });
+      });
+  </script>
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : 'SoPxUkme2aynTULaNuIc5TIq-gzGzoHsz',
+      appKey     : '4TDP7SMCbgDKTOGGUtpIeA0H',
+      placeholder: "留下点足迹吧~",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+    </div>
+</body>
+</html>

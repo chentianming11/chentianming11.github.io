@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"chentianming11.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":{"enable":true,"onlypost":false,"loadingImg":"/uploads/loading.gif"},"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="在SpringBoot项目直接使用okhttp、httpClient或者RestTemplate发起HTTP请求，既繁琐又不方便统一管理。因此，在这里推荐一个适用于SpringBoot项目的轻量级HTTP客户端框架retrofit-spring-boot-starter，使用非常简单方便，同时又提供诸多功能增强。目前项目已经更新至2.2.2版本，并且会持续进行迭代优化。 项目地址：https:&#x2F;&#x2F;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="推荐一个适用于SpringBoot项目的轻量级HTTP客户端框架，快来试试它!">
+<meta property="og:url" content="https://chentianming11.github.io/posts/3833574358/index.html">
+<meta property="og:site_name" content="陈添明">
+<meta property="og:description" content="在SpringBoot项目直接使用okhttp、httpClient或者RestTemplate发起HTTP请求，既繁琐又不方便统一管理。因此，在这里推荐一个适用于SpringBoot项目的轻量级HTTP客户端框架retrofit-spring-boot-starter，使用非常简单方便，同时又提供诸多功能增强。目前项目已经更新至2.2.2版本，并且会持续进行迭代优化。 项目地址：https:&#x2F;&#x2F;">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-11-22T07:15:29.000Z">
+<meta property="article:modified_time" content="2021-06-10T15:17:55.593Z">
+<meta property="article:author" content="陈添明">
+<meta property="article:tag" content="http">
+<meta property="article:tag" content="spring">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://chentianming11.github.io/posts/3833574358/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>推荐一个适用于SpringBoot项目的轻量级HTTP客户端框架，快来试试它! | 陈添明</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">陈添明</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">心安即是归处</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">46</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/chentianming11" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://chentianming11.github.io/posts/3833574358/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="陈添明">
+      <meta itemprop="description" content="生命的意义在于成为你自己">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="陈添明">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          推荐一个适用于SpringBoot项目的轻量级HTTP客户端框架，快来试试它!
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-11-22 15:15:29" itemprop="dateCreated datePublished" datetime="2020-11-22T15:15:29+08:00">2020-11-22</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%BC%80%E6%BA%90%E9%A1%B9%E7%9B%AE/" itemprop="url" rel="index"><span itemprop="name">开源项目</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/posts/3833574358/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/3833574358/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>18k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>44 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>在<code>SpringBoot</code>项目直接使用<code>okhttp</code>、<code>httpClient</code>或者<code>RestTemplate</code>发起<code>HTTP</code>请求，既繁琐又不方便统一管理。因此，在这里推荐一个适用于<code>SpringBoot</code>项目的轻量级HTTP客户端框架<a href="https://github.com/LianjiaTech/retrofit-spring-boot-starter" target="_blank" rel="noopener">retrofit-spring-boot-starter</a>，使用非常简单方便，同时又提供诸多功能增强。目前项目已经更新至<code>2.2.2</code>版本，并且会持续进行迭代优化。</p>
+<p>项目地址：<a href="https://github.com/LianjiaTech/retrofit-spring-boot-starter" target="_blank" rel="noopener">https://github.com/LianjiaTech/retrofit-spring-boot-starter</a></p>
+<a id="more"></a>
+
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p><code>Retrofit</code>是适用于<code>Android</code>和<code>Java</code>且类型安全的HTTP客户端，其最大的特性的是<strong>支持通过<code>接口</code>的方式发起HTTP请求</strong>。而<code>spring-boot</code>是使用最广泛的Java开发框架，但是<code>Retrofit</code>官方没有支持与<code>spring-boot</code>框架快速整合，因此我们开发了<code>retrofit-spring-boot-starter</code>。</p>
+<p><strong><code>retrofit-spring-boot-starter</code>实现了<code>Retrofit</code>与<code>spring-boot</code>框架快速整合，并且支持了诸多功能增强，极大简化开发</strong>。</p>
+<p>🚀项目持续优化迭代，欢迎大家提ISSUE和PR！麻烦大家能给一颗star✨，您的star是我们持续更新的动力！</p>
+<h2 id="功能特性"><a href="#功能特性" class="headerlink" title="功能特性"></a>功能特性</h2><ul>
+<li><input checked="" disabled="" type="checkbox"> <a href="#自定义注入OkHttpClient">自定义注入OkHttpClient</a></li>
+<li><input checked="" disabled="" type="checkbox"> <a href="#注解式拦截器">注解式拦截器</a></li>
+<li><input checked="" disabled="" type="checkbox"> <a href="#连接池管理">连接池管理</a></li>
+<li><input checked="" disabled="" type="checkbox"> <a href="#日志打印">日志打印</a></li>
+<li><input checked="" disabled="" type="checkbox"> <a href="#请求重试">请求重试</a></li>
+<li><input checked="" disabled="" type="checkbox"> <a href="#错误解码器">错误解码器</a></li>
+<li><input checked="" disabled="" type="checkbox"> <a href="#全局拦截器">全局拦截器</a></li>
+<li><input checked="" disabled="" type="checkbox"> <a href="#熔断降级">熔断降级</a></li>
+<li><input checked="" disabled="" type="checkbox"> <a href="#微服务之间的HTTP调用">微服务之间的HTTP调用</a></li>
+<li><input checked="" disabled="" type="checkbox"> <a href="#调用适配器">调用适配器</a></li>
+<li><input checked="" disabled="" type="checkbox"> <a href="#数据转码器">数据转换器</a></li>
+</ul>
+<h2 id="快速使用"><a href="#快速使用" class="headerlink" title="快速使用"></a>快速使用</h2><h3 id="引入依赖"><a href="#引入依赖" class="headerlink" title="引入依赖"></a>引入依赖</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.github.lianjiatech<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>retrofit-spring-boot-starter<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.2.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="定义http接口"><a href="#定义http接口" class="headerlink" title="定义http接口"></a>定义http接口</h3><p><strong>接口必须使用<code>@RetrofitClient</code>注解标记</strong>！http相关注解可参考官方文档：<a href="https://square.github.io/retrofit/" target="_blank" rel="noopener">retrofit官方文档</a>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RetrofitClient</span>(baseUrl = <span class="string">"$&#123;test.baseUrl&#125;"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">HttpApi</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line">    <span class="function">Result&lt;Person&gt; <span class="title">getPerson</span><span class="params">(@Query(<span class="string">"id"</span>)</span> Long id)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="注入使用"><a href="#注入使用" class="headerlink" title="注入使用"></a>注入使用</h3><p><strong>将接口注入到其它Service中即可使用！</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TestService</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> HttpApi httpApi;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="comment">// 通过httpApi发起http请求</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="HTTP请求相关注解"><a href="#HTTP请求相关注解" class="headerlink" title="HTTP请求相关注解"></a>HTTP请求相关注解</h2><p><code>HTTP</code>请求相关注解，全部使用了<code>retrofit</code>原生注解。<strong>详细信息可参考官方文档：<a href="https://square.github.io/retrofit/" target="_blank" rel="noopener">retrofit官方文档</a></strong>，以下是一个简单说明。</p>
+<table>
+<thead>
+<tr>
+<th>注解分类</th>
+<th>支持的注解</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>请求方式</td>
+<td><code>@GET</code> <code>@HEAD</code> <code>@POST</code> <code>@PUT</code> <code>@DELETE</code> <code>@OPTIONS</code></td>
+</tr>
+<tr>
+<td>请求头</td>
+<td><code>@Header</code> <code>@HeaderMap</code> <code>@Headers</code></td>
+</tr>
+<tr>
+<td>Query参数</td>
+<td><code>@Query</code> <code>@QueryMap</code> <code>@QueryName</code></td>
+</tr>
+<tr>
+<td>path参数</td>
+<td><code>@Path</code></td>
+</tr>
+<tr>
+<td>form-encoded参数</td>
+<td><code>@Field</code> <code>@FieldMap</code> <code>@FormUrlEncoded</code></td>
+</tr>
+<tr>
+<td>文件上传</td>
+<td><code>@Multipart</code> <code>@Part</code> <code>@PartMap</code></td>
+</tr>
+<tr>
+<td>url参数</td>
+<td><code>@Url</code></td>
+</tr>
+</tbody></table>
+<h2 id="配置项说明"><a href="#配置项说明" class="headerlink" title="配置项说明"></a>配置项说明</h2><p><code>retrofit-spring-boot-starter</code>支持了多个可配置的属性，用来应对不同的业务场景。您可以视情况进行修改，具体说明如下：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>enable-log</td>
+<td>true</td>
+<td>启用日志打印</td>
+</tr>
+<tr>
+<td>logging-interceptor</td>
+<td>DefaultLoggingInterceptor</td>
+<td>日志打印拦截器</td>
+</tr>
+<tr>
+<td>pool</td>
+<td></td>
+<td>连接池配置</td>
+</tr>
+<tr>
+<td>disable-void-return-type</td>
+<td>false</td>
+<td>禁用java.lang.Void返回类型</td>
+</tr>
+<tr>
+<td>retry-interceptor</td>
+<td>DefaultRetryInterceptor</td>
+<td>请求重试拦截器</td>
+</tr>
+<tr>
+<td>global-converter-factories</td>
+<td>JacksonConverterFactory</td>
+<td>全局转换器工厂</td>
+</tr>
+<tr>
+<td>global-call-adapter-factories</td>
+<td>BodyCallAdapterFactory,ResponseCallAdapterFactory</td>
+<td>全局调用适配器工厂</td>
+</tr>
+<tr>
+<td>enable-degrade</td>
+<td>false</td>
+<td>是否启用熔断降级</td>
+</tr>
+<tr>
+<td>degrade-type</td>
+<td>sentinel</td>
+<td>熔断降级实现方式(目前仅支持Sentinel)</td>
+</tr>
+<tr>
+<td>resource-name-parser</td>
+<td>DefaultResourceNameParser</td>
+<td>熔断资源名称解析器，用于解析资源名称</td>
+</tr>
+</tbody></table>
+<p><code>yml</code>配置方式：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">retrofit:</span></span><br><span class="line">  <span class="attr">enable-response-call-adapter:</span> <span class="literal">true</span></span><br><span class="line">  <span class="comment"># 启用日志打印</span></span><br><span class="line">  <span class="attr">enable-log:</span> <span class="literal">true</span></span><br><span class="line">  <span class="comment"># 连接池配置</span></span><br><span class="line">  <span class="attr">pool:</span></span><br><span class="line">    <span class="attr">test1:</span></span><br><span class="line">      <span class="attr">max-idle-connections:</span> <span class="number">3</span></span><br><span class="line">      <span class="attr">keep-alive-second:</span> <span class="number">100</span></span><br><span class="line">    <span class="attr">test2:</span></span><br><span class="line">      <span class="attr">max-idle-connections:</span> <span class="number">5</span></span><br><span class="line">      <span class="attr">keep-alive-second:</span> <span class="number">50</span></span><br><span class="line">  <span class="comment"># 禁用void返回值类型</span></span><br><span class="line">  <span class="attr">disable-void-return-type:</span> <span class="literal">false</span></span><br><span class="line">  <span class="comment"># 日志打印拦截器</span></span><br><span class="line">  <span class="attr">logging-interceptor:</span> <span class="string">com.github.lianjiatech.retrofit.spring.boot.interceptor.DefaultLoggingInterceptor</span></span><br><span class="line">  <span class="comment"># 请求重试拦截器</span></span><br><span class="line">  <span class="attr">retry-interceptor:</span> <span class="string">com.github.lianjiatech.retrofit.spring.boot.retry.DefaultRetryInterceptor</span></span><br><span class="line">  <span class="comment"># 全局转换器工厂</span></span><br><span class="line">  <span class="attr">global-converter-factories:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">retrofit2.converter.jackson.JacksonConverterFactory</span></span><br><span class="line">  <span class="comment"># 全局调用适配器工厂</span></span><br><span class="line">  <span class="attr">global-call-adapter-factories:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">com.github.lianjiatech.retrofit.spring.boot.core.BodyCallAdapterFactory</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">com.github.lianjiatech.retrofit.spring.boot.core.ResponseCallAdapterFactory</span></span><br><span class="line">  <span class="comment"># 是否启用熔断降级</span></span><br><span class="line">  <span class="attr">enable-degrade:</span> <span class="literal">true</span></span><br><span class="line">  <span class="comment"># 熔断降级实现方式</span></span><br><span class="line">  <span class="attr">degrade-type:</span> <span class="string">sentinel</span></span><br><span class="line">  <span class="comment"># 熔断资源名称解析器</span></span><br><span class="line">  <span class="attr">resource-name-parser:</span> <span class="string">com.github.lianjiatech.retrofit.spring.boot.degrade.DefaultResourceNameParser</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="高级功能"><a href="#高级功能" class="headerlink" title="高级功能"></a>高级功能</h2><h3 id="自定义注入OkHttpClient"><a href="#自定义注入OkHttpClient" class="headerlink" title="自定义注入OkHttpClient"></a>自定义注入OkHttpClient</h3><p>通常情况下，通过<code>@RetrofitClient</code>注解属性动态创建<code>OkHttpClient</code>对象能够满足大部分使用场景。但是在某些情况下，用户可能需要自定义<code>OkHttpClient</code>，这个时候，可以在接口上定义返回类型是<code>OkHttpClient.Builder</code>的静态方法来实现。代码示例如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RetrofitClient</span>(baseUrl = <span class="string">"http://ke.com"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">HttpApi3</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@OkHttpClientBuilder</span></span><br><span class="line">    <span class="keyword">static</span> OkHttpClient.<span class="function">Builder <span class="title">okhttpClientBuilder</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> OkHttpClient.Builder()</span><br><span class="line">                .connectTimeout(<span class="number">1</span>, TimeUnit.SECONDS)</span><br><span class="line">                .readTimeout(<span class="number">1</span>, TimeUnit.SECONDS)</span><br><span class="line">                .writeTimeout(<span class="number">1</span>, TimeUnit.SECONDS);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@GET</span></span><br><span class="line">    <span class="function">Result&lt;Person&gt; <span class="title">getPerson</span><span class="params">(@Url String url, @Query(<span class="string">"id"</span>)</span> Long id)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>方法必须使用<code>@OkHttpClientBuilder</code>注解标记！</p>
+</blockquote>
+<h3 id="注解式拦截器"><a href="#注解式拦截器" class="headerlink" title="注解式拦截器"></a>注解式拦截器</h3><p>很多时候，我们希望某个接口下的某些http请求执行统一的拦截处理逻辑。为了支持这个功能，<code>retrofit-spring-boot-starter</code>提供了<strong>注解式拦截器</strong>，做到了<strong>基于url路径的匹配拦截</strong>。使用的步骤主要分为2步：</p>
+<ol>
+<li>继承<code>BasePathMatchInterceptor</code>编写拦截处理器；</li>
+<li>接口上使用<code>@Intercept</code>进行标注。如需配置多个拦截器，在接口上标注多个<code>@Intercept</code>注解即可！</li>
+</ol>
+<p>下面以<em>给指定请求的url后面拼接timestamp时间戳</em>为例，介绍下如何使用注解式拦截器。</p>
+<h4 id="继承BasePathMatchInterceptor编写拦截处理器"><a href="#继承BasePathMatchInterceptor编写拦截处理器" class="headerlink" title="继承BasePathMatchInterceptor编写拦截处理器"></a>继承<code>BasePathMatchInterceptor</code>编写拦截处理器</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TimeStampInterceptor</span> <span class="keyword">extends</span> <span class="title">BasePathMatchInterceptor</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Response <span class="title">doIntercept</span><span class="params">(Chain chain)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        Request request = chain.request();</span><br><span class="line">        HttpUrl url = request.url();</span><br><span class="line">        <span class="keyword">long</span> timestamp = System.currentTimeMillis();</span><br><span class="line">        HttpUrl newUrl = url.newBuilder()</span><br><span class="line">                .addQueryParameter(<span class="string">"timestamp"</span>, String.valueOf(timestamp))</span><br><span class="line">                .build();</span><br><span class="line">        Request newRequest = request.newBuilder()</span><br><span class="line">                .url(newUrl)</span><br><span class="line">                .build();</span><br><span class="line">        <span class="keyword">return</span> chain.proceed(newRequest);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="接口上使用-Intercept进行标注"><a href="#接口上使用-Intercept进行标注" class="headerlink" title="接口上使用@Intercept进行标注"></a>接口上使用<code>@Intercept</code>进行标注</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RetrofitClient</span>(baseUrl = <span class="string">"$&#123;test.baseUrl&#125;"</span>)</span><br><span class="line"><span class="meta">@Intercept</span>(handler = TimeStampInterceptor<span class="class">.<span class="keyword">class</span>, <span class="title">include</span> </span>= &#123;<span class="string">"/api/**"</span>&#125;, exclude = <span class="string">"/api/test/savePerson"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">HttpApi</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line">    <span class="function">Result&lt;Person&gt; <span class="title">getPerson</span><span class="params">(@Query(<span class="string">"id"</span>)</span> Long id)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@POST</span>(<span class="string">"savePerson"</span>)</span><br><span class="line">    <span class="function">Result&lt;Person&gt; <span class="title">savePerson</span><span class="params">(@Body Person person)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面的<code>@Intercept</code>配置表示：拦截<code>HttpApi</code>接口下<code>/api/**</code>路径下（排除<code>/api/test/savePerson</code>）的请求，拦截处理器使用<code>TimeStampInterceptor</code>。</p>
+<h3 id="扩展注解式拦截器"><a href="#扩展注解式拦截器" class="headerlink" title="扩展注解式拦截器"></a>扩展注解式拦截器</h3><p>有的时候，我们需要在<strong>拦截注解</strong>动态传入一些参数，然后再执行拦截的时候需要使用这个参数。这种时候，我们可以扩展实现<strong>自定义拦截注解</strong>。<code>自定义拦截注解</code>必须使用<code>@InterceptMark</code>标记，并且<strong>注解中必须包括<code>include()、exclude()、handler()</code>属性信息</strong>。使用的步骤主要分为3步：</p>
+<ol>
+<li>自定义拦截注解</li>
+<li>继承<code>BasePathMatchInterceptor</code>编写拦截处理器</li>
+<li>接口上使用自定义拦截注解；</li>
+</ol>
+<p>例如我们需要<strong>在请求头里面动态加入<code>accessKeyId</code>、<code>accessKeySecret</code>签名信息才能正常发起http请求</strong>，这个时候<strong>可以自定义一个加签拦截器注解<code>@Sign</code>来实现</strong>。下面以自定义<code>@Sign</code>拦截注解为例进行说明。</p>
+<h4 id="自定义-Sign注解"><a href="#自定义-Sign注解" class="headerlink" title="自定义@Sign注解"></a>自定义<code>@Sign</code>注解</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Retention</span>(RetentionPolicy.RUNTIME)</span><br><span class="line"><span class="meta">@Target</span>(ElementType.TYPE)</span><br><span class="line"><span class="meta">@Documented</span></span><br><span class="line"><span class="meta">@InterceptMark</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Sign &#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 密钥key</span></span><br><span class="line"><span class="comment">     * 支持占位符形式配置。</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function">String <span class="title">accessKeyId</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 密钥</span></span><br><span class="line"><span class="comment">     * 支持占位符形式配置。</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function">String <span class="title">accessKeySecret</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 拦截器匹配路径</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    String[] include() <span class="keyword">default</span> &#123;<span class="string">"/**"</span>&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 拦截器排除匹配，排除指定路径拦截</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    String[] exclude() <span class="keyword">default</span> &#123;&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 处理该注解的拦截器类</span></span><br><span class="line"><span class="comment">     * 优先从spring容器获取对应的Bean，如果获取不到，则使用反射创建一个！</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    Class&lt;? extends BasePathMatchInterceptor&gt; handler() <span class="keyword">default</span> SignInterceptor<span class="class">.<span class="keyword">class</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>扩展<code>自定义拦截注解</code>有以下2点需要注意：</p>
+<ol>
+<li><code>自定义拦截注解</code>必须使用<code>@InterceptMark</code>标记。</li>
+<li>注解中必须包括<code>include()、exclude()、handler()</code>属性信息。</li>
+</ol>
+<h4 id="实现SignInterceptor"><a href="#实现SignInterceptor" class="headerlink" title="实现SignInterceptor"></a>实现<code>SignInterceptor</code></h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SignInterceptor</span> <span class="keyword">extends</span> <span class="title">BasePathMatchInterceptor</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String accessKeyId;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String accessKeySecret;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setAccessKeyId</span><span class="params">(String accessKeyId)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.accessKeyId = accessKeyId;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setAccessKeySecret</span><span class="params">(String accessKeySecret)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.accessKeySecret = accessKeySecret;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Response <span class="title">doIntercept</span><span class="params">(Chain chain)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        Request request = chain.request();</span><br><span class="line">        Request newReq = request.newBuilder()</span><br><span class="line">                .addHeader(<span class="string">"accessKeyId"</span>, accessKeyId)</span><br><span class="line">                .addHeader(<span class="string">"accessKeySecret"</span>, accessKeySecret)</span><br><span class="line">                .build();</span><br><span class="line">        <span class="keyword">return</span> chain.proceed(newReq);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>上述<code>accessKeyId</code>和<code>accessKeySecret</code>字段值会依据<code>@Sign</code>注解的<code>accessKeyId()</code>和<code>accessKeySecret()</code>值自动注入，如果<code>@Sign</code>指定的是占位符形式的字符串，则会取配置属性值进行注入</strong>。另外，<strong><code>accessKeyId</code>和<code>accessKeySecret</code>字段必须提供<code>setter</code>方法</strong>。</p>
+<h4 id="接口上使用-Sign"><a href="#接口上使用-Sign" class="headerlink" title="接口上使用@Sign"></a>接口上使用<code>@Sign</code></h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RetrofitClient</span>(baseUrl = <span class="string">"$&#123;test.baseUrl&#125;"</span>)</span><br><span class="line"><span class="meta">@Sign</span>(accessKeyId = <span class="string">"$&#123;test.accessKeyId&#125;"</span>, accessKeySecret = <span class="string">"$&#123;test.accessKeySecret&#125;"</span>, exclude = &#123;<span class="string">"/api/test/person"</span>&#125;)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">HttpApi</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line">    <span class="function">Result&lt;Person&gt; <span class="title">getPerson</span><span class="params">(@Query(<span class="string">"id"</span>)</span> Long id)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@POST</span>(<span class="string">"savePerson"</span>)</span><br><span class="line">    <span class="function">Result&lt;Person&gt; <span class="title">savePerson</span><span class="params">(@Body Person person)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样就能在指定url的请求上，自动加上签名信息了。</p>
+<h3 id="连接池管理"><a href="#连接池管理" class="headerlink" title="连接池管理"></a>连接池管理</h3><p>默认情况下，所有通过<code>Retrofit</code>发送的http请求都会使用<code>max-idle-connections=5  keep-alive-second=300</code>的默认连接池。当然，我们也可以在配置文件中配置多个自定义的连接池，然后通过<code>@RetrofitClient</code>的<code>poolName</code>属性来指定使用。比如我们要让某个接口下的请求全部使用<code>poolName=test1</code>的连接池，代码实现如下：</p>
+<ol>
+<li><p>配置连接池。</p>
+ <figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">retrofit:</span></span><br><span class="line">    <span class="comment"># 连接池配置</span></span><br><span class="line">    <span class="attr">pool:</span></span><br><span class="line">        <span class="attr">test1:</span></span><br><span class="line">        <span class="attr">max-idle-connections:</span> <span class="number">3</span></span><br><span class="line">        <span class="attr">keep-alive-second:</span> <span class="number">100</span></span><br><span class="line">        <span class="attr">test2:</span></span><br><span class="line">        <span class="attr">max-idle-connections:</span> <span class="number">5</span></span><br><span class="line">        <span class="attr">keep-alive-second:</span> <span class="number">50</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>通过<code>@RetrofitClient</code>的<code>poolName</code>属性来指定使用的连接池。</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RetrofitClient</span>(baseUrl = <span class="string">"$&#123;test.baseUrl&#125;"</span>, poolName=<span class="string">"test1"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">HttpApi</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line">    <span class="function">Result&lt;Person&gt; <span class="title">getPerson</span><span class="params">(@Query(<span class="string">"id"</span>)</span> Long id)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+</li>
+</ol>
+<h3 id="日志打印"><a href="#日志打印" class="headerlink" title="日志打印"></a>日志打印</h3><p>很多情况下，我们希望将http请求日志记录下来。通过<code>retrofit.enableLog</code>配置可以全局控制日志是否开启。<br>针对每个接口，可以通过<code>@RetrofitClient</code>的<code>enableLog</code>控制是否开启，通过<code>logLevel</code>和<code>logStrategy</code>，可以指定每个接口的日志打印级别以及日志打印策略。<code>retrofit-spring-boot-starter</code>支持了5种日志打印级别(<code>ERROR</code>, <code>WARN</code>, <code>INFO</code>, <code>DEBUG</code>, <code>TRACE</code>)，默认<code>INFO</code>；支持了4种日志打印策略（<code>NONE</code>, <code>BASIC</code>, <code>HEADERS</code>, <code>BODY</code>），默认<code>BASIC</code>。4种日志打印策略含义如下：</p>
+<ol>
+<li><code>NONE</code>：No logs.</li>
+<li><code>BASIC</code>：Logs request and response lines.</li>
+<li><code>HEADERS</code>：Logs request and response lines and their respective headers.</li>
+<li><code>BODY</code>：Logs request and response lines and their respective headers and bodies (if present).</li>
+</ol>
+<p><code>retrofit-spring-boot-starter</code>默认使用了<code>DefaultLoggingInterceptor</code>执行真正的日志打印功能，其底层就是<code>okhttp</code>原生的<code>HttpLoggingInterceptor</code>。当然，你也可以自定义实现自己的日志打印拦截器，只需要继承<code>BaseLoggingInterceptor</code>（具体可以参考<code>DefaultLoggingInterceptor</code>的实现），然后在配置文件中进行相关配置即可。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">retrofit:</span></span><br><span class="line">  <span class="comment"># 日志打印拦截器</span></span><br><span class="line">  <span class="attr">logging-interceptor:</span> <span class="string">com.github.lianjiatech.retrofit.spring.boot.interceptor.DefaultLoggingInterceptor</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="请求重试"><a href="#请求重试" class="headerlink" title="请求重试"></a>请求重试</h3><p><code>retrofit-spring-boot-starter</code>支持请求重试功能，只需要在接口或者方法上加上<code>@Retry</code>注解即可。<strong><code>@Retry</code>支持重试次数<code>maxRetries</code>、重试时间间隔<code>intervalMs</code>以及重试规则<code>retryRules</code>配置</strong>。重试规则支持三种配置：</p>
+<ol>
+<li><code>RESPONSE_STATUS_NOT_2XX</code>：响应状态码不是<code>2xx</code>时执行重试；</li>
+<li><code>OCCUR_IO_EXCEPTION</code>：发生IO异常时执行重试；</li>
+<li><code>OCCUR_EXCEPTION</code>：发生任意异常时执行重试；</li>
+</ol>
+<p>默认响应状态码不是<code>2xx</code>或者发生IO异常时自动进行重试。需要的话，你也可以继承<code>BaseRetryInterceptor</code>实现自己的请求重试拦截器，然后将其配置上去。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">retrofit:</span></span><br><span class="line">  <span class="comment"># 请求重试拦截器</span></span><br><span class="line">  <span class="attr">retry-interceptor:</span> <span class="string">com.github.lianjiatech.retrofit.spring.boot.retry.DefaultRetryInterceptor</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="错误解码器"><a href="#错误解码器" class="headerlink" title="错误解码器"></a>错误解码器</h3><p>在<code>HTTP</code>发生请求错误(包括发生异常或者响应数据不符合预期)的时候，错误解码器可将<code>HTTP</code>相关信息解码到自定义异常中。你可以在<code>@RetrofitClient</code>注解的<code>errorDecoder()</code>指定当前接口的错误解码器，自定义错误解码器需要实现<code>ErrorDecoder</code>接口：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 错误解码器。ErrorDecoder.</span></span><br><span class="line"><span class="comment"> * 当请求发生异常或者收到无效响应结果的时候，将HTTP相关信息解码到异常中，无效响应由业务自己判断</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * When an exception occurs in the request or an invalid response result is received, the HTTP related information is decoded into the exception,</span></span><br><span class="line"><span class="comment"> * and the invalid response is determined by the business itself.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 陈添明</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">ErrorDecoder</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 当无效响应的时候，将HTTP信息解码到异常中，无效响应由业务自行判断。</span></span><br><span class="line"><span class="comment">     * When the response is invalid, decode the HTTP information into the exception, invalid response is determined by business.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> request  request</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> response response</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> If it returns null, the processing is ignored and the processing continues with the original response.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">default</span> RuntimeException <span class="title">invalidRespDecode</span><span class="params">(Request request, Response response)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (!response.isSuccessful()) &#123;</span><br><span class="line">            <span class="keyword">throw</span> RetrofitException.errorStatus(request, response);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 当请求发生IO异常时，将HTTP信息解码到异常中。</span></span><br><span class="line"><span class="comment">     * When an IO exception occurs in the request, the HTTP information is decoded into the exception.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> request request</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> cause   IOException</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> RuntimeException</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">default</span> RuntimeException <span class="title">ioExceptionDecode</span><span class="params">(Request request, IOException cause)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> RetrofitException.errorExecuting(request, cause);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 当请求发生除IO异常之外的其它异常时，将HTTP信息解码到异常中。</span></span><br><span class="line"><span class="comment">     * When the request has an exception other than the IO exception, the HTTP information is decoded into the exception.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> request request</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> cause   Exception</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> RuntimeException</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">default</span> RuntimeException <span class="title">exceptionDecode</span><span class="params">(Request request, Exception cause)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> RetrofitException.errorUnknown(request, cause);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="全局拦截器"><a href="#全局拦截器" class="headerlink" title="全局拦截器"></a>全局拦截器</h2><h3 id="全局应用拦截器"><a href="#全局应用拦截器" class="headerlink" title="全局应用拦截器"></a>全局应用拦截器</h3><p>如果我们需要对整个系统的的http请求执行统一的拦截处理，可以自定义实现全局拦截器<code>BaseGlobalInterceptor</code>, 并配置成<code>spring</code>容器中的<code>bean</code>！例如我们需要在整个系统发起的http请求，都带上来源信息。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SourceInterceptor</span> <span class="keyword">extends</span> <span class="title">BaseGlobalInterceptor</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Response <span class="title">doIntercept</span><span class="params">(Chain chain)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        Request request = chain.request();</span><br><span class="line">        Request newReq = request.newBuilder()</span><br><span class="line">                .addHeader(<span class="string">"source"</span>, <span class="string">"test"</span>)</span><br><span class="line">                .build();</span><br><span class="line">        <span class="keyword">return</span> chain.proceed(newReq);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="全局网络拦截器"><a href="#全局网络拦截器" class="headerlink" title="全局网络拦截器"></a>全局网络拦截器</h3><p>只需要实现<code>NetworkInterceptor</code>接口 并配置成<code>spring</code>容器中的<code>bean</code>就支持自动织入全局网络拦截器。</p>
+<h3 id="熔断降级"><a href="#熔断降级" class="headerlink" title="熔断降级"></a>熔断降级</h3><p>在分布式服务架构中，对不稳定的外部服务进行熔断降级是保证服务高可用的重要措施之一。由于外部服务的稳定性是不能保证的，当外部服务不稳定时，响应时间会变长。相应地，调用方的响应时间也会变长，线程会产生堆积，最终可能耗尽调用方的线程池，导致整个服务不可用。因此我们需要对不稳定的弱依赖服务调用进行熔断降级，暂时切断不稳定调用，避免局部不稳定导致整体服务雪崩。</p>
+<p><code>retrofit-spring-boot-starter</code>支持熔断降级功能，底层基于<a href="https://sentinelguard.io/zh-cn/docs/introduction.html" target="_blank" rel="noopener">Sentinel</a>实现。具体来说，支持了<strong>熔断资源自发现</strong>和<strong>注解式降级规则配置</strong>。如需使用熔断降级，只需要进行以下操作即可：</p>
+<h4 id="1-开启熔断降级功能"><a href="#1-开启熔断降级功能" class="headerlink" title="1. 开启熔断降级功能"></a>1. 开启熔断降级功能</h4><p><strong>默认情况下，熔断降级功能是关闭的，需要设置相应的配置项来开启熔断降级功能</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">retrofit:</span></span><br><span class="line">  <span class="comment"># 是否启用熔断降级</span></span><br><span class="line">  <span class="attr">enable-degrade:</span> <span class="literal">true</span></span><br><span class="line">  <span class="comment"># 熔断降级实现方式(目前仅支持Sentinel)</span></span><br><span class="line">  <span class="attr">degrade-type:</span> <span class="string">sentinel</span></span><br><span class="line">  <span class="comment"># 资源名称解析器</span></span><br><span class="line">  <span class="attr">resource-name-parser:</span> <span class="string">com.github.lianjiatech.retrofit.spring.boot.degrade.DefaultResourceNameParser</span></span><br></pre></td></tr></table></figure>
+
+<p>资源名称解析器用于实现用户自定义资源名称，默认配置是<code>DefaultResourceNameParser</code>，对应的资源名称格式为<code>HTTP_OUT:GET:http://localhost:8080/api/degrade/test</code>。用户可以继承<code>BaseResourceNameParser</code>类实现自己的资源名称解析器。</p>
+<p>另外，由于熔断降级功能是可选的，<strong>因此启用熔断降级需要用户自行引入Sentinel依赖</strong>：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.alibaba.csp<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>sentinel-core<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.6.3<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="2-配置降级规则（可选）"><a href="#2-配置降级规则（可选）" class="headerlink" title="2. 配置降级规则（可选）"></a>2. 配置降级规则（可选）</h4><p><strong><code>retrofit-spring-boot-starter</code>支持注解式配置降级规则，通过<code>@Degrade</code>注解来配置降级规则</strong>。<code>@Degrade</code>注解可以配置在接口或者方法上，配置在方法上的优先级更高。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Retention</span>(RetentionPolicy.RUNTIME)</span><br><span class="line"><span class="meta">@Target</span>(&#123;ElementType.METHOD, ElementType.TYPE&#125;)</span><br><span class="line"><span class="meta">@Documented</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Degrade &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * RT threshold or exception ratio threshold count.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">double</span> <span class="title">count</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Degrade recover timeout (in seconds) when degradation occurs.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">int</span> <span class="title">timeWindow</span><span class="params">()</span> <span class="keyword">default</span> 5</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Degrade strategy (0: average RT, 1: exception ratio).</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function">DegradeStrategy <span class="title">degradeStrategy</span><span class="params">()</span> <span class="keyword">default</span> DegradeStrategy.AVERAGE_RT</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><strong>如果应用项目已支持通过配置中心配置降级规则，可忽略注解式配置方式</strong>。</p>
+</blockquote>
+<h4 id="3-RetrofitClient设置fallback或者fallbackFactory-可选"><a href="#3-RetrofitClient设置fallback或者fallbackFactory-可选" class="headerlink" title="3. @RetrofitClient设置fallback或者fallbackFactory (可选)"></a>3. @RetrofitClient设置fallback或者fallbackFactory (可选)</h4><p>如果<code>@RetrofitClient</code>不设置<code>fallback</code>或者<code>fallbackFactory</code>，当触发熔断时，会直接抛出<code>RetrofitBlockException</code>异常。<strong>用户可以通过设置<code>fallback</code>或者<code>fallbackFactory</code>来定制熔断时的方法返回值</strong>。<code>fallback</code>类必须是当前接口的实现类，<code>fallbackFactory</code>必须是<code>FallbackFactory&lt;T&gt;</code>实现类，泛型参数类型为当前接口类型。另外，<code>fallback</code>和<code>fallbackFactory</code>实例必须配置成<code>Spring</code>容器的<code>Bean</code>。</p>
+<p><strong><code>fallbackFactory</code>相对于<code>fallback</code>，主要差别在于能够感知每次熔断的异常原因(cause)</strong>。参考示例如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Slf</span>4j</span><br><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HttpDegradeFallback</span> <span class="keyword">implements</span> <span class="title">HttpDegradeApi</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Result&lt;Integer&gt; <span class="title">test</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        Result&lt;Integer&gt; fallback = <span class="keyword">new</span> Result&lt;&gt;();</span><br><span class="line">        fallback.setCode(<span class="number">100</span>)</span><br><span class="line">                .setMsg(<span class="string">"fallback"</span>)</span><br><span class="line">                .setBody(<span class="number">1000000</span>);</span><br><span class="line">        <span class="keyword">return</span> fallback;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Slf</span>4j</span><br><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HttpDegradeFallbackFactory</span> <span class="keyword">implements</span> <span class="title">FallbackFactory</span>&lt;<span class="title">HttpDegradeApi</span>&gt; </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Returns an instance of the fallback appropriate for the given cause</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> cause fallback cause</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 实现了retrofit接口的实例。an instance that implements the retrofit interface.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> HttpDegradeApi <span class="title">create</span><span class="params">(Throwable cause)</span> </span>&#123;</span><br><span class="line">        log.error(<span class="string">"触发熔断了! "</span>, cause.getMessage(), cause);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> HttpDegradeApi() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> Result&lt;Integer&gt; <span class="title">test</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                Result&lt;Integer&gt; fallback = <span class="keyword">new</span> Result&lt;&gt;();</span><br><span class="line">                fallback.setCode(<span class="number">100</span>)</span><br><span class="line">                        .setMsg(<span class="string">"fallback"</span>)</span><br><span class="line">                        .setBody(<span class="number">1000000</span>);</span><br><span class="line">                <span class="keyword">return</span> fallback;</span><br><span class="line">            &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="微服务之间的HTTP调用"><a href="#微服务之间的HTTP调用" class="headerlink" title="微服务之间的HTTP调用"></a>微服务之间的HTTP调用</h3><p>为了能够使用微服务调用，需要进行如下配置：</p>
+<h4 id="配置ServiceInstanceChooser为Spring容器Bean"><a href="#配置ServiceInstanceChooser为Spring容器Bean" class="headerlink" title="配置ServiceInstanceChooser为Spring容器Bean"></a>配置<code>ServiceInstanceChooser</code>为<code>Spring</code>容器<code>Bean</code></h4><p>用户可以自行实现<code>ServiceInstanceChooser</code>接口，完成服务实例的选取逻辑，并将其配置成<code>Spring</code>容器的<code>Bean</code>。对于<code>Spring Cloud</code>应用，<code>retrofit-spring-boot-starter</code>提供了<code>SpringCloudServiceInstanceChooser</code>实现，用户只需将其配置成<code>Spring</code>的<code>Bean</code>即可。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="meta">@Autowired</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> ServiceInstanceChooser <span class="title">serviceInstanceChooser</span><span class="params">(LoadBalancerClient loadBalancerClient)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> SpringCloudServiceInstanceChooser(loadBalancerClient);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="使用-Retrofit的serviceId和path属性，可以实现微服务之间的HTTP调用"><a href="#使用-Retrofit的serviceId和path属性，可以实现微服务之间的HTTP调用" class="headerlink" title="使用@Retrofit的serviceId和path属性，可以实现微服务之间的HTTP调用"></a>使用<code>@Retrofit</code>的<code>serviceId</code>和<code>path</code>属性，可以实现微服务之间的HTTP调用</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RetrofitClient</span>(serviceId = <span class="string">"$&#123;jy-helicarrier-api.serviceId&#125;"</span>, path = <span class="string">"/m/count"</span>, errorDecoder = HelicarrierErrorDecoder<span class="class">.<span class="keyword">class</span>)</span></span><br><span class="line"><span class="class">@<span class="title">Retry</span></span></span><br><span class="line"><span class="class"><span class="title">public</span> <span class="title">interface</span> <span class="title">ApiCountService</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="调用适配器和数据转码器"><a href="#调用适配器和数据转码器" class="headerlink" title="调用适配器和数据转码器"></a>调用适配器和数据转码器</h2><h3 id="调用适配器"><a href="#调用适配器" class="headerlink" title="调用适配器"></a>调用适配器</h3><p><code>Retrofit</code>可以通过调用适配器<code>CallAdapterFactory</code>将<code>Call&lt;T&gt;</code>对象适配成接口方法的返回值类型。<code>retrofit-spring-boot-starter</code>扩展2种<code>CallAdapterFactory</code>实现：</p>
+<ol>
+<li><code>BodyCallAdapterFactory</code><ul>
+<li>默认启用，可通过配置<code>retrofit.enable-body-call-adapter=false</code>关闭</li>
+<li>同步执行http请求，将响应体内容适配成接口方法的返回值类型实例。</li>
+<li>除了<code>Retrofit.Call&lt;T&gt;</code>、<code>Retrofit.Response&lt;T&gt;</code>、<code>java.util.concurrent.CompletableFuture&lt;T&gt;</code>之外，其它返回类型都可以使用该适配器。</li>
+</ul>
+</li>
+<li><code>ResponseCallAdapterFactory</code><ul>
+<li>默认启用，可通过配置<code>retrofit.enable-response-call-adapter=false</code>关闭</li>
+<li>同步执行http请求，将响应体内容适配成<code>Retrofit.Response&lt;T&gt;</code>返回。</li>
+<li>如果方法的返回值类型为<code>Retrofit.Response&lt;T&gt;</code>，则可以使用该适配器。</li>
+</ul>
+</li>
+</ol>
+<p><strong>Retrofit自动根据方法返回值类型选用对应的<code>CallAdapterFactory</code>执行适配处理！加上Retrofit默认的<code>CallAdapterFactory</code>，可支持多种形式的方法返回值类型：</strong></p>
+<ul>
+<li><code>Call&lt;T&gt;</code>: 不执行适配处理，直接返回<code>Call&lt;T&gt;</code>对象</li>
+<li><code>CompletableFuture&lt;T&gt;</code>: 将响应体内容适配成<code>CompletableFuture&lt;T&gt;</code>对象返回</li>
+<li><code>Void</code>: 不关注返回类型可以使用<code>Void</code>。如果http状态码不是2xx，直接抛错！</li>
+<li><code>Response&lt;T&gt;</code>: 将响应内容适配成<code>Response&lt;T&gt;</code>对象返回</li>
+<li>其他任意Java类型： 将响应体内容适配成一个对应的Java类型对象返回，如果http状态码不是2xx，直接抛错！</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Call&lt;T&gt;</span></span><br><span class="line"><span class="comment"> * 不执行适配处理，直接返回Call&lt;T&gt;对象</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> id</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line">Call&lt;Result&lt;Person&gt;&gt; getPersonCall(<span class="meta">@Query</span>(<span class="string">"id"</span>) Long id);</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *  CompletableFuture&lt;T&gt;</span></span><br><span class="line"><span class="comment"> *  将响应体内容适配成CompletableFuture&lt;T&gt;对象返回</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> id</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line">CompletableFuture&lt;Result&lt;Person&gt;&gt; getPersonCompletableFuture(<span class="meta">@Query</span>(<span class="string">"id"</span>) Long id);</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Void</span></span><br><span class="line"><span class="comment"> * 不关注返回类型可以使用Void。如果http状态码不是2xx，直接抛错！</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> id</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line"><span class="function">Void <span class="title">getPersonVoid</span><span class="params">(@Query(<span class="string">"id"</span>)</span> Long id)</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *  Response&lt;T&gt;</span></span><br><span class="line"><span class="comment"> *  将响应内容适配成Response&lt;T&gt;对象返回</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> id</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line">Response&lt;Result&lt;Person&gt;&gt; getPersonResponse(<span class="meta">@Query</span>(<span class="string">"id"</span>) Long id);</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 其他任意Java类型</span></span><br><span class="line"><span class="comment"> * 将响应体内容适配成一个对应的Java类型对象返回，如果http状态码不是2xx，直接抛错！</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> id</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@GET</span>(<span class="string">"person"</span>)</span><br><span class="line"><span class="function">Result&lt;Person&gt; <span class="title">getPerson</span><span class="params">(@Query(<span class="string">"id"</span>)</span> Long id)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>我们也可以通过继承<code>CallAdapter.Factory</code>扩展实现自己的<code>CallAdapter</code></strong>！</p>
+<p><code>retrofit-spring-boot-starter</code>支持通过<code>retrofit.global-call-adapter-factories</code>配置全局调用适配器工厂，工厂实例优先从Spring容器获取，如果没有获取到，则反射创建。默认的全局调用适配器工厂是<code>[BodyCallAdapterFactory, ResponseCallAdapterFactory]</code>！</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">retrofit:</span></span><br><span class="line">  <span class="comment"># 全局调用适配器工厂</span></span><br><span class="line">  <span class="attr">global-call-adapter-factories:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">com.github.lianjiatech.retrofit.spring.boot.core.BodyCallAdapterFactory</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">com.github.lianjiatech.retrofit.spring.boot.core.ResponseCallAdapterFactory</span></span><br></pre></td></tr></table></figure>
+
+<p>针对每个Java接口，还可以通过<code>@RetrofitClient</code>注解的<code>callAdapterFactories()</code>指定当前接口采用的<code>CallAdapter.Factory</code>，指定的工厂实例依然优先从Spring容器获取。</p>
+<p><strong>注意：如果<code>CallAdapter.Factory</code>没有<code>public</code>的无参构造器，请手动将其配置成<code>Spring</code>容器的<code>Bean</code>对象</strong>！</p>
+<h3 id="数据转码器"><a href="#数据转码器" class="headerlink" title="数据转码器"></a>数据转码器</h3><p><code>Retrofit</code>使用<code>Converter</code>将<code>@Body</code>注解标注的对象转换成请求体，将响应体数据转换成一个<code>Java</code>对象，可以选用以下几种<code>Converter</code>：</p>
+<ul>
+<li><a href="https://github.com/google/gson" target="_blank" rel="noopener">Gson</a>: com.squareup.Retrofit:converter-gson</li>
+<li><a href="https://github.com/FasterXML/jackson" target="_blank" rel="noopener">Jackson</a>: com.squareup.Retrofit:converter-jackson</li>
+<li><a href="https://github.com/square/moshi/" target="_blank" rel="noopener">Moshi</a>: com.squareup.Retrofit:converter-moshi</li>
+<li><a href="https://developers.google.com/protocol-buffers/" target="_blank" rel="noopener">Protobuf</a>: com.squareup.Retrofit:converter-protobuf</li>
+<li><a href="https://github.com/square/wire" target="_blank" rel="noopener">Wire</a>: com.squareup.Retrofit:converter-wire</li>
+<li><a href="http://simple.sourceforge.net/" target="_blank" rel="noopener">Simple XML</a>: com.squareup.Retrofit:converter-simplexml</li>
+<li><a href="https://docs.oracle.com/javase/tutorial/jaxb/intro/index.html" target="_blank" rel="noopener">JAXB</a>: com.squareup.retrofit2:converter-jaxb</li>
+</ul>
+<p><code>retrofit-spring-boot-starter</code>支持通过<code>retrofit.global-converter-factories</code>配置全局数据转换器工厂，转换器工厂实例优先从Spring容器获取，如果没有获取到，则反射创建。默认的全局数据转换器工厂是<code>retrofit2.converter.jackson.JacksonConverterFactory</code>，你可以直接通过<code>spring.jackson.*</code>配置<code>jackson</code>序列化规则，配置可参考<a href="https://docs.spring.io/spring-boot/docs/2.1.5.RELEASE/reference/htmlsingle/#howto-customize-the-jackson-objectmapper" target="_blank" rel="noopener">Customize the Jackson ObjectMapper</a>！</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">retrofit:</span></span><br><span class="line">  <span class="comment"># 全局转换器工厂</span></span><br><span class="line">  <span class="attr">global-converter-factories:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">retrofit2.converter.jackson.JacksonConverterFactory</span></span><br></pre></td></tr></table></figure>
+
+<p>针对每个Java接口，还可以通过<code>@RetrofitClient</code>注解的<code>converterFactories()</code>指定当前接口采用的<code>Converter.Factory</code>，指定的转换器工厂实例依然优先从Spring容器获取。</p>
+<p><strong>注意：如果<code>Converter.Factory</code>没有<code>public</code>的无参构造器，请手动将其配置成<code>Spring</code>容器的<code>Bean</code>对象</strong>！</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><code>retrofit-spring-boot-starter</code>一个适用于<code>SpringBoot</code>项目的轻量级<code>HTTP</code>客户端框架，已在线上稳定运行一年多，并且已经有多个外部公司也接入使用。有兴趣的朋友可以尝试一下，如有任何问题，欢迎提issue或者加QQ群（806714302）反馈，极速响应支持。</p>
+<blockquote>
+<p>原创不易，觉得文章写得不错的小伙伴，点个赞👍 鼓励一下吧~</p>
+</blockquote>
+<blockquote>
+<p>欢迎关注我的开源项目：<a href="https://github.com/LianjiaTech/retrofit-spring-boot-starter" target="_blank" rel="noopener">一款适用于SpringBoot的轻量级HTTP调用框架</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/http/" rel="tag"># http</a>
+              <a href="/tags/spring/" rel="tag"># spring</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/2663121991/" rel="prev" title="Redis分布式-集群详解">
+      <i class="fa fa-chevron-left"></i> Redis分布式-集群详解
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/1541374189/" rel="next" title="SpringBoot项目整合Swagger自动生成接口文档之最佳实践指南">
+      SpringBoot项目整合Swagger自动生成接口文档之最佳实践指南 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#功能特性"><span class="nav-number">2.</span> <span class="nav-text">功能特性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#快速使用"><span class="nav-number">3.</span> <span class="nav-text">快速使用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#引入依赖"><span class="nav-number">3.1.</span> <span class="nav-text">引入依赖</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#定义http接口"><span class="nav-number">3.2.</span> <span class="nav-text">定义http接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#注入使用"><span class="nav-number">3.3.</span> <span class="nav-text">注入使用</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#HTTP请求相关注解"><span class="nav-number">4.</span> <span class="nav-text">HTTP请求相关注解</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#配置项说明"><span class="nav-number">5.</span> <span class="nav-text">配置项说明</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#高级功能"><span class="nav-number">6.</span> <span class="nav-text">高级功能</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#自定义注入OkHttpClient"><span class="nav-number">6.1.</span> <span class="nav-text">自定义注入OkHttpClient</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#注解式拦截器"><span class="nav-number">6.2.</span> <span class="nav-text">注解式拦截器</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#继承BasePathMatchInterceptor编写拦截处理器"><span class="nav-number">6.2.1.</span> <span class="nav-text">继承BasePathMatchInterceptor编写拦截处理器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#接口上使用-Intercept进行标注"><span class="nav-number">6.2.2.</span> <span class="nav-text">接口上使用@Intercept进行标注</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#扩展注解式拦截器"><span class="nav-number">6.3.</span> <span class="nav-text">扩展注解式拦截器</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#自定义-Sign注解"><span class="nav-number">6.3.1.</span> <span class="nav-text">自定义@Sign注解</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#实现SignInterceptor"><span class="nav-number">6.3.2.</span> <span class="nav-text">实现SignInterceptor</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#接口上使用-Sign"><span class="nav-number">6.3.3.</span> <span class="nav-text">接口上使用@Sign</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#连接池管理"><span class="nav-number">6.4.</span> <span class="nav-text">连接池管理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#日志打印"><span class="nav-number">6.5.</span> <span class="nav-text">日志打印</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#请求重试"><span class="nav-number">6.6.</span> <span class="nav-text">请求重试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#错误解码器"><span class="nav-number">6.7.</span> <span class="nav-text">错误解码器</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#全局拦截器"><span class="nav-number">7.</span> <span class="nav-text">全局拦截器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#全局应用拦截器"><span class="nav-number">7.1.</span> <span class="nav-text">全局应用拦截器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#全局网络拦截器"><span class="nav-number">7.2.</span> <span class="nav-text">全局网络拦截器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#熔断降级"><span class="nav-number">7.3.</span> <span class="nav-text">熔断降级</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-开启熔断降级功能"><span class="nav-number">7.3.1.</span> <span class="nav-text">1. 开启熔断降级功能</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-配置降级规则（可选）"><span class="nav-number">7.3.2.</span> <span class="nav-text">2. 配置降级规则（可选）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-RetrofitClient设置fallback或者fallbackFactory-可选"><span class="nav-number">7.3.3.</span> <span class="nav-text">3. @RetrofitClient设置fallback或者fallbackFactory (可选)</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#微服务之间的HTTP调用"><span class="nav-number">7.4.</span> <span class="nav-text">微服务之间的HTTP调用</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#配置ServiceInstanceChooser为Spring容器Bean"><span class="nav-number">7.4.1.</span> <span class="nav-text">配置ServiceInstanceChooser为Spring容器Bean</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#使用-Retrofit的serviceId和path属性，可以实现微服务之间的HTTP调用"><span class="nav-number">7.4.2.</span> <span class="nav-text">使用@Retrofit的serviceId和path属性，可以实现微服务之间的HTTP调用</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#调用适配器和数据转码器"><span class="nav-number">8.</span> <span class="nav-text">调用适配器和数据转码器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#调用适配器"><span class="nav-number">8.1.</span> <span class="nav-text">调用适配器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#数据转码器"><span class="nav-number">8.2.</span> <span class="nav-text">数据转码器</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">9.</span> <span class="nav-text">总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="陈添明"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">陈添明</p>
+  <div class="site-description" itemprop="description">生命的意义在于成为你自己</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">46</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈添明</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">296k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">12:20</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+  <script src="//cdn.jsdelivr.net/npm/quicklink@1/dist/quicklink.umd.js"></script>
+  <script>
+      window.addEventListener('load', () => {
+      quicklink({
+        timeout : 3000,
+        priority: true,
+        ignores : [uri => uri.includes('#'),uri => uri === 'https://chentianming11.github.io/posts/3833574358/',]
+      });
+      });
+  </script>
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : 'SoPxUkme2aynTULaNuIc5TIq-gzGzoHsz',
+      appKey     : '4TDP7SMCbgDKTOGGUtpIeA0H',
+      placeholder: "留下点足迹吧~",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"chentianming11.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":{"enable":true,"onlypost":false,"loadingImg":"/uploads/loading.gif"},"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Apache Curator是一个比较完善的zookeeper客户端框架，通过封装的一套高级API，简化了ZooKeeper的操作，因此在实际应用中都是使用Apache Curator来操作zookeeper的。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="zookeeper客户端框架curator使用详解">
+<meta property="og:url" content="https://chentianming11.github.io/posts/3807816107/index.html">
+<meta property="og:site_name" content="陈添明">
+<meta property="og:description" content="Apache Curator是一个比较完善的zookeeper客户端框架，通过封装的一套高级API，简化了ZooKeeper的操作，因此在实际应用中都是使用Apache Curator来操作zookeeper的。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-05-29T06:37:09.000Z">
+<meta property="article:modified_time" content="2021-06-10T15:17:55.613Z">
+<meta property="article:author" content="陈添明">
+<meta property="article:tag" content="zookeeper">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://chentianming11.github.io/posts/3807816107/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>zookeeper客户端框架curator使用详解 | 陈添明</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">陈添明</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">心安即是归处</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">46</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/chentianming11" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://chentianming11.github.io/posts/3807816107/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="陈添明">
+      <meta itemprop="description" content="生命的意义在于成为你自己">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="陈添明">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          zookeeper客户端框架curator使用详解
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-05-29 14:37:09" itemprop="dateCreated datePublished" datetime="2021-05-29T14:37:09+08:00">2021-05-29</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/zookeeper/" itemprop="url" rel="index"><span itemprop="name">zookeeper</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/posts/3807816107/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/3807816107/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>23k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>59 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><strong><code>Apache Curator</code>是一个比较完善的zookeeper客户端框架，通过封装的一套高级API，简化了ZooKeeper的操作，因此在实际应用中都是使用<code>Apache Curator</code>来操作zookeeper的</strong>。</p>
+<a id="more"></a>
+
+<p>源码：<a href="https://github.com/chentianming11/zookeeper-demo" target="_blank" rel="noopener">https://github.com/chentianming11/zookeeper-demo</a></p>
+<p>通过查看官方文档，可以发现Curator主要解决了三类问题：</p>
+<ul>
+<li>封装<code>ZooKeeper client</code>与<code>ZooKeeper server</code>之间的连接处理。</li>
+<li>提供了一套Fluent风格的操作API。</li>
+<li>提供ZooKeeper各种应用场景(recipe， 比如：分布式锁服务、集群领导选举、共享计数器、缓存机制、分布式队列等)的抽象封装。</li>
+</ul>
+<h2 id="引入依赖"><a href="#引入依赖" class="headerlink" title="引入依赖"></a>引入依赖</h2><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.curator<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>curator-framework<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.12.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.curator<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>curator-recipes<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.12.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="创建会话"><a href="#创建会话" class="headerlink" title="创建会话"></a>创建会话</h2><h3 id="使用静态工程方法创建客户端"><a href="#使用静态工程方法创建客户端" class="headerlink" title="使用静态工程方法创建客户端"></a>使用静态工程方法创建客户端</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 重试策略 </span></span><br><span class="line">ExponentialBackoffRetry retry = <span class="keyword">new</span> ExponentialBackoffRetry(<span class="number">1000</span>, <span class="number">3</span>);</span><br><span class="line">CuratorFramework curatorFramework = CuratorFrameworkFactory.newClient(connectionStr,<span class="number">5000</span>,<span class="number">5000</span>, retry);</span><br></pre></td></tr></table></figure>
+
+<p>newClient静态工厂方法包含四个主要参数：</p>
+<table>
+<thead>
+<tr>
+<th>参数名</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>connectionString</td>
+<td>服务器列表，格式host1:port1,host2:port2,…</td>
+</tr>
+<tr>
+<td>retryPolicy</td>
+<td>重试策略,内建有四种重试策略,也可以自行实现RetryPolicy接口</td>
+</tr>
+<tr>
+<td>sessionTimeoutMs</td>
+<td>会话超时时间，单位毫秒，默认60000ms</td>
+</tr>
+<tr>
+<td>connectionTimeoutMs</td>
+<td>连接创建超时时间，单位毫秒，默认60000ms</td>
+</tr>
+</tbody></table>
+<h3 id="使用Fluent风格的Api创建客户端"><a href="#使用Fluent风格的Api创建客户端" class="headerlink" title="使用Fluent风格的Api创建客户端"></a>使用Fluent风格的Api创建客户端</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">RetryPolicy retryPolicy = <span class="keyword">new</span> ExponentialBackoffRetry(<span class="number">1000</span>, <span class="number">3</span>);</span><br><span class="line">        CuratorFramework client =</span><br><span class="line">                CuratorFrameworkFactory.builder()</span><br><span class="line">                        .connectString(connectionInfo)</span><br><span class="line">                        .sessionTimeoutMs(<span class="number">5000</span>)</span><br><span class="line">                        .connectionTimeoutMs(<span class="number">5000</span>)</span><br><span class="line">                        .retryPolicy(retryPolicy)</span><br><span class="line">                        .build();</span><br></pre></td></tr></table></figure>
+
+<h3 id="创建包含隔离命名空间的客户端"><a href="#创建包含隔离命名空间的客户端" class="headerlink" title="创建包含隔离命名空间的客户端"></a>创建包含隔离命名空间的客户端</h3><p><strong>为了实现不同的Zookeeper业务之间的隔离，需要为每个业务分配一个独立的命名空间（<code>NameSpace</code>），即指定一个Zookeeper的根路径（官方术语：为Zookeeper添加“Chroot”特性）</strong>。例如（下面的例子）当客户端指定了独立命名空间为“/base”，那么该客户端对Zookeeper上的数据节点的操作都是基于该目录进行的。通过设置Chroot可以将客户端应用与Zookeeper服务端的一课子树相对应，在多个应用共用一个Zookeeper集群的场景下，这对于实现不同应用之间的相互隔离十分有意义。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">RetryPolicy retryPolicy = <span class="keyword">new</span> ExponentialBackoffRetry(<span class="number">1000</span>, <span class="number">3</span>);</span><br><span class="line">        CuratorFramework client =</span><br><span class="line">        CuratorFrameworkFactory.builder()</span><br><span class="line">                .connectString(connectionInfo)</span><br><span class="line">                .sessionTimeoutMs(<span class="number">5000</span>)</span><br><span class="line">                .connectionTimeoutMs(<span class="number">5000</span>)</span><br><span class="line">                .retryPolicy(retryPolicy)</span><br><span class="line">                .namespace(<span class="string">"base"</span>)</span><br><span class="line">                .build();</span><br></pre></td></tr></table></figure>
+
+<p><em>当客户端创建成功，直接调用<code>start()</code>方法即可启动客户端</em>。</p>
+<h2 id="数据节点操作"><a href="#数据节点操作" class="headerlink" title="数据节点操作"></a>数据节点操作</h2><h3 id="创建数据节点"><a href="#创建数据节点" class="headerlink" title="创建数据节点"></a>创建数据节点</h3><p>Zookeeper的节点创建模式：</p>
+<ul>
+<li>PERSISTENT：持久化节点</li>
+<li>PERSISTENT_SEQUENTIAL：持久化顺序节点</li>
+<li>EPHEMERAL：临时节点</li>
+<li>EPHEMERAL_SEQUENTIAL：临时顺序节点</li>
+</ul>
+<p><strong>创建一个节点，初始内容为空</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client.create().forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p>如果没有设置节点属性，<strong>节点创建模式默认为持久化节点，内容默认为空</strong>。</p>
+<p><strong>创建一个节点，附带初始化内容</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client.create().forPath(<span class="string">"/path2"</span>, <span class="string">"test1"</span>.getBytes());</span><br></pre></td></tr></table></figure>
+
+<p><strong>创建一个节点，指定创建模式（临时节点），内容为空</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client.create().withMode(CreateMode.EPHEMERAL).forPath(<span class="string">"/path3"</span>);</span><br></pre></td></tr></table></figure>
+
+<p><strong>创建一个节点，指定创建模式（临时节点），附带初始化内容</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client.create().withMode(CreateMode.EPHEMERAL).forPath(<span class="string">"/path"</span>, <span class="string">"demo"</span>.getBytes());</span><br></pre></td></tr></table></figure>
+
+<p><strong>创建一个节点，指定创建模式（临时节点），附带初始化内容，并且自动递归创建父节点</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">client.create()</span><br><span class="line">      .creatingParentContainersIfNeeded()</span><br><span class="line">      .withMode(CreateMode.EPHEMERAL)</span><br><span class="line">      .forPath(<span class="string">"/abc/path"</span>, <span class="string">"init"</span>.getBytes());</span><br></pre></td></tr></table></figure>
+
+<p><code>creatingParentContainersIfNeeded()</code>接口非常有用，因为一般情况开发人员在创建一个子节点必须判断它的父节点是否存在，如果不存在直接创建会抛出<code>NoNodeException</code>，<strong>使用<code>creatingParentContainersIfNeeded()</code>之后Curator能够自动递归创建所有所需的父节点</strong>。</p>
+<h3 id="删除数据节点"><a href="#删除数据节点" class="headerlink" title="删除数据节点"></a>删除数据节点</h3><p><strong>删除一个节点</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client.delete().forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p><em>注意，此方法只能删除叶子节点，否则会抛出异常</em>。</p>
+<p><strong>删除一个节点，并且递归删除其所有的子节点</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">client.delete()</span><br><span class="line">                .deletingChildrenIfNeeded()</span><br><span class="line">                .forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p><strong>删除一个节点，强制指定版本进行删除</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">client.delete()</span><br><span class="line">      .withVersion(<span class="number">100</span>)</span><br><span class="line">      .forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p><strong>删除一个节点，强制保证删除</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">client.delete()</span><br><span class="line">      .guaranteed()</span><br><span class="line">      .forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p><em>上面的多个流式接口是可以自由组合</em>，例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">client.delete()</span><br><span class="line">      .guaranteed()</span><br><span class="line">      .deletingChildrenIfNeeded()</span><br><span class="line">      .withVersion(<span class="number">10086</span>)</span><br><span class="line">      .forPath(<span class="string">"path"</span>);</span><br></pre></td></tr></table></figure>
+
+<h3 id="读取数据节点数据"><a href="#读取数据节点数据" class="headerlink" title="读取数据节点数据"></a>读取数据节点数据</h3><p><strong>读取一个节点的数据内容</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">byte[] data &#x3D; client.getData().forPath(&quot;&#x2F;path2&quot;);</span><br></pre></td></tr></table></figure>
+
+<p><strong>读取一个节点的数据内容，同时获取到该节点的stat</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Stat stat = <span class="keyword">new</span> Stat();</span><br><span class="line"><span class="keyword">byte</span>[] data = client.getData()</span><br><span class="line">        .storingStatIn(stat)</span><br><span class="line">        .forPath(<span class="string">"/path2"</span>);</span><br></pre></td></tr></table></figure>
+
+<h3 id="更新数据节点数据"><a href="#更新数据节点数据" class="headerlink" title="更新数据节点数据"></a>更新数据节点数据</h3><p><strong>更新一个节点的数据内容</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client.setData().forPath(<span class="string">"/path"</span>,<span class="string">"data"</span>.getBytes());</span><br></pre></td></tr></table></figure>
+
+<p><strong>更新一个节点的数据内容，强制指定版本进行更新</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client.setData().withVersion(<span class="number">10086</span>).forPath(<span class="string">"/path"</span>,<span class="string">"data"</span>.getBytes());</span><br></pre></td></tr></table></figure>
+
+<h3 id="检查节点是否存在"><a href="#检查节点是否存在" class="headerlink" title="检查节点是否存在"></a>检查节点是否存在</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Stat stat = client.checkExists().forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p>注意：该方法返回一个Stat实例，不存在，则返回null。</p>
+<h3 id="获取某个节点的所有子节点路径"><a href="#获取某个节点的所有子节点路径" class="headerlink" title="获取某个节点的所有子节点路径"></a>获取某个节点的所有子节点路径</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; list = client.getChildren().forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p>该方法的返回值为List<String>,获得ZNode的子节点Path列表。</p>
+<h3 id="事务"><a href="#事务" class="headerlink" title="事务"></a>事务</h3><p>CuratorFramework的实例包含<code>inTransaction()</code>接口方法，调用此方法开启一个ZooKeeper事务. 可以复合<code>create</code>, <code>setData</code>, <code>check</code>, <code>and/or delete</code> 等操作然后调用<code>commit()</code>作为一个<strong>原子操作提交</strong>。一个例子如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">client.inTransaction()</span><br><span class="line">               .check().forPath(<span class="string">"/path"</span>)</span><br><span class="line">               .and()</span><br><span class="line">               .create().withMode(CreateMode.EPHEMERAL).forPath(<span class="string">"/path"</span>, <span class="string">"data"</span>.getBytes())</span><br><span class="line">               .and()</span><br><span class="line">               .setData().withVersion(<span class="number">1000</span>).forPath(<span class="string">"/path"</span>, <span class="string">"data2"</span>.getBytes())</span><br><span class="line">               .and()</span><br><span class="line">               .commit();</span><br></pre></td></tr></table></figure>
+
+<p>上面提到的创建、删除、更新、读取等方法都是同步的，<code>Curator</code>提供异步接口，引入了<code>BackgroundCallback</code>接口用于处理异步接口调用之后服务端返回的结果信息。<code>BackgroundCallback</code>接口中一个重要的回调值为<code>CuratorEvent</code>，里面包含事件类型、响应吗和节点的详细信息。</p>
+<p><strong>CuratorEventType</strong></p>
+<table>
+<thead>
+<tr>
+<th>事件类型</th>
+<th>对应CuratorFramework实例的方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CREATE</td>
+<td>create()</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td>delete()</td>
+</tr>
+<tr>
+<td>EXISTS</td>
+<td>checkExists()</td>
+</tr>
+<tr>
+<td>GET_DATA</td>
+<td>getData()</td>
+</tr>
+<tr>
+<td>SET_DATA</td>
+<td>setData()</td>
+</tr>
+<tr>
+<td>CHILDREN</td>
+<td>getChildren()</td>
+</tr>
+<tr>
+<td>SYNC</td>
+<td>sync(String,Object)</td>
+</tr>
+<tr>
+<td>GET_ACL</td>
+<td>getACL()</td>
+</tr>
+<tr>
+<td>SET_ACL</td>
+<td>setACL()</td>
+</tr>
+<tr>
+<td>WATCHED</td>
+<td>Watcher(Watcher)</td>
+</tr>
+<tr>
+<td>CLOSING</td>
+<td>close()</td>
+</tr>
+</tbody></table>
+<p><strong>响应码(<code>getResultCode()</code>)</strong></p>
+<table>
+<thead>
+<tr>
+<th>响应码</th>
+<th>意义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>OK，即调用成功</td>
+</tr>
+<tr>
+<td>-4</td>
+<td>ConnectionLoss，即客户端与服务端断开连接</td>
+</tr>
+<tr>
+<td>-110</td>
+<td>NodeExists，即节点已经存在</td>
+</tr>
+<tr>
+<td>-112</td>
+<td>SessionExpired，即会话过期</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">ExecutorService executor = Executors.newFixedThreadPool(<span class="number">2</span>);</span><br><span class="line">        client.create()</span><br><span class="line">                .creatingParentsIfNeeded()</span><br><span class="line">                .withMode(CreateMode.EPHEMERAL)</span><br><span class="line">                <span class="comment">// 异步</span></span><br><span class="line"><span class="comment">// .inBackground()</span></span><br><span class="line">                .inBackground((client1, event) -&gt; &#123;</span><br><span class="line">                    <span class="comment">// 事件类型</span></span><br><span class="line">                    CuratorEventType type = event.getType();</span><br><span class="line">                    <span class="comment">// 结果编码</span></span><br><span class="line">                    <span class="keyword">int</span> resultCode = event.getResultCode();</span><br><span class="line">                    System.out.println(<span class="string">"事件类型: "</span> + type + <span class="string">", 结果编码: "</span> + resultCode);</span><br><span class="line">                &#125;, executor)</span><br><span class="line">                .forPath(<span class="string">"/path"</span>);</span><br></pre></td></tr></table></figure>
+
+<p>注意：如果<code>inBackground()</code>方法不指定executor，那么会默认使用Curator的EventThread去进行异步处理。</p>
+<h2 id="缓存"><a href="#缓存" class="headerlink" title="缓存"></a>缓存</h2><p><strong>强烈推荐使用<code>ConnectionStateListener</code>监控连接的状态，当连接状态为LOST，curator-recipes下的所有Api将会失效或者过期</strong>。</p>
+<p>zookeeper原生支持通过注册<code>Watcher</code>来进行事件监听，但是开发者需要反复注册(Watcher只能单次注册单次使用)。<strong>Cache是Curator中对事件监听的包装，可以看作是对事件监听的本地缓存视图，能够自动为开发者处理反复注册监听</strong>。Curator提供了三种Watcher(Cache)来监听结点的变化。</p>
+<ul>
+<li>Path Cache</li>
+</ul>
+<p><strong>Path Cache用来监控一个Znode的子节点</strong>. 当一个子节点增加， 更新，删除时， Path Cache会改变它的状态，会包含最新的子节点，子节点的数据和状态，而状态的变更将通过<code>PathChildrenCacheListener</code>通知。</p>
+<p>实际使用时会涉及到四个类：</p>
+<ul>
+<li>PathChildrenCache</li>
+<li>PathChildrenCacheEvent</li>
+<li>PathChildrenCacheListener</li>
+<li>ChildData</li>
+</ul>
+<p>通过下面的构造函数创建Path Cache:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">PathChildrenCache</span><span class="params">(CuratorFramework client, String path, <span class="keyword">boolean</span> cacheData)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>想使用cache，必须调用它的start方法，使用完后调用close方法。 可以设置StartMode来实现启动的模式。</p>
+<ul>
+<li>NORMAL：正常初始化。</li>
+<li>BUILD_INITIAL_CACHE：在调用start()之前会调用rebuild()。</li>
+<li>POST_INITIALIZED_EVENT： 当Cache初始化数据后发送一个<code>PathChildrenCacheEvent.Type#INITIALIZED</code>事件</li>
+</ul>
+<p><code>addListener(PathChildrenCacheListener listener)</code>可以增加listener监听缓存的变化。<br><code>getCurrentData()</code>方法返回一个List对象，可以遍历所有的子节点。</p>
+<p><em>设置/更新、移除其实是使用client (CuratorFramework)来操作, 不通过PathChildrenCache操作</em>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建path cache</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 注意：如果new PathChildrenCache(client, PATH, cacheData)中的参数cacheData值设置为false，</span></span><br><span class="line"><span class="comment"> * 则示例中的event.getData() 将返回null，cache将不会缓存节点数据。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">PathChildrenCache cache = <span class="keyword">new</span> PathChildrenCache(client, PATH, <span class="keyword">true</span>);</span><br><span class="line">cache.start(PathChildrenCache.StartMode.NORMAL);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 添加一个监听器</span></span><br><span class="line">cache.getListenable()</span><br><span class="line">        .addListener((client1, event) -&gt; &#123;</span><br><span class="line">            <span class="comment">// 事件类型</span></span><br><span class="line">            PathChildrenCacheEvent.Type type = event.getType();</span><br><span class="line">            System.out.println(<span class="string">"事件类型："</span> + type);</span><br><span class="line">            <span class="comment">// 子节点数据</span></span><br><span class="line">            ChildData data = event.getData();</span><br><span class="line">            System.out.println(<span class="string">"子节点数据："</span> + data);</span><br><span class="line">        &#125;);</span><br></pre></td></tr></table></figure>
+
+<p>注意：如果<code>new PathChildrenCache(client, PATH, cacheData)</code>中的参数<code>cacheData</code>值设置为<code>false</code>，则示例中的<code>event.getData()</code>将返回null，cache将不会缓存节点数据。</p>
+<h3 id="Node-Cache"><a href="#Node-Cache" class="headerlink" title="Node Cache"></a>Node Cache</h3><p><code>Node Cache</code>与<code>Path Cache</code>类似，<strong><code>Node Cache</code>只是监听某一个特定的节点</strong>。它涉及到下面的三个类：</p>
+<ul>
+<li><code>NodeCache</code>：Node Cache实现类</li>
+<li><code>NodeCacheListener</code>：节点监听器</li>
+<li><code>ChildData</code>： 节点数据</li>
+</ul>
+<p><code>getCurrentData()</code>将得到节点当前的状态，通过它的状态可以得到当前的值。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建NodeCache</span></span><br><span class="line">NodeCache nodeCache = <span class="keyword">new</span> NodeCache(client, PATH);</span><br><span class="line"><span class="comment">// 必须要先start</span></span><br><span class="line">nodeCache.start();</span><br><span class="line"></span><br><span class="line">NodeCacheListener listener = () -&gt; &#123;</span><br><span class="line">    System.out.println(<span class="string">"节点变化"</span>);</span><br><span class="line">    ChildData currentData = nodeCache.getCurrentData();</span><br><span class="line">    <span class="keyword">if</span> (currentData != <span class="keyword">null</span>) &#123;</span><br><span class="line">        System.out.println(<span class="string">"节点数据："</span> + currentData);</span><br><span class="line">    &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">"节点无数据"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line">nodeCache.getListenable().addListener(listener);</span><br></pre></td></tr></table></figure>
+
+<h3 id="Tree-Cache"><a href="#Tree-Cache" class="headerlink" title="Tree Cache"></a>Tree Cache</h3><p>Tree Cache可以监控整个树上的所有节点，主要涉及到下面四个类：</p>
+<ul>
+<li><code>TreeCache</code>：Tree Cache实现类</li>
+<li><code>TreeCacheListener</code>：监听器类</li>
+<li><code>TreeCacheEvent</code>：触发的事件类</li>
+<li><code>ChildData</code>：节点数据</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">TreeCache treeCache = <span class="keyword">new</span> TreeCache(client, PATH);</span><br><span class="line">treeCache.start();</span><br><span class="line"></span><br><span class="line">treeCache.getListenable().addListener((client1, event) -&gt; &#123;</span><br><span class="line">    TreeCacheEvent.Type type = event.getType();</span><br><span class="line">    ChildData data = event.getData();</span><br><span class="line">    System.out.println(<span class="string">"事件类型："</span> + type + <span class="string">", 节点数据："</span> + data);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<h2 id="Leader选举"><a href="#Leader选举" class="headerlink" title="Leader选举"></a>Leader选举</h2><p>在分布式计算中，<code>leader elections</code>是很重要的一个功能。这个选举过程是这样子的： 指派一个进程作为组织者，将任务分发给各节点。 在任务开始前， 哪个节点都不知道谁是leader(领导者)或者coordinator(协调者). 当选举算法开始执行后， 每个节点最终会得到一个唯一的节点作为任务leader. 除此之外，选举还经常会发生在leader意外宕机的情况下，新的leader要被选举出来。</p>
+<p><strong>在zookeeper集群中，leader负责写操作，然后通过Zab协议实现follower的同步，leader或者follower都可以处理读操作</strong>。<br>Curator有两种leader选举的recipe,分别是<code>LeaderSelector</code>和<code>LeaderLatch</code>。</p>
+<ul>
+<li><code>LeaderSelector</code>：所有存活的客户端不间断的轮流做Leader。</li>
+<li><code>LeaderLatch</code>：一旦选举出Leader，除非有客户端挂掉重新触发选举，否则不会交出领导权。</li>
+</ul>
+<h3 id="LeaderLatch"><a href="#LeaderLatch" class="headerlink" title="LeaderLatch"></a>LeaderLatch</h3><p><code>LeaderLatch</code>会和其它使用相同latch path的其它<code>LeaderLatch</code>交涉，然后其中一个最终会被选举为<code>leader</code>，可以通过<code>hasLeadership()</code>方法查看<code>LeaderLatch</code>实例是否leader。</p>
+<p>类似JDK的<code>CountDownLatch</code>， <code>LeaderLatch</code>在请求成为<code>leadership</code>会<code>block</code>(阻塞)，一旦不使用<code>LeaderLatch</code>了，必须调用<code>close()</code>方法。 如果它是leader,会释放leadership， 其它的参与者将会选举一个leader。</p>
+<p>异常处理： <code>LeaderLatch</code>实例可以增加<code>ConnectionStateListener</code>来监听网络连接问题。 当<code>SUSPENDED</code>或<code>LOST</code>时, leader不再认为自己还是leader。当<code>LOST</code>后连接重连后<code>RECONNECTED</code>, LeaderLatch会删除先前的ZNode然后重新创建一个。<strong>LeaderLatch用户必须考虑导致leadership丢失的连接问题。 强烈推荐你使用<code>ConnectionStateListener</code></strong>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 参与选举的所有节点，会创建一个顺序节点，其中最小的 节点会设置为 master 节点, 没抢到 Leader 的节点都监听 前一个节点的删除事件，</span></span><br><span class="line"><span class="comment"> * 在前一个节点删除后进行重新抢主，当 master 节点手动调用 close()方法或者 master 节点挂了之后，后续的子节点会抢占 master。</span></span><br><span class="line"><span class="comment"> 其中 spark 使用的就是这种方法</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 陈添明</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2018/12/14</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LeaderLatchTest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">static</span> String PATH = <span class="string">"/francis/leader"</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> String connectionInfo = <span class="string">"127.0.0.1:2181"</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> CLIENT_QTY = <span class="number">10</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        List&lt;CuratorFramework&gt; clients = Lists.newArrayList();</span><br><span class="line">        List&lt;LeaderLatch&gt; examples = Lists.newArrayList();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/**</span></span><br><span class="line"><span class="comment">             * 创建10个客户端，并且创建对应的LeaderLatch</span></span><br><span class="line"><span class="comment">             */</span></span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; CLIENT_QTY; i++) &#123;</span><br><span class="line">                CuratorFramework client</span><br><span class="line">                        = CuratorFrameworkFactory.newClient(connectionInfo, <span class="keyword">new</span> ExponentialBackoffRetry(<span class="number">20000</span>, <span class="number">3</span>));</span><br><span class="line">                clients.add(client);</span><br><span class="line">                LeaderLatch latch = <span class="keyword">new</span> LeaderLatch(client, PATH, <span class="string">"Client #"</span> + i);</span><br><span class="line"></span><br><span class="line">                latch.addListener(<span class="keyword">new</span> LeaderLatchListener()&#123;</span><br><span class="line">                    <span class="meta">@Override</span></span><br><span class="line">                    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">isLeader</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                        System.out.println(<span class="string">"I am Leader"</span>);</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    <span class="meta">@Override</span></span><br><span class="line">                    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">notLeader</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                        System.out.println(<span class="string">"I am not Leader"</span>);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;);</span><br><span class="line"></span><br><span class="line">                examples.add(latch);</span><br><span class="line">                client.start();</span><br><span class="line">                latch.start();</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            Thread.sleep(<span class="number">10_000</span>);</span><br><span class="line">            <span class="comment">/**</span></span><br><span class="line"><span class="comment">             * 获取当前的leader</span></span><br><span class="line"><span class="comment">             */</span></span><br><span class="line">            LeaderLatch currentLeader = <span class="keyword">null</span>;</span><br><span class="line">            <span class="keyword">for</span> (LeaderLatch latch : examples) &#123;</span><br><span class="line">                <span class="keyword">if</span> (latch.hasLeadership()) &#123;</span><br><span class="line">                    currentLeader = latch;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            System.out.println(<span class="string">"current leader is "</span> + currentLeader.getId());</span><br><span class="line">            System.out.println(<span class="string">"release the leader "</span> + currentLeader.getId());</span><br><span class="line">            <span class="comment">// 只能通过close释放当前的领导权</span></span><br><span class="line">            currentLeader.close();</span><br><span class="line"></span><br><span class="line">            Thread.sleep(<span class="number">5000</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">/**</span></span><br><span class="line"><span class="comment">             * 再次获取leader</span></span><br><span class="line"><span class="comment">             */</span></span><br><span class="line">            <span class="keyword">for</span> (LeaderLatch latch : examples) &#123;</span><br><span class="line">                <span class="keyword">if</span> (latch.hasLeadership()) &#123;</span><br><span class="line">                    currentLeader = latch;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            System.out.println(<span class="string">"current leader is "</span> + currentLeader.getId());</span><br><span class="line">            System.out.println(<span class="string">"release the leader "</span> + currentLeader.getId());</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">for</span> (LeaderLatch latch : examples) &#123;</span><br><span class="line">                <span class="keyword">if</span> (<span class="keyword">null</span> != latch.getState())</span><br><span class="line">                    CloseableUtils.closeQuietly(latch);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">for</span> (CuratorFramework client : clients) &#123;</span><br><span class="line">                CloseableUtils.closeQuietly(client);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先我们创建了10个<code>LeaderLatch</code>，启动后它们中的一个会被选举为leader。 因为选举会花费一些时间，start后并不能马上就得到leader。 通过<code>hasLeadership()</code>查看自己是否是leader， 如果是的话返回true。 可以通过<code>getId()</code>可以得到当前的leader的ID。只能通过<code>close()</code>释放当前的领导权。</p>
+<h3 id="LeaderSelector"><a href="#LeaderSelector" class="headerlink" title="LeaderSelector"></a>LeaderSelector</h3><p>LeaderSelector使用的时候主要涉及下面几个类：</p>
+<ul>
+<li>LeaderSelector</li>
+<li>LeaderSelectorListener</li>
+<li>LeaderSelectorListenerAdapter</li>
+<li>CancelLeadershipException</li>
+</ul>
+<p>类似<code>LeaderLatch</code>,<code>LeaderSelector</code>必须start:<code>leaderSelector.start()</code>; 一旦启动，当实例取得领导权时你的listener的<code>takeLeadership()</code>方法被调用。而<code>takeLeadership()</code>方法只有领导权被释放时才返回。 当你不再使用LeaderSelector实例时，应该调用它的<code>close()</code>方法。</p>
+<p><strong>异常处理</strong>：<code>LeaderSelectorListener</code>类继承<code>ConnectionStateListener</code>。LeaderSelector必须小心连接状态的改变。如果实例成为leader, 它应该响应<code>SUSPENDED</code>或<code>LOST</code>。 当<code>SUSPENDED</code>状态出现时，实例必须假定在重新连接成功之前, 它可能不再是leader了。 如果LOST状态出现， 实例不再是leader， <code>takeLeadership()</code>方法返回。</p>
+<p><strong>重要</strong>: 推荐处理方式是当收到<code>SUSPENDED</code> 或<code>LOST</code>时抛出<code>CancelLeadershipException</code>异常。这是会导致<code>LeaderSelector</code>实例中断并取消执行<code>takeLeadership</code>方法的异常。这非常重要， 你必须考虑扩展<code>LeaderSelectorListenerAdapter</code>。 <code>LeaderSelectorListenerAdapter</code>提供了推荐的处理逻辑。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 当实例被选为leader之后，调用takeLeadership方法进行业务逻辑处理，处理完成即释放领导权。</span></span><br><span class="line"><span class="comment"> * autoRequeue()方法的调用确保此实例在释放领导权后还可能获得领导权。</span></span><br><span class="line"><span class="comment"> * 这样保证了每个节点都可以获得领导权。</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 陈添明</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2019/11/10</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LeaderSelectorTest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        List&lt;LeaderSelector&gt; leaderSelectors = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        List&lt;CuratorFramework&gt; clients = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++) &#123;</span><br><span class="line">            CuratorFramework client = CuratorFrameworkFactory.newClient(<span class="string">"localhost:2181"</span>, <span class="keyword">new</span> ExponentialBackoffRetry(<span class="number">1000</span>, <span class="number">3</span>));</span><br><span class="line">            client.start();</span><br><span class="line">            clients.add(client);</span><br><span class="line"></span><br><span class="line">            LeaderSelector leaderSelector = <span class="keyword">new</span> LeaderSelector(client, <span class="string">"/master"</span>, <span class="keyword">new</span> LeaderSelectorListenerAdapter() &#123;</span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">takeLeadership</span><span class="params">(CuratorFramework curatorFramework)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">                    System.out.println(Thread.currentThread().getName() + <span class="string">" is a leader"</span>);</span><br><span class="line">                    Thread.sleep(Integer.MAX_VALUE);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">stateChanged</span><span class="params">(CuratorFramework client, ConnectionState newState)</span> </span>&#123;</span><br><span class="line">                    <span class="keyword">super</span>.stateChanged(client, newState);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line">            leaderSelectors.add(leaderSelector);</span><br><span class="line">        &#125;</span><br><span class="line">        leaderSelectors.forEach(leaderSelector -&gt; &#123;</span><br><span class="line">            leaderSelector.autoRequeue();</span><br><span class="line">            leaderSelector.start();</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">        System.out.println(<span class="string">"=================="</span>);</span><br><span class="line">        clients.forEach(client -&gt; &#123;</span><br><span class="line">            client.close();</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        Thread.sleep(<span class="number">100</span> * <span class="number">1000</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="分布式锁"><a href="#分布式锁" class="headerlink" title="分布式锁"></a>分布式锁</h2><ol>
+<li>推荐使用<code>ConnectionStateListener</code>监控连接的状态，因为当连接LOST时你不再拥有锁。</li>
+<li>分布式的锁全局同步，这意味着任何一个时间点不会有两个客户端都拥有相同的锁。</li>
+</ol>
+<h3 id="可重入共享锁—Shared-Reentrant-Lock"><a href="#可重入共享锁—Shared-Reentrant-Lock" class="headerlink" title="可重入共享锁—Shared Reentrant Lock"></a>可重入共享锁—Shared Reentrant Lock</h3><p><code>Shared</code>意味着锁是全局可见的，客户端都可以请求锁。<code>Reentrant</code>和JDK的<code>ReentrantLock</code>类似，即可重入。意味着<strong>同一个客户端在拥有锁的同时，可以多次获取，不会被阻塞</strong>。 它是由类<code>InterProcessMutex</code>来实现。 它的构造函数为：<code>public InterProcessMutex(CuratorFramework client, String path)</code>。</p>
+<ul>
+<li>通过<code>acquire()</code>获得锁，并提供超时机制。</li>
+<li>通过<code>release()</code>方法释放锁。<code>InterProcessMutex</code>实例可以重用。</li>
+</ul>
+<p>zookeeper还提供了可协商的撤销机制，通过为<code>mutex</code>设置<em>撤销监听器</em>来支持撤销<code>mutex</code>, 通过调用<code>makeRevocable(RevocationListener&lt;T&gt; listener)</code>来实现。</p>
+<p>如果你请求撤销当前的锁，可以调用<code>Revoker.attemptRevoke(CuratorFramework client, String path)</code>方法,此时<code>RevocationListener</code>将会回调。</p>
+<p><strong>代码示例</strong>：</p>
+<p>首先让我们创建一个模拟的共享资源， 这个资源期望只能单客户端的访问，否则会有并发问题。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 共享资源</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">FakeLimitedResource</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> AtomicBoolean inUse = <span class="keyword">new</span> AtomicBoolean(<span class="keyword">false</span>);</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Random random = <span class="keyword">new</span> Random(System.currentTimeMillis());</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * use方法最多只能有一个客户端调用</span></span><br><span class="line"><span class="comment">     * 否则，抛出异常</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@throws</span> InterruptedException</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">use</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        <span class="comment">// 真实环境中我们会在这里访问/维护一个共享的资源</span></span><br><span class="line">        <span class="comment">//这个例子在使用锁的情况下不会非法并发异常IllegalStateException</span></span><br><span class="line">        <span class="comment">//但是在无锁的情况由于sleep了一段时间，很容易抛出异常</span></span><br><span class="line">        <span class="keyword">if</span> (!inUse.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>)) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"同一时间，只能被一个客户端访问！！！"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Thread.sleep(random.nextInt(<span class="number">2_000</span>));</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            inUse.set(<span class="keyword">false</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后创建一个<code>InterProcessMutexDemo</code>类， 它负责请求锁， 使用资源，释放锁这样一个完整的访问过程。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 然后创建一个InterProcessMutexDemo类， 它负责请求锁， 使用资源，释放锁这样一个完整的访问过程。</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 陈添明</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2018/12/15</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">InterProcessMutexDemo</span> </span>&#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 代码也很简单，生成10个client， 每个client重复执行10次 请求锁–访问资源–释放锁的过程。</span></span><br><span class="line"><span class="comment">     * 每个client都在独立的线程中。 结果可以看到，锁是随机的被每个实例排他性的使用。</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> InterProcessMutex lock;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> FakeLimitedResource resource;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> String clientName;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">InterProcessMutexDemo</span><span class="params">(CuratorFramework client, String lockPath, FakeLimitedResource resource, String clientName)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.resource = resource;</span><br><span class="line">        <span class="keyword">this</span>.clientName = clientName;</span><br><span class="line">        <span class="keyword">this</span>.lock = <span class="keyword">new</span> InterProcessMutex(client, lockPath);</span><br><span class="line">        <span class="comment">// 将锁设为可撤销的. 当别的进程或线程想让你释放锁时Listener会被调用。</span></span><br><span class="line">        lock.makeRevocable((forLock -&gt; &#123;</span><br><span class="line"></span><br><span class="line">        &#125;));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 同一线程再次 acquire，首先判断当前的 映射表内(threadData)是否有该线程的锁信息，如果有 则原子+1，然后返回</span></span><br><span class="line"><span class="comment">     * 可重入互斥锁</span></span><br><span class="line"><span class="comment">     * 加锁执行</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> time</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> unit</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@throws</span> Exception</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doWork</span><span class="params">(<span class="keyword">long</span> time, TimeUnit unit)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (!lock.acquire(time, unit)) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(clientName + <span class="string">"获取互斥锁锁失败"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            System.out.println(clientName + <span class="string">" 获取到互斥锁"</span>);</span><br><span class="line">            resource.use(); <span class="comment">//access resource exclusively</span></span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            System.out.println(clientName + <span class="string">" 释放互斥锁"</span>);</span><br><span class="line">            lock.release(); <span class="comment">// always release the lock in a finally block</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> QTY = <span class="number">5</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> REPETITIONS = QTY * <span class="number">10</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String PATH = <span class="string">"/examples/locks"</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="keyword">final</span> FakeLimitedResource resource = <span class="keyword">new</span> FakeLimitedResource();</span><br><span class="line">        ExecutorService service = Executors.newFixedThreadPool(QTY);</span><br><span class="line">        <span class="keyword">final</span> TestingServer server = <span class="keyword">new</span> TestingServer();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; QTY; ++i) &#123;</span><br><span class="line">                <span class="keyword">final</span> <span class="keyword">int</span> index = i;</span><br><span class="line">                Callable&lt;Void&gt; task = () -&gt; &#123;</span><br><span class="line">                    <span class="comment">// 创建客户端</span></span><br><span class="line">                    CuratorFramework client = CuratorFrameworkFactory.newClient(server.getConnectString(), <span class="keyword">new</span> ExponentialBackoffRetry(<span class="number">1000</span>, <span class="number">3</span>));</span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                        <span class="comment">// 启动</span></span><br><span class="line">                        client.start();</span><br><span class="line">                        <span class="keyword">final</span> InterProcessMutexDemo example = <span class="keyword">new</span> InterProcessMutexDemo(client, PATH, resource, <span class="string">"Client "</span> + index);</span><br><span class="line">                        <span class="comment">// 执行</span></span><br><span class="line">                        <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; REPETITIONS; ++j) &#123;</span><br><span class="line">                            example.doWork(<span class="number">10</span>, TimeUnit.SECONDS);</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">                        e.printStackTrace();</span><br><span class="line">                    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                        CloseableUtils.closeQuietly(client);</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">                &#125;;</span><br><span class="line">                service.submit(task);</span><br><span class="line">            &#125;</span><br><span class="line">            service.shutdown();</span><br><span class="line">            service.awaitTermination(<span class="number">10</span>, TimeUnit.MINUTES);</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            CloseableUtils.closeQuietly(server);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="不可重入共享锁—Shared-Lock"><a href="#不可重入共享锁—Shared-Lock" class="headerlink" title="不可重入共享锁—Shared Lock"></a>不可重入共享锁—Shared Lock</h3><p>这个锁和上面的<code>InterProcessMutex</code>相比，就是少了<code>Reentrant</code>的功能，也就意味着它不能在同一客户端中重入。这个类是<code>InterProcessSemaphoreMutex</code>,使用方法和<code>InterProcessMutex</code>类似</p>
+<blockquote>
+<p>源码见<code>InterProcessSemaphoreMutexDemo</code>类。</p>
+</blockquote>
+<p>运行后发现，有且只有一个client成功获取第一个锁(第一个<code>acquire()</code>方法返回true)，然后它自己阻塞在第二个<code>acquire()</code>方法，获取第二个锁超时；其他所有的客户端都阻塞在第一个<code>acquire()</code>方法超时并且抛出异常。<br>这样也就验证了<code>InterProcessSemaphoreMutex</code>实现的锁是不可重入的。</p>
+<h3 id="可重入读写锁—Shared-Reentrant-Read-Write-Lock"><a href="#可重入读写锁—Shared-Reentrant-Read-Write-Lock" class="headerlink" title="可重入读写锁—Shared Reentrant Read Write Lock"></a>可重入读写锁—Shared Reentrant Read Write Lock</h3><p>类似JDK的<code>ReentrantReadWriteLock</code>，读写锁一个负责读操作，另外一个负责写操作。读操作在写锁没被使用时可同时由多个进程使用，而写锁在使用时不允许读(阻塞)。<br>此锁是可重入的。一个拥有写锁的线程可重入读锁，但是读锁却不能进入写锁。这也意味着写锁可以降级成读锁， 比如<code>请求写锁 ---&gt;请求读锁---&gt;释放读锁 ----&gt;释放写锁</code>。从读锁升级成写锁是不行的。<br>可重入读写锁主要由两个类实现：<code>InterProcessReadWriteLock</code>、<code>InterProcessMutex</code>。使用时首先创建一个<code>InterProcessReadWriteLock</code>实例，然后再根据你的需求得到读锁或者写锁，读写锁的类型是<code>InterProcessMutex</code>。</p>
+<h3 id="信号量—Shared-Semaphore"><a href="#信号量—Shared-Semaphore" class="headerlink" title="信号量—Shared Semaphore"></a>信号量—Shared Semaphore</h3><p>一个计数的信号量类似JDK的<code>Semaphore</code>。 JDK中<code>Semaphore</code>维护的一组许可(permits)，而<code>Curator</code>中称之为租约(Lease)。 有两种方式可以决定<code>semaphore</code>的最大租约数。第一种方式是用户给定<code>path</code>并且指定最大<code>LeaseSize</code>。第二种方式用户给定path并且使用<code>SharedCountReader</code>类。如果不使用<code>SharedCountReader</code>, 必须保证所有实例在多进程中使用相同的(最大)租约数量,否则有可能出现A进程中的实例持有最大租约数量为10，但是在B进程中持有的最大租约数量为20，此时租约的意义就失效了。</p>
+<p><strong>调用<code>acquire()</code>会返回一个租约对象。 客户端必须在<code>finally</code>中<code>close</code>这些租约对象，否则这些租约会丢失掉</strong>。 但是，如果客户端<code>sessio</code>n由于某种原因比如<code>crash</code>丢掉， 那么这些客户端持有的租约会自动<code>close</code>， 这样其它客户端可以继续使用这些租约。 租约还可以通过下面的方式返还：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">returnAll</span><span class="params">(Collection&lt;Lease&gt; leases)</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">returnLease</span><span class="params">(Lease lease)</span></span></span><br></pre></td></tr></table></figure>
+
+<p><strong>注意你可以一次性请求多个租约，如果<code>Semaphore</code>当前的租约不够，则请求线程会被阻塞</strong>。 同时还提供了超时的重载方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Lease <span class="title">acquire</span><span class="params">()</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Collection&lt;Lease&gt; <span class="title">acquire</span><span class="params">(<span class="keyword">int</span> qty)</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Lease <span class="title">acquire</span><span class="params">(<span class="keyword">long</span> time, TimeUnit unit)</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Collection&lt;Lease&gt; <span class="title">acquire</span><span class="params">(<span class="keyword">int</span> qty, <span class="keyword">long</span> time, TimeUnit unit)</span></span></span><br></pre></td></tr></table></figure>
+
+<p><code>Shared Semaphore</code>使用的主要类包括下面几个： <code>InterProcessSemaphoreV2</code>、<code>Lease</code>、<code>SharedCountReader</code>。<br>使用示例代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">InterProcessSemaphoreDemo</span> </span>&#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> MAX_LEASE = <span class="number">10</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String PATH = <span class="string">"/examples/locks"</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 首先我们先获得了5个租约， 最后我们把它还给了semaphore。 接着请求了一个租约，</span></span><br><span class="line"><span class="comment">     * 因为semaphore还有5个租约，所以请求可以满足，返回一个租约，还剩4个租约。</span></span><br><span class="line"><span class="comment">     * 然后再请求5个租约，因为租约不够，阻塞到超时，还是没能满足，返回结果为null(租约不足会阻塞到超时，然后返回null，不会主动抛出异常；如果不设置超时时间，会一致阻塞)。</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     上面说讲的锁都是公平锁(fair)。 总ZooKeeper的角度看， 每个客户端都按照请求的顺序获得锁，不存在非公平的抢占的情况。</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> args</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@throws</span> Exception</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        FakeLimitedResource resource = <span class="keyword">new</span> FakeLimitedResource();</span><br><span class="line">        <span class="keyword">try</span> (TestingServer server = <span class="keyword">new</span> TestingServer()) &#123;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 创建客户端并启动</span></span><br><span class="line">            CuratorFramework client = CuratorFrameworkFactory.newClient(server.getConnectString(), <span class="keyword">new</span> ExponentialBackoffRetry(<span class="number">1000</span>, <span class="number">3</span>));</span><br><span class="line">            client.start();</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 信号量</span></span><br><span class="line">            InterProcessSemaphoreV2 semaphore = <span class="keyword">new</span> InterProcessSemaphoreV2(client, PATH, MAX_LEASE);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 获取5个租约</span></span><br><span class="line">            Collection&lt;Lease&gt; leases = semaphore.acquire(<span class="number">5</span>);</span><br><span class="line">            System.out.println(<span class="string">"get "</span> + leases.size() + <span class="string">" leases"</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 获取1个租约</span></span><br><span class="line">            Lease lease = semaphore.acquire();</span><br><span class="line">            System.out.println(<span class="string">"get another lease"</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 处理资源</span></span><br><span class="line">            resource.use();</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 在获取5个租约，由于最多只有10个，前面已经使用了6个，租约不足。</span></span><br><span class="line">            <span class="comment">// 如果在获得所有租赁之前时间到期，则获得的租赁子集将自动关闭</span></span><br><span class="line">            Collection&lt;Lease&gt; leases2 = semaphore.acquire(<span class="number">5</span>, <span class="number">10</span>, TimeUnit.SECONDS);</span><br><span class="line">            System.out.println(<span class="string">"Should timeout and acquire return "</span> + leases2);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 返还一个租约</span></span><br><span class="line">            System.out.println(<span class="string">"return one lease"</span>);</span><br><span class="line">            semaphore.returnLease(lease);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 返还多个租约</span></span><br><span class="line">            System.out.println(<span class="string">"return another 5 leases"</span>);</span><br><span class="line">            semaphore.returnAll(leases);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="多共享锁对象-—Multi-Shared-Lock"><a href="#多共享锁对象-—Multi-Shared-Lock" class="headerlink" title="多共享锁对象 —Multi Shared Lock"></a>多共享锁对象 —Multi Shared Lock</h3><p><strong><code>Multi Shared Lock</code>是一个锁的容器。 当调用<code>acquire()</code>， 所有的锁都会被<code>acquire()</code>，如果请求失败，所有的锁都会被<code>release</code>。 同样调用<code>release</code>时所有的锁都被<code>release</code>(失败被忽略)</strong>。 基本上，它就是组锁的代表，在它上面的请求释放操作都会传递给它包含的所有的锁。<br>主要涉及两个类：<code>InterProcessMultiLock</code>、<code>InterProcessLock</code>。 它的构造函数需要包含的锁的集合，或者一组ZooKeeper的path。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">InterProcessMultiLock</span><span class="params">(List&lt;InterProcessLock&gt; locks)</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">InterProcessMultiLock</span><span class="params">(CuratorFramework client, List&lt;String&gt; paths)</span></span></span><br></pre></td></tr></table></figure>
+
+<h2 id="共享-shared"><a href="#共享-shared" class="headerlink" title="共享 shared"></a>共享 shared</h2><h3 id="共享计数—SharedCount"><a href="#共享计数—SharedCount" class="headerlink" title="共享计数—SharedCount"></a>共享计数—SharedCount</h3><p>这个类使用<code>int</code>类型来计数。 主要涉及三个类。<code>SharedCount</code>、<code>SharedCountReader</code>、<code>SharedCountListener</code>。<br><code>SharedCount</code>代表计数器， 可以为它增加一个<code>SharedCountListener</code>，当计数器改变时此<code>Listener</code>可以监听到改变的事件，而<code>SharedCountReader</code>可以读取到最新的值， 包括字面值和带版本信息的值<code>VersionedValue</code>。</p>
+<h2 id="分布式原子类-atomic"><a href="#分布式原子类-atomic" class="headerlink" title="分布式原子类-atomic"></a>分布式原子类-atomic</h2><h3 id="DistributedAtomicLong"><a href="#DistributedAtomicLong" class="headerlink" title="DistributedAtomicLong"></a>DistributedAtomicLong</h3><p>顾名思义，计数器是用来计数的, 利用ZooKeeper可以实现一个集群共享的计数器。 只要使用相同的<code>path</code>就可以得到最新的计数器值， 这是由ZooKeeper的一致性保证的。<br>除了计数的范围比<code>SharedCount</code>大了之外， 它首先尝试使用乐观锁的方式设置计数器， 如果不成功(比如期间计数器已经被其它client更新了)， 它使用<code>InterProcessMutex</code>方式来更新计数值。</p>
+<p>此计数器有一系列的操作：</p>
+<ul>
+<li><code>get()</code>: 获取当前值</li>
+<li><code>increment()</code>： 加一</li>
+<li><code>decrement()</code>: 减一</li>
+<li><code>add()</code>： 增加特定的值</li>
+<li><code>subtract()</code>: 减去特定的值</li>
+<li><code>trySet()</code>: 尝试设置计数值</li>
+<li><code>forceSet()</code>: 强制设置计数值</li>
+</ul>
+<h2 id="分布式屏障—Barrier"><a href="#分布式屏障—Barrier" class="headerlink" title="分布式屏障—Barrier"></a>分布式屏障—Barrier</h2><p>分布式<code>Barrier</code>是这样一个类： 它会阻塞所有节点上的等待进程，直到某一个被满足， 然后所有的节点继续进行。<br>比如赛马比赛中， 等赛马陆续来到起跑线前。 一声令下，所有的赛马都飞奔而出。</p>
+<h3 id="DistributedBarrier"><a href="#DistributedBarrier" class="headerlink" title="DistributedBarrier"></a>DistributedBarrier</h3><p><code>DistributedBarrier</code>类实现了栅栏的功能。 它的构造函数为<code>public DistributedBarrier(CuratorFramework client, String barrierPath)</code>。</p>
+<ol>
+<li>首先你需要设置栅栏，它将阻塞在它上面等待的线程:<code>setBarrier()</code>。</li>
+<li>然后需要阻塞的线程调用方法等待放行条件:<code>waitOnBarrier()</code>。</li>
+<li>当条件满足时，移除栅栏，所有等待的线程将继续执行：<code>removeBarrier()</code>。</li>
+</ol>
+<p>异常处理<code>DistributedBarrier</code>会监控连接状态，当连接断掉时<code>waitOnBarrier()</code>方法会抛出异常。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DistributedBarrierDemo</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> QTY = <span class="number">5</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String PATH = <span class="string">"/examples/barrier"</span>;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 这个例子创建了controlBarrier来设置栅栏和移除栅栏。 我们创建了5个线程，在此Barrier上等待。</span></span><br><span class="line"><span class="comment">     * 最后移除栅栏后所有的线程才继续执行。</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> args</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@throws</span> Exception</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> (TestingServer server = <span class="keyword">new</span> TestingServer()) &#123;</span><br><span class="line">            CuratorFramework client = CuratorFrameworkFactory.newClient(server.getConnectString(), <span class="keyword">new</span> ExponentialBackoffRetry(<span class="number">1000</span>, <span class="number">3</span>));</span><br><span class="line">            client.start();</span><br><span class="line">            ExecutorService service = Executors.newFixedThreadPool(QTY);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 创建barrier</span></span><br><span class="line">            DistributedBarrier controlBarrier = <span class="keyword">new</span> DistributedBarrier(client, PATH);</span><br><span class="line">            <span class="comment">// 设置barrier</span></span><br><span class="line">            controlBarrier.setBarrier();</span><br><span class="line"></span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; QTY; ++i) &#123;</span><br><span class="line">                <span class="keyword">final</span> DistributedBarrier barrier = <span class="keyword">new</span> DistributedBarrier(client, PATH);</span><br><span class="line">                <span class="keyword">final</span> <span class="keyword">int</span> index = i;</span><br><span class="line">                Callable&lt;Void&gt; task = () -&gt; &#123;</span><br><span class="line">                    Thread.sleep((<span class="keyword">long</span>) (<span class="number">3</span> * Math.random()));</span><br><span class="line">                    System.out.println(<span class="string">"Client #"</span> + index + <span class="string">" waits on Barrier"</span>);</span><br><span class="line">                    barrier.waitOnBarrier();</span><br><span class="line">                    System.out.println(<span class="string">"Client #"</span> + index + <span class="string">" begins"</span>);</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">                &#125;;</span><br><span class="line">                service.submit(task);</span><br><span class="line">            &#125;</span><br><span class="line">            Thread.sleep(<span class="number">10000</span>);</span><br><span class="line">            System.out.println(<span class="string">"all Barrier instances should wait the condition"</span>);</span><br><span class="line">            <span class="comment">// 放行</span></span><br><span class="line">            controlBarrier.removeBarrier();</span><br><span class="line">            service.shutdown();</span><br><span class="line">            service.awaitTermination(<span class="number">10</span>, TimeUnit.MINUTES);</span><br><span class="line"></span><br><span class="line">            Thread.sleep(<span class="number">20000</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="双栅栏—DistributedDoubleBarrier"><a href="#双栅栏—DistributedDoubleBarrier" class="headerlink" title="双栅栏—DistributedDoubleBarrier"></a>双栅栏—DistributedDoubleBarrier</h3><p>双栅栏允许客户端在计算的开始和结束时同步。当足够的进程加入到双栅栏时，进程开始计算， 当计算完成时，离开栅栏。 双栅栏类是<code>DistributedDoubleBarrier</code>。 构造函数为:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DistributedDoubleBarrier</span><span class="params">(CuratorFramework client,</span></span></span><br><span class="line"><span class="function"><span class="params">                                String barrierPath,</span></span></span><br><span class="line"><span class="function"><span class="params">                                <span class="keyword">int</span> memberQty)</span></span></span><br></pre></td></tr></table></figure>
+
+<p><code>memberQty</code>是成员数量，当<code>enter()</code>方法被调用时，成员被阻塞，直到所有的成员都调用了<code>enter()</code>。 当<code>leave()</code>方法被调用时，它也阻塞调用线程，直到所有的成员都调用了<code>leave()</code>。 就像百米赛跑比赛， 发令枪响， 所有的运动员开始跑，等所有的运动员跑过终点线，比赛才结束。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DistributedDoubleBarrierDemo</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> QTY = <span class="number">5</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String PATH = <span class="string">"/examples/barrier"</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> (TestingServer server = <span class="keyword">new</span> TestingServer()) &#123;</span><br><span class="line">            CuratorFramework client = CuratorFrameworkFactory.newClient(server.getConnectString(), <span class="keyword">new</span> ExponentialBackoffRetry(<span class="number">1000</span>, <span class="number">3</span>));</span><br><span class="line">            client.start();</span><br><span class="line">            ExecutorService service = Executors.newFixedThreadPool(QTY);</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; QTY; ++i) &#123;</span><br><span class="line"></span><br><span class="line">                <span class="comment">// 创建双栅栏</span></span><br><span class="line">                <span class="keyword">final</span> DistributedDoubleBarrier barrier = <span class="keyword">new</span> DistributedDoubleBarrier(client, PATH, QTY);</span><br><span class="line">                <span class="keyword">final</span> <span class="keyword">int</span> index = i;</span><br><span class="line">                Callable&lt;Void&gt; task = () -&gt; &#123;</span><br><span class="line"></span><br><span class="line">                    Thread.sleep((<span class="keyword">long</span>) (<span class="number">3</span> * Math.random()));</span><br><span class="line">                    System.out.println(<span class="string">"Client #"</span> + index + <span class="string">" enters"</span>);</span><br><span class="line">                    barrier.enter();</span><br><span class="line">                    System.out.println(<span class="string">"Client #"</span> + index + <span class="string">" begins"</span>);</span><br><span class="line">                    Thread.sleep((<span class="keyword">long</span>) (<span class="number">3000</span> * Math.random()));</span><br><span class="line">                    barrier.leave();</span><br><span class="line">                    System.out.println(<span class="string">"Client #"</span> + index + <span class="string">" left"</span>);</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">                &#125;;</span><br><span class="line">                service.submit(task);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            service.shutdown();</span><br><span class="line">            service.awaitTermination(<span class="number">10</span>, TimeUnit.MINUTES);</span><br><span class="line">            Thread.sleep(Integer.MAX_VALUE);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>欢迎关注我的开源项目：<a href="https://github.com/LianjiaTech/retrofit-spring-boot-starter" target="_blank" rel="noopener">一款适用于SpringBoot的轻量级HTTP调用框架</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/zookeeper/" rel="tag"># zookeeper</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/226800025/" rel="prev" title="git回滚merge">
+      <i class="fa fa-chevron-left"></i> git回滚merge
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/1422921172/" rel="next" title="熟悉Spring钩子方法和钩子接口使用，简化你的开发">
+      熟悉Spring钩子方法和钩子接口使用，简化你的开发 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#引入依赖"><span class="nav-number">1.</span> <span class="nav-text">引入依赖</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#创建会话"><span class="nav-number">2.</span> <span class="nav-text">创建会话</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#使用静态工程方法创建客户端"><span class="nav-number">2.1.</span> <span class="nav-text">使用静态工程方法创建客户端</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用Fluent风格的Api创建客户端"><span class="nav-number">2.2.</span> <span class="nav-text">使用Fluent风格的Api创建客户端</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#创建包含隔离命名空间的客户端"><span class="nav-number">2.3.</span> <span class="nav-text">创建包含隔离命名空间的客户端</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据节点操作"><span class="nav-number">3.</span> <span class="nav-text">数据节点操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#创建数据节点"><span class="nav-number">3.1.</span> <span class="nav-text">创建数据节点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#删除数据节点"><span class="nav-number">3.2.</span> <span class="nav-text">删除数据节点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#读取数据节点数据"><span class="nav-number">3.3.</span> <span class="nav-text">读取数据节点数据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#更新数据节点数据"><span class="nav-number">3.4.</span> <span class="nav-text">更新数据节点数据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#检查节点是否存在"><span class="nav-number">3.5.</span> <span class="nav-text">检查节点是否存在</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#获取某个节点的所有子节点路径"><span class="nav-number">3.6.</span> <span class="nav-text">获取某个节点的所有子节点路径</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#事务"><span class="nav-number">3.7.</span> <span class="nav-text">事务</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#缓存"><span class="nav-number">4.</span> <span class="nav-text">缓存</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Node-Cache"><span class="nav-number">4.1.</span> <span class="nav-text">Node Cache</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Tree-Cache"><span class="nav-number">4.2.</span> <span class="nav-text">Tree Cache</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Leader选举"><span class="nav-number">5.</span> <span class="nav-text">Leader选举</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#LeaderLatch"><span class="nav-number">5.1.</span> <span class="nav-text">LeaderLatch</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#LeaderSelector"><span class="nav-number">5.2.</span> <span class="nav-text">LeaderSelector</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分布式锁"><span class="nav-number">6.</span> <span class="nav-text">分布式锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#可重入共享锁—Shared-Reentrant-Lock"><span class="nav-number">6.1.</span> <span class="nav-text">可重入共享锁—Shared Reentrant Lock</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#不可重入共享锁—Shared-Lock"><span class="nav-number">6.2.</span> <span class="nav-text">不可重入共享锁—Shared Lock</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#可重入读写锁—Shared-Reentrant-Read-Write-Lock"><span class="nav-number">6.3.</span> <span class="nav-text">可重入读写锁—Shared Reentrant Read Write Lock</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#信号量—Shared-Semaphore"><span class="nav-number">6.4.</span> <span class="nav-text">信号量—Shared Semaphore</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#多共享锁对象-—Multi-Shared-Lock"><span class="nav-number">6.5.</span> <span class="nav-text">多共享锁对象 —Multi Shared Lock</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#共享-shared"><span class="nav-number">7.</span> <span class="nav-text">共享 shared</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#共享计数—SharedCount"><span class="nav-number">7.1.</span> <span class="nav-text">共享计数—SharedCount</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分布式原子类-atomic"><span class="nav-number">8.</span> <span class="nav-text">分布式原子类-atomic</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#DistributedAtomicLong"><span class="nav-number">8.1.</span> <span class="nav-text">DistributedAtomicLong</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分布式屏障—Barrier"><span class="nav-number">9.</span> <span class="nav-text">分布式屏障—Barrier</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#DistributedBarrier"><span class="nav-number">9.1.</span> <span class="nav-text">DistributedBarrier</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#双栅栏—DistributedDoubleBarrier"><span class="nav-number">9.2.</span> <span class="nav-text">双栅栏—DistributedDoubleBarrier</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="陈添明"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">陈添明</p>
+  <div class="site-description" itemprop="description">生命的意义在于成为你自己</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">46</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈添明</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">296k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">12:20</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+  <script src="//cdn.jsdelivr.net/npm/quicklink@1/dist/quicklink.umd.js"></script>
+  <script>
+      window.addEventListener('load', () => {
+      quicklink({
+        timeout : 3000,
+        priority: true,
+        ignores : [uri => uri.includes('#'),uri => uri === 'https://chentianming11.github.io/posts/3807816107/',]
+      });
+      });
+  </script>
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : 'SoPxUkme2aynTULaNuIc5TIq-gzGzoHsz',
+      appKey     : '4TDP7SMCbgDKTOGGUtpIeA0H',
+      placeholder: "留下点足迹吧~",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"chentianming11.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":{"enable":true,"onlypost":false,"loadingImg":"/uploads/loading.gif"},"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Spring MVC是当前web应用使用最为广泛的框架，本文将会从源码角度详细分析Spring MVC实现原理。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring源码阅读-MVC实现原理">
+<meta property="og:url" content="https://chentianming11.github.io/posts/3374948667/index.html">
+<meta property="og:site_name" content="陈添明">
+<meta property="og:description" content="Spring MVC是当前web应用使用最为广泛的框架，本文将会从源码角度详细分析Spring MVC实现原理。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/mvc/mvc-all.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/DispatcherServlet.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/HttpServletBean-init.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/FrameworkServlet-initServletBean.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/FrameworkServlet-initWebApplicationContext.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/FrameworkServlet-configureAndRefreshWebApplicationContext.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AbstractApplicationContext-refresh.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/AbstractApplicationContext-refresh2.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/ioc/DispatcherServlet-onRefresh.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/mvc/DispatcherServlet-doDispatch.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/mvc/DispatcherServlet-getHandler.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/mvc/RequestMappingHandlerMapping.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/mvc/AbstractHandlerMethodMapping-initHandlerMethods.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/mvc/AbstractHandlerMapping-getHandler.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/mvc/AbstractHandlerMapping-getHandlerExecutionChain.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/mvc/RequestMappingHandlerAdapter-handleInternal.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/mvc/RequestMappingHandlerAdapter-invokeHandlerMethod.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/mvc/ServletInvocableHandlerMethod-invokeAndHandle.png">
+<meta property="og:image" content="https://chentianming11.github.io/images/spring/mvc/RequestResponseBodyMethodProcessor-handleReturnValue.png">
+<meta property="article:published_time" content="2021-07-03T03:03:52.000Z">
+<meta property="article:modified_time" content="2021-07-03T08:56:28.692Z">
+<meta property="article:author" content="陈添明">
+<meta property="article:tag" content="spring">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://chentianming11.github.io/images/spring/mvc/mvc-all.png">
+
+<link rel="canonical" href="https://chentianming11.github.io/posts/3374948667/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Spring源码阅读-MVC实现原理 | 陈添明</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">陈添明</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">心安即是归处</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">46</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/chentianming11" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://chentianming11.github.io/posts/3374948667/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="陈添明">
+      <meta itemprop="description" content="生命的意义在于成为你自己">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="陈添明">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spring源码阅读-MVC实现原理
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-07-03 11:03:52" itemprop="dateCreated datePublished" datetime="2021-07-03T11:03:52+08:00">2021-07-03</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/" itemprop="url" rel="index"><span itemprop="name">spring</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/posts/3374948667/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/3374948667/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>14 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Spring MVC是当前web应用使用最为广泛的框架，本文将会从源码角度详细分析Spring MVC实现原理。</p>
+<a id="more"></a>
+
+<h2 id="Spring-MVC基本流程"><a href="#Spring-MVC基本流程" class="headerlink" title="Spring MVC基本流程"></a>Spring MVC基本流程</h2><p>在具体讲解之前，我们先从宏观上简单介绍Spring MVC的处理流程，了解用户从发起请求到获得响应的完整流程。</p>
+<p><img data-src="https://chentianming11.github.io/images/spring/mvc/mvc-all.png" alt="mvc-all"></p>
+<p>流程简介：</p>
+<ol>
+<li><p>用户发起请求到<code>DispatcherServlet</code>（前端控制器）</p>
+</li>
+<li><p><code>DispatcherServlet</code>通过<code>HandlerMapping</code>（处理映射器）寻找用户要请求的<code>Handler</code></p>
+</li>
+<li><p><code>HandlerMapping</code>返回执行链，包含两部分内容：</p>
+<ol>
+<li>处理器对象：<code>Handler</code></li>
+<li><code>HandlerInterceptor</code>（拦截器）的集合</li>
+</ol>
+</li>
+<li><p>前端控制器通过<code>HandlerAdapter</code>（处理器适配器）对<code>Handler</code>进行适配包装</p>
+</li>
+<li><p>调用包装后的<code>Handler</code>中的方法，处理业务</p>
+</li>
+<li><p>处理业务完成，返回<code>ModelAndView</code>对象，包含两部分</p>
+<ol>
+<li><code>Model</code>：模型数据</li>
+<li><code>View</code>：视图名称，不是真正的视图</li>
+</ol>
+</li>
+<li><p><code>DispatcherServlet</code>获取处理得到的<code>ModelAndView</code>对象</p>
+</li>
+<li><p><code>DispatcherServlet</code>将视图名称交给<code>ViewResolver</code>（视图解析器），查找视图</p>
+</li>
+<li><p><code>ViewResolver</code>返回真正的视图对象给<code>DispatcherServlet</code></p>
+</li>
+<li><p><code>DispatcherServlet</code>把<code>Model</code>（数据模型）交给视图对象进行渲染</p>
+</li>
+<li><p>返回渲染后的视图</p>
+</li>
+<li><p>将最终的视图返回用户，产生响应</p>
+</li>
+</ol>
+<h2 id="Spring-MVC九大组件"><a href="#Spring-MVC九大组件" class="headerlink" title="Spring MVC九大组件"></a>Spring MVC九大组件</h2><h3 id="HandlerMapping"><a href="#HandlerMapping" class="headerlink" title="HandlerMapping"></a>HandlerMapping</h3><p><code>HandlerMapping</code>是用来查找<code>Handler</code>的，也就是处理器，具体表现形式可以是类也 可以是方法。比如，标注了<code>@RequestMapping</code>的每个<code>method</code>都可以看成是一个<code>Handler</code>，由<code>Handler</code>来负责实际的请求处理。<code>HandlerMapping</code>在请求到达之后， 它的作用便是找到请求相应的处理器<code>Handler</code>和<code>Interceptors</code>。</p>
+<h3 id="HandlerAdapter"><a href="#HandlerAdapter" class="headerlink" title="HandlerAdapter"></a>HandlerAdapter</h3><p>从名字上看，这是一个适配器。因为Spring MVC中<code>Handler</code>可以是任意形式的，只要能够处理请求就行。但是把请求交给 <code>Servlet</code>的时候，由于<code>Servlet</code>的方法结构都是如<code>doService(HttpServletRequest req, HttpServletResponse resp)</code>这样的形式，让固定的<code>Servlet</code>处理方法调用<code>Handler</code>来进行处理，这一步工作便是<code>HandlerAdapter</code>要做的事。</p>
+<h3 id="HandlerExceptionResolver"><a href="#HandlerExceptionResolver" class="headerlink" title="HandlerExceptionResolver"></a>HandlerExceptionResolver</h3><p>从这个组件的名字上看，这个就是用来处理<code>Handler</code>过程中产生的异常情况的组件。 具体来说，此组件的作用是根据异常设置 <code>ModelAndView</code>, 之后再交给<code>render()</code>方法进行渲染，而<code>render()</code>便将<code>ModelAndView</code>渲染成页面。 不过有一点，<code>HandlerExceptionResolver</code>只是用于解析对请求做处理阶段产生的异常，而渲染阶段的异常则不归他管了，这也是Spring MVC组件设计的一大原则（分工明确互不干涉）。</p>
+<h3 id="ViewResolver"><a href="#ViewResolver" class="headerlink" title="ViewResolver"></a>ViewResolver</h3><p>视图解析器，相信大家对这个应该都很熟悉了。因为通常在Spring MVC的配置文件中， 都会配上一个该接口的实现类来进行视图的解析。 这个组件的主要作用，便是将<code>String</code>类型的视图名和<code>Locale</code>解析为<code>View</code>类型的视图。这个接口只有一个 <code>resolveViewName()</code>方法。从方法的定义就可以看出，<code>Controller</code>层返回的<code>String</code>类型的视图名<code>viewName</code>， 最终会在这里被解析成为<code>View</code>。<code>View</code>是用来渲染页面的，也就是说，它会将程序返回的参数和数据填入模板中，最终生成<code>html</code>文件。<code>ViewResolver</code>在这个过程中，主要做两件大事，即<code>ViewResolver</code>会找到渲染所用的模板(使用什么模板来渲染?)和所用 的技术(其实也就是视图的类型，如 JSP等)填入参数。默认情 况下，Spring MVC 会为我们自动配置一个 <code>InternalResourceViewResolver</code>，这个是针 对 JSP 类型视图的。</p>
+<h3 id="RequestToViewNameTranslator"><a href="#RequestToViewNameTranslator" class="headerlink" title="RequestToViewNameTranslator"></a>RequestToViewNameTranslator</h3><p>这个组件的作用，在于从<code>Request</code>中获取<code>viewName</code>. 因为<code>ViewResolver</code>是根据<code>ViewName</code>查找<code>View</code>, 但有的 <code>Handler</code>处理完成之后，没有设置<code>View</code>也没有设置<code>ViewName</code>， 便要通过这个组件来从<code>Request</code>中查找<code>viewName</code>。</p>
+<h3 id="LocaleResolver"><a href="#LocaleResolver" class="headerlink" title="LocaleResolver"></a>LocaleResolver</h3><p>在上面我们有看到<code>ViewResolver</code>的<code>resolveViewName()</code>方法，需要两个参数。那么第二个参数<code>Locale</code>是从哪来的呢，这就是<code>LocaleResolver</code>要做的事了。 <code>LocaleResolver</code>用于从<code>request</code>中解析出<code>Locale</code>, 在中国大陆地区，<code>Locale</code>当然就会是<code>zh-CN</code>之类， 用来表示一个区域。这个类也是<code>i18n</code>的基础。</p>
+<h3 id="ThemeResolver"><a href="#ThemeResolver" class="headerlink" title="ThemeResolver"></a>ThemeResolver</h3><p>从名字便可看出，这个类是用来解析主题的。主题就是样式，图片以及它们所形成的显示效果的集合。</p>
+<h3 id="MultipartResolver"><a href="#MultipartResolver" class="headerlink" title="MultipartResolver"></a>MultipartResolver</h3><p>其实这是一个大家很熟悉的组件，<code>MultipartResolver</code>用于处理上传请求，通过将普通的<code>Request</code>包装成 <code>MultipartHttpServletRequest</code>来实现。<code>MultipartHttpServletRequest</code>可以通过<code>getFile()</code>直接获得文件，如果是多个文件上传，还可以通过调用<code>getFileMap</code>得到<code>Map</code>这样的结构。<code>MultipartResolver</code>的作用就是用来封装普通 的<code>request</code>，使其拥有处理文件上传的功能。</p>
+<h3 id="FlashMapManager"><a href="#FlashMapManager" class="headerlink" title="FlashMapManager"></a>FlashMapManager</h3><p><code>FlashMap</code>用于重定向<code>Redirect</code>时的参数数据传递, 只需要在<code>redirect</code>之前，将要传递的数据写入<code>request</code>(可以通过 <code>ServletRequestAttributes.getRequest()</code> 获得) 的属性<code>OUTPUT_FLASH_MAP_ATTRIBUTE</code>中，这样在 <code>redirect</code>之后的<code>handler</code>中，Spring就会自动将其设置到<code>Model</code>中，后续就可以直接从<code>Model</code>中取得数据了。而 <code>FlashMapManager</code>就是用来管理<code>FlashMap</code>的。</p>
+<h2 id="Spring-MVC源码分析"><a href="#Spring-MVC源码分析" class="headerlink" title="Spring MVC源码分析"></a>Spring MVC源码分析</h2><h3 id="初始化阶段"><a href="#初始化阶段" class="headerlink" title="初始化阶段"></a>初始化阶段</h3><p>对于Spring-MVC来说，最核心的类是<code>DispatcherServlet</code>，它负责将请求转发给各个<code>Controller</code>进行处理。类图如下：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/DispatcherServlet.png" alt="DispatcherServlet"></p>
+<p>通过类图可以发现，<code>DispatcherServlet</code>实际上最终继承了<code>HttpServlet</code>，而<code>HttpServlet</code>是web容器启动的核心类，它有一个<code>init()</code>方法来做一些初始化操作。在<code>HttpServletBean</code>重写了<code>init()</code>，具体代码如下：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/HttpServletBean-init.png" alt="HttpServletBean-init"></p>
+<p>可以看到，在<code>init()</code>方法中，真正完成初始化容器动作的逻辑其实在<code>initServletBean()</code>方法中，而该方法的具体实现在其子类<code>FrameworkServlet</code>中。<br><img data-src="https://chentianming11.github.io/images/spring/ioc/FrameworkServlet-initServletBean.png" alt="FrameworkServlet-initServletBean"></p>
+<p>从上面的代码可以明显看出，真正初始化web IoC容器是在<code>initWebApplicationContext()</code>方法中实现的。具体代码如下：<br><img data-src="https://chentianming11.github.io/images/spring/ioc/FrameworkServlet-initWebApplicationContext.png" alt="FrameworkServlet-initWebApplicationContext"></p>
+<p><img data-src="https://chentianming11.github.io/images/spring/ioc/FrameworkServlet-configureAndRefreshWebApplicationContext.png" alt="FrameworkServlet-configureAndRefreshWebApplicationContext"></p>
+<p>在这个方法中，建立了父子容器的关联关系，并最终调用了<code>configureAndRefreshWebApplicationContext(cwac)</code>方法来初始化IoC容器。方法最终调用了<code>AbstractApplicationContext</code>的<code>refresh()</code>方法。</p>
+<blockquote>
+<p>父容器（Root WebApplicationContext）：对三层架构中的service层、dao层进行配置，如业务bean，数据源(DataSource)等。通常情况下，配置文件的名称为applicationContext.xml。在web应用中，其一般通过ContextLoaderListener来加载。</p>
+</blockquote>
+<blockquote>
+<p>子容器（Servlet WebApplicationContext）：对三层架构中的web层进行配置，如控制器(controller)、视图解析器(view resolvers)等相关的bean。通过spring mvc中提供的DispatchServlet来加载配置，通常情况下，配置文件的名称为spring-servlet.xml。</p>
+</blockquote>
+<blockquote>
+<p>更多父子容器介绍可参考<a href="https://www.cnblogs.com/grasp/p/11042580.html" target="_blank" rel="noopener">spring和springmvc父子容器概念介绍</a>。</p>
+</blockquote>
+<p><img data-src="https://chentianming11.github.io/images/spring/ioc/AbstractApplicationContext-refresh.png" alt="AbstractApplicationContext-refresh"></p>
+<p><img data-src="https://chentianming11.github.io/images/spring/ioc/AbstractApplicationContext-refresh2.png" alt="AbstractApplicationContext-refresh2"></p>
+<p>IoC容器初始化以后，最后调用了 <code>DispatcherServlet</code>的<code>onRefresh()</code>方法，在<code>onRefresh()</code>方法中又是直接调用 <code>initStrategies()</code>方法初始化 SpringMVC 的九大组件。<br><img data-src="https://chentianming11.github.io/images/spring/ioc/DispatcherServlet-onRefresh.png" alt="DispatcherServlet-onRefresh"></p>
+<h3 id="运行调用阶段"><a href="#运行调用阶段" class="headerlink" title="运行调用阶段"></a>运行调用阶段</h3><p>当前置的初始化完成之后，Spring MVC就可以接受并处理请求了。下面，我们从发起一个请求为例，详细介绍其执行过程。对于Spring MVC而言，所有请求都会经过<code>DispatcherServlet</code>的<code>doService()</code>方法。而<code>doService()</code>中的核心逻辑由 <code>doDispatch()</code>实现，源代码如下:<br><img data-src="https://chentianming11.github.io/images/spring/mvc/DispatcherServlet-doDispatch.png" alt="DispatcherServlet-doDispatch"></p>
+<p>从源码可以看出，请求处理的核心步骤如下：</p>
+<ol>
+<li>确定当前请求的处理器</li>
+<li>获取当前请求的处理适配器</li>
+<li>拦截器前置处理</li>
+<li>真正调用处理器</li>
+<li>拦截器后置处理</li>
+</ol>
+<p>下面我们一个一个步骤进行分析。</p>
+<h4 id="确定当前请求的处理器"><a href="#确定当前请求的处理器" class="headerlink" title="确定当前请求的处理器"></a>确定当前请求的处理器</h4><p><code>getHandler(HttpServletRequest request)</code>源码如下：<br><img data-src="https://chentianming11.github.io/images/spring/mvc/DispatcherServlet-getHandler.png" alt="DispatcherServlet-getHandler"></p>
+<p>从源码可以看出，直接遍历<code>handlerMappings</code>，第一个匹配中的<code>HandlerMapping</code>对象，再从<code>HandlerMapping</code>对象获取处理器。因此问题的关键就是<code>handlerMappings</code>有哪些？它们在实例化的时候又做了哪些准备。</p>
+<p>我们知道，在初始化阶段会初始化九大组件，其中就有<code>HandlerMapping</code>。也就是在这个时刻，<code>handlerMappings</code>准备好了。<code>HandlerMapping</code>是一个接口，它有很多个实现，但在实际应用中，我们更常见的是<code>RequestMappingHandlerMapping</code>。下面我们就以<code>RequestMappingHandlerMapping</code>为例进行分析，其类图如下：<br><img data-src="https://chentianming11.github.io/images/spring/mvc/RequestMappingHandlerMapping.png" alt="RequestMappingHandlerMapping"></p>
+<p><code>RequestMappingHandlerMapping</code>本身也是Spring容器的一个<code>Bean</code>实例。从类图中可以看到，其抽象父类实现了<code>AbstractHandlerMethodMapping</code>实现了<code>InitializingBean</code>接口，因此可以肯定在它的<code>afterPropertiesSet()</code>实现中做了一些初始化处理。<br><img data-src="https://chentianming11.github.io/images/spring/mvc/AbstractHandlerMethodMapping-initHandlerMethods.png" alt="AbstractHandlerMethodMapping-initHandlerMethods"></p>
+<p>在<code>detectHandlerMethods(beanName)</code>方法中实现了检测并注册处理器方法的方逻辑。在这里，<strong>建立了<code>url</code>和<code>handler</code>人以及<code>method</code>的映射关系</strong>。</p>
+<p>继续回到<code>HandlerMapping</code>，在匹配到<code>HandlerMapping</code>，调用了它的<code>getHandler()</code>方法，具体实现在它的抽象父类<code>AbstractHandlerMapping</code>中，源码如下：<br><img data-src="https://chentianming11.github.io/images/spring/mvc/AbstractHandlerMapping-getHandler.png" alt="AbstractHandlerMapping-getHandler"></p>
+<p>可以看到，最关键的步骤有2个：</p>
+<ol>
+<li>第一步是根据<code>request</code>查找出具体的<code>Handler</code>（这里实际上是方法法处理器），这个很好理解。简单来说就是根据url查找前面注册好的<code>Method</code>和<code>Handler</code>(这里是指<code>Controller</code>实例)，并包装成<code>HandlerMethod</code>返回。</li>
+<li>第二步就是根据<code>request</code>查找对应的拦截器实例，并将处理器、拦截器包装成处理器执行链<code>HandlerExecutionChain</code>返回。</li>
+</ol>
+<p><img data-src="https://chentianming11.github.io/images/spring/mvc/AbstractHandlerMapping-getHandlerExecutionChain.png" alt="AbstractHandlerMapping-getHandlerExecutionChain"></p>
+<p><strong>至此，已经确定了当前请求的处理器，它包含了方法处理器以及拦截器链</strong>。</p>
+<h4 id="获取当前请求的处理适配器"><a href="#获取当前请求的处理适配器" class="headerlink" title="获取当前请求的处理适配器"></a>获取当前请求的处理适配器</h4><p>获取处理<code>request</code>的处理器适配器<code>handler adapter</code>。对于本例来说获取的是<code>RequestMappingHandlerAdapter</code>，不做过多赘述。</p>
+<h4 id="拦截器前置处理"><a href="#拦截器前置处理" class="headerlink" title="拦截器前置处理"></a>拦截器前置处理</h4><p>执行拦截器<code>HandlerInterceptor</code>的前置处理方法<code>preHandle()</code>。</p>
+<h4 id="真正调用处理器"><a href="#真正调用处理器" class="headerlink" title="真正调用处理器"></a>真正调用处理器</h4><p>执行调用适配器<code>AbstractHandlerMethodAdapter</code>的<code>handle()</code>方法，进行真正的调用逻辑处理，该方法直接调用了子类的<code>handleInternal()</code>方法。<br><img data-src="https://chentianming11.github.io/images/spring/mvc/RequestMappingHandlerAdapter-handleInternal.png" alt="RequestMappingHandlerAdapter-handleInternal"></p>
+<p>可以看到，最关键的是调用了<code>invokeHandlerMethod()</code>方法。<br><img data-src="https://chentianming11.github.io/images/spring/mvc/RequestMappingHandlerAdapter-invokeHandlerMethod.png" alt="RequestMappingHandlerAdapter-invokeHandlerMethod"></p>
+<p>在<code>invocableMethod.invokeAndHandle()</code>中完成了<code>Request</code>中的参数和方法参数上数据的绑定。Spring MVC中提供两种<code>Request</code>参数到方法中参数的绑定方式:通过注解<code>@RequestParam</code>进行绑定、通过参数名称进行绑定。</p>
+<p>使用注解进行绑定，我们只要在方法参数前面声明<code>@RequestParam(&quot;name&quot;)</code>，就可以 将<code>request</code>中参数<code>name</code>的值绑定到方法的该参数上。<strong>使用参数名称进行绑定的前提是必须要获取方法中参数的名称</strong>。Spring基于ASM技术实现了运行时获取参数的实现。</p>
+<p><img data-src="https://chentianming11.github.io/images/spring/mvc/ServletInvocableHandlerMethod-invokeAndHandle.png" alt="ServletInvocableHandlerMethod-invokeAndHandle"></p>
+<p>到这里,方法的参数值列表也获取到了,方法反射调用也结束了，并且方法返回值也拿到了。后面就需要对返回结果进行处理了，继续跟进<code>handleReturnValue()</code>方法，对于常见的<code>json</code>响应体返回，实际调用了<code>RequestResponseBodyMethodProcessor</code>的实现方法：<br><img data-src="https://chentianming11.github.io/images/spring/mvc/RequestResponseBodyMethodProcessor-handleReturnValue.png" alt="RequestResponseBodyMethodProcessor-handleReturnValue"></p>
+<p>这里根据实际的消息转换器，将方法返回值写入到response中，在执行完后续操作之后，直接将结果输出。</p>
+<h4 id="拦截器后置处理"><a href="#拦截器后置处理" class="headerlink" title="拦截器后置处理"></a>拦截器后置处理</h4><p>执行拦截器<code>HandlerInterceptor</code>的后置处理方法<code>postHandle()</code>。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>总的来说，Spring MVC做的事情还是比较清晰的，在初始化阶段，主要会建立请求url与执行实例和执行方法的映射关系。在调用阶段，根据前面的映射关系，找到对应的方法执行，并将返回结果写入<code>response</code>中。当然，在这个过程中，为了解决各种复杂性的问题，引入了非常的设计来应对。但我们只要理解其核心实现即可，过于细节的内容可以先不管。</p>
+<blockquote>
+<p>原创不易，觉得文章写得不错的小伙伴，点个赞👍 鼓励一下吧~</p>
+</blockquote>
+<blockquote>
+<p>欢迎关注我的开源项目：<a href="https://github.com/LianjiaTech/retrofit-spring-boot-starter" target="_blank" rel="noopener">一款适用于SpringBoot的轻量级HTTP调用框架</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/spring/" rel="tag"># spring</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/656110749/" rel="prev" title="【Spring源码阅读】AOP实现原理">
+      <i class="fa fa-chevron-left"></i> 【Spring源码阅读】AOP实现原理
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Spring-MVC基本流程"><span class="nav-number">1.</span> <span class="nav-text">Spring MVC基本流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Spring-MVC九大组件"><span class="nav-number">2.</span> <span class="nav-text">Spring MVC九大组件</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#HandlerMapping"><span class="nav-number">2.1.</span> <span class="nav-text">HandlerMapping</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#HandlerAdapter"><span class="nav-number">2.2.</span> <span class="nav-text">HandlerAdapter</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#HandlerExceptionResolver"><span class="nav-number">2.3.</span> <span class="nav-text">HandlerExceptionResolver</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ViewResolver"><span class="nav-number">2.4.</span> <span class="nav-text">ViewResolver</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RequestToViewNameTranslator"><span class="nav-number">2.5.</span> <span class="nav-text">RequestToViewNameTranslator</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#LocaleResolver"><span class="nav-number">2.6.</span> <span class="nav-text">LocaleResolver</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ThemeResolver"><span class="nav-number">2.7.</span> <span class="nav-text">ThemeResolver</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MultipartResolver"><span class="nav-number">2.8.</span> <span class="nav-text">MultipartResolver</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#FlashMapManager"><span class="nav-number">2.9.</span> <span class="nav-text">FlashMapManager</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Spring-MVC源码分析"><span class="nav-number">3.</span> <span class="nav-text">Spring MVC源码分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#初始化阶段"><span class="nav-number">3.1.</span> <span class="nav-text">初始化阶段</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#运行调用阶段"><span class="nav-number">3.2.</span> <span class="nav-text">运行调用阶段</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#确定当前请求的处理器"><span class="nav-number">3.2.1.</span> <span class="nav-text">确定当前请求的处理器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#获取当前请求的处理适配器"><span class="nav-number">3.2.2.</span> <span class="nav-text">获取当前请求的处理适配器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#拦截器前置处理"><span class="nav-number">3.2.3.</span> <span class="nav-text">拦截器前置处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#真正调用处理器"><span class="nav-number">3.2.4.</span> <span class="nav-text">真正调用处理器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#拦截器后置处理"><span class="nav-number">3.2.5.</span> <span class="nav-text">拦截器后置处理</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="陈添明"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">陈添明</p>
+  <div class="site-description" itemprop="description">生命的意义在于成为你自己</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">46</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈添明</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">296k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">12:20</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+  <script src="//cdn.jsdelivr.net/npm/quicklink@1/dist/quicklink.umd.js"></script>
+  <script>
+      window.addEventListener('load', () => {
+      quicklink({
+        timeout : 3000,
+        priority: true,
+        ignores : [uri => uri.includes('#'),uri => uri === 'https://chentianming11.github.io/posts/3374948667/',]
+      });
+      });
+  </script>
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : 'SoPxUkme2aynTULaNuIc5TIq-gzGzoHsz',
+      appKey     : '4TDP7SMCbgDKTOGGUtpIeA0H',
+      placeholder: "留下点足迹吧~",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+    </div>
+</body>
+</html>
