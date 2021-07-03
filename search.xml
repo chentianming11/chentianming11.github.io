@@ -5037,7 +5037,7 @@
       </tags>
   </entry>
   <entry>
-    <title>Spring源码阅读-MVC实现原理</title>
+    <title>【Spring源码阅读】MVC实现原理</title>
     <url>/posts/3374948667/</url>
     <content><![CDATA[<p>Spring MVC是当前web应用使用最为广泛的框架，本文将会从源码角度详细分析Spring MVC实现原理。</p>
 <a id="more"></a>
